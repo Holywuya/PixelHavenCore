@@ -1,0 +1,9 @@
+This project is distributed under the GNU General Public License v3.0.
+
+Portions of optimization concepts are inspired by:
+- LagFixer (GPL-3.0)
+- ESU (LGPL-3.0)
+
+This project does not include their source code directly. If you integrate
+code from those projects, ensure you preserve their copyright notices and
+license terms.

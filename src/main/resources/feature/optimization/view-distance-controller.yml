@@ -1,0 +1,49 @@
+# =============================================================================
+# 视野距离控制器配置
+# =============================================================================
+enabled: true
+
+# 设置视野距离是否也设置模拟距离
+syncSimulationDistance: true
+
+# 新玩家的默认设置
+defaultDistance: 10
+minDistance: 2
+maxDistance: 32
+
+# 将玩家偏好设置保存到数据库
+savePlayerData: true
+
+# 加入消息
+displayOnJoin: true
+displayJoinMessage: "&7视野距离设置为 &f{distance}&7。"
+
+afk:
+  enabled: true
+  afkOnJoin: false
+  seconds: 60
+  distance: 2
+  spectatorsCanAfk: true
+  bypassPermission: "phcore.vdc.afk.bypass"
+
+dynamic:
+  enabled: false
+  intervalTicks: 1200
+  min: 2
+  max: 32
+  bypassPermission: "phcore.vdc.dynamic.bypass"
+  mspt:
+    "45": 1
+    "50": 2
+    "55": 4
+
+ping:
+  enabled: false
+  intervalTicks: 600
+  min: 2
+  max: 32
+  togglePermission: "phcore.vdc.ping.toggle"
+  values:
+    "150": 2
+    "300": 3
+    "400": 5

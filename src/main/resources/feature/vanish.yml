@@ -1,0 +1,34 @@
+# =============================================================================
+# 隐身模块配置 (Vanish Module)
+# =============================================================================
+
+# 功能开关
+enabled: true
+
+# 消息配置
+messages:
+  # 自己隐身时收到的提示
+  vanishOn: "&8[隐身] &7你已进入隐身模式。"
+  # 自己取消隐身时收到的提示
+  vanishOff: "&8[隐身] &7你已退出隐身模式。"
+  # 管理员通知（发送给有 phcore.vanish.notify 权限的在线玩家）
+  adminNotifyOn: "&8[隐身] &7{player} &f已隐身。"
+  adminNotifyOff: "&8[隐身] &7{player} &f已现身。"
+  # 无权限提示
+  noPermission: "&c你没有权限执行该指令。"
+  # 目标玩家不在线
+  playerNotFound: "&c找不到玩家 &7{player}&c。"
+  # /vanish-show 已显示
+  showPlayer: "&8[隐身] &7{player} &f现在对你可见。"
+  # /vanish-show --all 已全显示
+  showAll: "&8[隐身] &7已显示所有普通隐身玩家。"
+  # 没有任何隐身玩家
+  noVanishedPlayers: "&7当前没有隐身玩家。"
+
+# 伪造退出/进入消息（隐身玩家进服/离服时对其他人广播假消息，留空则不广播）
+fakeMessages:
+  # 隐身玩家进服时，是否发送假的退出消息（让人以为他们离线了）
+  joinSendFakeQuit: true
+  fakeQuitFormat: "&e{player} &7离开了游戏"
+  # 隐身玩家离服时，是否不发送任何消息（静默离线）
+  quitSilent: true

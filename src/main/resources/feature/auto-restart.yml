@@ -1,0 +1,32 @@
+# Auto Restart 自动重启配置文件
+# 服务器自动重启管理模块
+
+# 是否启用模块
+enabled: true
+
+# 自动重启设置
+auto-restart:
+  # 自动重启间隔（分钟）
+  interval-minutes: 360  # 6小时
+  # 重启前通知时间（分钟）
+  warning-minutes: [60, 30, 15, 5, 1]
+
+# 重启设置
+restart:
+  # 重启命令（stop = 正常关闭服务器，其他命令会通过控制台执行）
+  command: "stop"
+  # 是否在重启前踢出所有玩家
+  kick-players: true
+
+# 消息设置
+messages:
+  # 重启警告消息（{time}会被替换为剩余分钟数）
+  warning: "&c[服务器重启] &f服务器将在 &e{time} &f分钟后自动重启！"
+  # 重启中消息
+  restarting: "&c[服务器重启] &f服务器正在重启..."
+  # 重启取消消息
+  cancelled: "&c[服务器重启] &f自动重启已被取消！"
+  # 强制重启消息
+  forced: "&c[服务器重启] &f管理员强制重启服务器..."
+  # 踢出玩家的消息
+  kick: "&c服务器正在重启，请稍后再来！"

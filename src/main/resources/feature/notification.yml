@@ -1,0 +1,83 @@
+# =============================================================================
+# 服务器通知模块配置文件
+# =============================================================================
+# 功能总开关
+enabled: true
+
+# 自动通知配置
+autoNotifications:
+  # 是否启用自动通知
+  enabled: true
+
+  # 自动通知间隔（格式：数字+单位，单位：s=秒, m=分钟, h=小时, d=天）
+  # 例如：30s = 30秒，5m = 5分钟，1h = 1小时，1d = 1天
+  interval: "5m"
+
+  # 自动通知消息列表（随机选择）
+  messages:
+    - "&6[服务器通知] &7欢迎来到我们的服务器！"
+    - "&6[服务器通知] &7请遵守服务器规则，祝您游戏愉快！"
+    - "&6[服务器通知] &7需要帮助？输入 &b/help &7查看指令列表"
+    - "&6[服务器通知] &7服务器重启时间：每天早上6:00"
+    - "&6[服务器通知] &7加入我们的Discord社区获取更多信息！"
+
+# 管理员通知配置
+adminNotifications:
+  # 是否启用管理员手动通知
+  enabled: true
+
+  # 发送管理员通知的权限节点
+  permission: "phcore.notify.admin"
+
+  # 无权限时的提示消息
+  noPermissionMessage: "&c你没有权限发送服务器通知！"
+
+  # 通知格式
+  # {player} - 发送通知的管理员名称
+  # {message} - 通知内容
+  format: "&c[管理员通知] &f{message}"
+
+  # 通知发送范围
+  # ALL - 全服广播
+  # WORLD - 当前世界
+  # RADIUS - 指定半径范围
+  scope: "ALL"
+
+  # 当scope为RADIUS时的半径（方块）
+  radius: 50
+
+# 特殊事件通知配置
+eventNotifications:
+  # 玩家加入通知
+  playerJoin:
+    enabled: true
+    format: "&7欢迎 &b{player} &7加入服务器！当前在线玩家：&a{online}"
+
+  # 玩家离开通知
+  playerQuit:
+    enabled: true
+    format: "&7玩家 &b{player} &7离开了服务器"
+
+  # 服务器重启警告通知
+  serverRestart:
+    enabled: true
+    # 重启前几分钟开始警告
+    warningMinutes: [60, 30, 15, 5, 1]
+    format: "&c[警告] &7服务器将在 &b{minutes} &7分钟后重启！"
+
+# 消息配置
+messages:
+  # 自动通知开关消息
+  autoEnabled: "&a自动通知已启用"
+  autoDisabled: "&c自动通知已禁用"
+  autoStatus: "&7自动通知状态：&b{status}"
+
+  # 管理员通知发送成功消息
+  adminSent: "&a通知已发送给所有玩家"
+  adminSentWorld: "&a通知已发送给当前世界玩家"
+  adminSentRadius: "&a通知已发送给半径 &b{radius} &a范围内的玩家"
+
+  # 错误消息
+  invalidTime: "&c无效的时间格式！请使用：数字+单位（如：30s, 5m, 1h, 1d）"
+  noMessage: "&c请提供要发送的通知内容！"
+  reloadSuccess: "&a服务器通知模块配置已重载"

@@ -1,0 +1,89 @@
+# =============================================================================
+# 聊天增强配置文件
+# =============================================================================
+# 控制聊天功能的总开关
+enabled: true
+
+# 聊天格式
+# {world} - 世界名称
+# {player} - 玩家名称
+# {message} - 消息内容
+format: "&7[{world}] &f{player}: &r{message}"
+
+# 是否允许玩家在聊天中使用颜色代码
+allowColor: false
+
+# 使用颜色代码的权限节点
+colorPermission: "phcore.chat.color"
+
+# 是否使用PlaceholderAPI占位符（需要安装PlaceholderAPI插件）
+usePlaceholder: true
+
+# @提及功能配置
+mention:
+  # 是否启用@提及功能
+  enabled: true
+
+  # @提及时的名称格式
+  format: "&b@{player}&r"
+
+  # 被提及时的通知消息（发送给被提及者）
+  notifyMessage: "&e你被 {sender} 提及了: {message}"
+
+  # 被提及时的动作栏提示
+  actionBar: "&e被 {sender} 提及"
+
+  # 被提及时显示标题
+  title:
+    # 是否启用标题提示
+    enabled: false
+    # 标题文本
+    title: "&e你被 {sender} 提及"
+    # 副标题文本
+    subtitle: "{message}"
+    # 标题淡入/停留/淡出（单位：tick）
+    fadeIn: 10
+    stay: 40
+    fadeOut: 10
+
+  # 模糊匹配设置（支持输入 @est 匹配 Ester）
+  fuzzy:
+    # 是否启用模糊匹配
+    enabled: true
+    # 最短匹配长度
+    minLength: 3
+    # 是否仅前缀匹配（true=前缀匹配，false=包含匹配）
+    prefixMatch: true
+
+  # 开关提示消息
+  toggle:
+    # 开启时的消息
+    onMessage: "&7你将开始接收@提及通知。"
+    # 关闭时的消息
+    offMessage: "&7你将不再接收@提及通知。"
+
+  # @所有人功能配置
+  all:
+    # 是否启用@所有人功能
+    enabled: true
+
+    # 使用@所有人需要的权限
+    permission: "phcore.chat.mention.all"
+
+    # @所有人时的名称格式
+    format: "&c@ALL&r"
+
+    # 使用@所有人时的通知消息
+    notifyMessage: "&e{sender} 提及了所有人: {message}"
+
+    # 动作栏提示
+    actionBar: "&e被 {sender} 提及"
+
+    # 冷却时间（秒）
+    cooldownSeconds: 60
+
+    # 冷却时的提示消息
+    cooldownMessage: "&c你必须等待 {seconds} 秒后才能再次使用 @all。"
+
+    # 无权限时的提示消息
+    noPermissionMessage: "&c你没有使用 @all 的权限。"

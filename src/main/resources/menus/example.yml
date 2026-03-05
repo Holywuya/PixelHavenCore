@@ -1,0 +1,106 @@
+# TrMenu Lite 示例菜单 — 字符布局模式
+#
+# Layout 说明：
+#   每行字符串代表9个槽位，从左到右对应第1~9列。
+#   - 单个字符 → 对应 Icons 中同名图标（如 '#' → Icons.'#'）
+#   - `名称`（反引号包裹）→ 对应多字符图标ID（如 `Close` → Icons.Close）
+#   - 空格 → 空槽位
+#
+# 本例布局（6行 × 9列 = 54格）：
+#   行0: #########   → 顶部边框
+#   行1: #       #   → 左右边框，中间空
+#   行2: #  P*T  #   → 玩家头像、服务器信息、指南针
+#   行3: #       #   → 左右边框，中间空
+#   行4: #       #   → 左右边框，中间空
+#   行5: ########`Close` → 底部边框 + 关闭按钮（多字符ID）
+
+Title:
+  - '&8&lTrMenu Lite'
+  - '&7你好，%player_name%！'
+
+Title-Update: 80
+
+Layout:
+  - '#########'
+  - '#       #'
+  - '#  P*T  #'
+  - '#       #'
+  - '#       #'
+  - '########`Close`'
+
+Options:
+  Enabled: true
+  Permission: ''
+  NoPermission: '&c你没有权限打开该菜单。'
+  UsePlaceholder: true
+
+Events:
+  Open:
+    - 'sound: BLOCK_CHEST_OPEN-1-1'
+    - 'tell: &a菜单已打开'
+  Close:
+    - 'sound: BLOCK_CHEST_CLOSE-1-1'
+    - 'tell: &7菜单已关闭'
+
+Icons:
+  # 边框（单字符 ID = '#'）
+  '#':
+    display:
+      material: Gray Stained Glass Pane
+      name: '&7'
+    actions:
+      all: 'return'
+
+  # 玩家头像（单字符 ID = 'P'）
+  P:
+    display:
+      material: 'head:%player_name%'
+      name: '&a%player_name%'
+      lore:
+        - '&7Ping: &f%player_ping%ms'
+        - '&7世界: &f%player_world%'
+    actions:
+      left:
+        - 'sound: ENTITY_PLAYER_LEVELUP-1-1'
+        - 'tell: &a左键：查看你的信息'
+      right:
+        - 'tell: &7右键：%player_world%'
+      shift_left:
+        - 'kether: tell "&eKether: &f你好, {player}!"'
+
+  # 服务器信息（单字符 ID = '*'）
+  '*':
+    display:
+      material: PAPER
+      name: '&b&l服务器信息'
+      lore:
+        - ''
+        - '&8| &7在线: &f%server_online% &7人'
+        - '&8| &7世界: &f%player_world%'
+    actions:
+      all:
+        - 'sound: UI_BUTTON_CLICK-1-1'
+        - 'tell: &e当前在线 &f%server_online% &e人'
+
+  # 指南针（单字符 ID = 'T'）
+  T:
+    display:
+      material: compass
+      name: '&3&lTrMenu Lite'
+      lore:
+        - '&7这是一个字符布局示例'
+        - '&7每个字符对应一个图标'
+    actions:
+      all: 'return'
+
+  # 关闭按钮（多字符 ID，在 Layout 行中用反引号引用：`Close`）
+  Close:
+    display:
+      material: Red Stained Glass Pane
+      name: '&c&l关闭'
+      lore:
+        - '&7点击关闭菜单'
+    actions:
+      all:
+        - 'sound: BLOCK_CHEST_CLOSE-1-1'
+        - 'close'

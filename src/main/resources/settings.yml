@@ -1,0 +1,29 @@
+# =============================================================================
+# VeinminerPlus 主配置文件
+# =============================================================================
+
+# 数据库配置
+database:
+  # 数据库类型: sqlite / mysql
+  type: "sqlite"
+
+  # SQLite 数据库配置
+  sqlite:
+    # 数据库文件名（相对于服务器根目录）
+    file: "veinminer.db"
+
+  # MySQL 数据库配置（当 type 为 mysql 时使用）
+  mysql:
+    # MySQL 服务器地址
+    host: "localhost"
+    # MySQL 端口
+    port: "3306"
+    # 数据库名称
+    database: "veinminer"
+    # 用户名
+    user: "root"
+    # 密码
+    password: "root"
+
+# 模块开关
+modules:

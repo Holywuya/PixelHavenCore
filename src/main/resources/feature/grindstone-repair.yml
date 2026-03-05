@@ -1,0 +1,15 @@
+# =============================================================================
+# 砂轮修复配置
+# =============================================================================
+grindstoneRepair: # 砂轮修复
+  enabled: true # 总开关在 
+  requireSneak: false # 是否需要潜行
+  permission: "" # 为空则不限制权限
+  restorePerItem: 100 # 每个材料恢复的耐久值
+  chance: 1.0 # 修复成功概率
+  messages:
+    success: "&a修复了 +{amount} 耐久度。"
+    failed: "&c修复失败。"
+  materialOverrides:
+    DIAMOND_PICKAXE: DIAMOND
+    NETHERITE_PICKAXE: NETHERITE_INGOT

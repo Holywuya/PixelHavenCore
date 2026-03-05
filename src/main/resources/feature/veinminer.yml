@@ -1,0 +1,86 @@
+# =============================================================================
+# 连锁挖掘配置
+# =============================================================================
+enabled: true # 功能开关（总开关在 settings.yml -> features.veinminer）
+mustSneak: true # 是否需要潜行触发
+cooldown: 20 # 触发冷却（tick）
+maxChain: 64 # 单次最大连锁数量
+searchRadius: 1 # 连锁搜索半径
+needCorrectTool: true # 是否要求正确工具
+permissionRestricted: false # 是否需要 veinminer.use 权限
+mergeItemDrops: false # 是否合并掉落物品
+durabilityDecrease: true # 是否消耗工具耐久
+
+allowedBlocks: # 可连锁的矿物列表（为空或包含*则不限制）
+  - minecraft:coal_ore
+  - minecraft:deepslate_coal_ore
+  - minecraft:iron_ore
+  - minecraft:deepslate_iron_ore
+  - minecraft:copper_ore
+  - minecraft:deepslate_copper_ore
+  - minecraft:gold_ore
+  - minecraft:deepslate_gold_ore
+  - minecraft:lapis_ore
+  - minecraft:deepslate_lapis_ore
+  - minecraft:redstone_ore
+  - minecraft:deepslate_redstone_ore
+  - minecraft:diamond_ore
+  - minecraft:deepslate_diamond_ore
+  - minecraft:emerald_ore
+  - minecraft:deepslate_emerald_ore
+  - minecraft:nether_gold_ore
+  - minecraft:nether_quartz_ore
+  - minecraft:ancient_debris
+
+treeBlocks: # 可连锁的树木原木/菌柄
+  - minecraft:oak_log
+  - minecraft:spruce_log
+  - minecraft:birch_log
+  - minecraft:jungle_log
+  - minecraft:acacia_log
+  - minecraft:dark_oak_log
+  - minecraft:mangrove_log
+  - minecraft:cherry_log
+  - minecraft:crimson_stem
+  - minecraft:warped_stem
+
+allowedTools: # 允许触发的工具（为空或包含*则不限制）
+  - minecraft:wooden_pickaxe
+  - minecraft:stone_pickaxe
+  - minecraft:iron_pickaxe
+  - minecraft:golden_pickaxe
+  - minecraft:diamond_pickaxe
+  - minecraft:netherite_pickaxe
+  - minecraft:wooden_axe
+  - minecraft:stone_axe
+  - minecraft:iron_axe
+  - minecraft:golden_axe
+  - minecraft:diamond_axe
+  - minecraft:netherite_axe
+
+limit: # 连锁次数限制
+  enabled: true
+  resetHour: 0 # 固定刷新小时
+  resetMinute: 0 # 固定刷新分钟
+
+
+messages: # 消息配置
+  limitCommand: "&a剩余连锁挖掘次数：&f{remaining} &7/ &f{limit}"
+  limitDenied: "&c你没有剩余的连锁挖掘配额。"
+  limitRemaining: "&7剩余次数：&f{remaining}"
+  modeOn: "&a连锁挖掘已启用。剩余次数：&f{remaining}"
+  modeOff: "&c连锁挖掘已禁用。"
+  moneyNotEnough: "&c金钱不足。需要 {cost}，余额 {balance}。"
+  moneyFailed: "&c扣费失败。"
+
+groups: # 权限组设置（按 priority 从高到低匹配）
+  default:
+    permission: ""
+    priority: 0
+    limit: 64
+    pricePerBlock: 1.0
+  vip:
+    permission: "veinminer.group.vip"
+    priority: 10
+    limit: 128
+    pricePerBlock: 0.5
