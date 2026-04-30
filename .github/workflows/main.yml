@@ -53,7 +53,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build PixelHavenCore jar
-        run: ./gradlew shadowJar --no-daemon
+        run: ./gradlew build --no-daemon
 
       - name: Collect jars
         run: |
