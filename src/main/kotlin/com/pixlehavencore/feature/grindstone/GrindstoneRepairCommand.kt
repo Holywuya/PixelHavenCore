@@ -1,13 +1,15 @@
 package com.pixlehavencore.feature.grindstone
 
 import com.pixlehavencore.util.msg
+import com.pixlehavencore.util.requirePermission
 import taboolib.common.platform.ProxyCommandSender
 import taboolib.common.platform.command.CommandBody
 import taboolib.common.platform.command.CommandHeader
+import taboolib.common.platform.command.PermissionDefault
 import taboolib.common.platform.command.mainCommand
 import taboolib.common.platform.command.subCommand
 
-@CommandHeader(name = "grindstone", aliases = ["grindrepair"], permission = "phcore.grindstone.admin")
+@CommandHeader(name = "grindstone", aliases = ["grindrepair"], permissionDefault = PermissionDefault.TRUE)
 object GrindstoneRepairCommand {
 
     @CommandBody
@@ -21,7 +23,8 @@ object GrindstoneRepairCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            GrindstoneRepairSettings.reload()
+            if (!sender.requirePermission("phcore.grindstone.admin")) return@execute
+            GrindstoneRepairSettings.init()
             sender.msg("&a砂轮修复配置已重载。")
         }
     }

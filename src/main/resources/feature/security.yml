@@ -1,0 +1,8 @@
+version: 1
+
+enabled: true
+adminPermission: "phcore.security.admin"
+
+titles:
+  inventory: "&8查看背包 - {player}"
+  enderChest: "&8查看末影箱 - {player}"

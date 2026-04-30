@@ -1,0 +1,33 @@
+version: 1
+
+# 是否启用中心银行治理。
+# 启用后，默认货币的 Vault 发放/扣费都会经由 C/D 账户路由。
+enabled: true
+
+# 期望的“人均基础余额”。
+# 系统会基于活跃玩家数估算合理货币供给。
+expected-balance: "10000"
+
+# 供给缓冲倍数。
+# 最终理论供给 = expected-balance * buffer-multiplier * 活跃人数。
+buffer-multiplier: "2.0"
+
+# 活跃玩家判定天数。
+# 最近在此天数内有登录/经济活动记录的玩家，会被计入活跃样本。
+active-threshold-days: 14
+
+# 沉睡资产判定天数。
+# 超过该天数未活跃的账户，可按 recovery-rate 周期性回收。
+dormant-threshold-days: 60
+
+# 沉睡资产每周回收比例。
+# 回收资金会直接回流中心银行 C 账户。
+dormant-recovery-rate: "0.01"
+
+# 宏观指标刷新间隔（分钟）。
+# 用于更新活跃 M0、总余额、动态扩容等统计。
+sync-interval-minutes: 30
+
+# 豁免账户列表。
+# 这些 UUID 不参与中心银行统计、活跃 M0 与税务治理。
+exempt-account-ids: []

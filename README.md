@@ -11,6 +11,7 @@
 - **聊天功能 (Chat Features)** - 增强的聊天体验
 - **砂轮修复 (Grindstone Repair)** - 工具修复功能
 - **死亡掉落惩罚 (Death Drop)** - 危险世界死亡惩罚
+- **刷怪器 (Spawners)** - 玩家附近 MythicMobs 定时生成
 - **帮助指令拦截 (Help Interceptor)** - 自定义帮助系统
 - **自动重启 (Auto Restart)** - 智能服务器重启管理
 - **菜单系统 (Simple Menu)** - 便捷的GUI菜单
@@ -69,6 +70,11 @@
 - `menus/` - 菜单配置
 
 详细配置说明请参考各配置文件中的注释。
+
+## 模块文档
+
+- `src/main/kotlin/com/pixlehavencore/feature/spawners/README.md`
+  - 玩家附近 MythicMobs 刷怪模块说明
 
 ## 开发信息
 

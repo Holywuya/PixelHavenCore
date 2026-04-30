@@ -1,0 +1,14 @@
+version: 1
+
+# 总开关
+enabled: true
+
+# 自然生成削减百分比（0-100）
+# 例如 90 表示拦截 90% 的自然生成
+reduction-percent: 90
+
+# 被视为“自然生成”的 SpawnReason 列表（大小写不敏感）
+# 仅这些原因会被削减，生成蛋/命令/刷怪笼等不在这里，默认不受影响
+natural-reasons:
+  - NATURAL
+  - CHUNK_GEN

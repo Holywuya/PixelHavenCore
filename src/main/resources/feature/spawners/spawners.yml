@@ -1,0 +1,4 @@
+version: 1
+
+# 刷怪模块总开关。
+enabled: true

@@ -1,7 +1,11 @@
 package com.pixlehavencore.util
 
+import net.kyori.adventure.text.Component
+import org.bukkit.entity.Player
 import taboolib.common.platform.function.onlinePlayers
+import taboolib.common.platform.function.submit
 import taboolib.module.chat.colored
+import taboolib.platform.util.submit as submitOnEntity
 import java.util.UUID
 
 /**
@@ -9,8 +13,18 @@ import java.util.UUID
  * 替换 NotificationService 中的私有 broadcastMessage()。
  */
 fun broadcastColored(message: String) {
-    val colored = message.colored()
-    onlinePlayers().forEach { it.sendMessage(colored) }
+    broadcastComponent(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message.colored()))
+}
+
+fun broadcastComponent(component: Component) {
+    submit {
+        onlinePlayers().toList().forEach { proxy ->
+            val player = proxy.cast<Player>() ?: return@forEach
+            player.submitOnEntity {
+                player.sendMessage(component)
+            }
+        }
+    }
 }
 
 /**
@@ -21,10 +35,15 @@ fun broadcastColored(message: String) {
  */
 fun broadcastToPermission(message: String, permission: String, exclude: UUID? = null) {
     val colored = message.colored()
-    onlinePlayers().forEach { player ->
-        if (exclude != null && player.uniqueId == exclude) return@forEach
-        if (player.hasPermission(permission)) {
-            player.sendMessage(colored)
+    submit {
+        onlinePlayers().toList().forEach { proxy ->
+            if (exclude != null && proxy.uniqueId == exclude) return@forEach
+            val player = proxy.cast<Player>() ?: return@forEach
+            player.submitOnEntity {
+                if (player.hasPermission(permission)) {
+                    player.sendMessage(colored)
+                }
+            }
         }
     }
 }

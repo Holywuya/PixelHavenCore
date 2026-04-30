@@ -1,12 +1,12 @@
 package com.pixlehavencore.feature.veinminer
 
+import com.pixlehavencore.util.ensureDataContainerAsync
 import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import taboolib.common.platform.event.SubscribeEvent
 import taboolib.common.platform.function.adaptPlayer
 import taboolib.expansion.releaseDataContainer
-import taboolib.expansion.setupDataContainer
 
 object VeinminerListener {
 
@@ -22,7 +22,10 @@ object VeinminerListener {
 
     @SubscribeEvent
     fun onJoin(event: PlayerJoinEvent) {
-        adaptPlayer(event.player).setupDataContainer()
+        val proxy = adaptPlayer(event.player)
+        proxy.ensureDataContainerAsync {
+            // Optional: Prefetch veinminer limit data into memory if needed
+        }
     }
 
     @SubscribeEvent

@@ -1,6 +1,6 @@
 package com.pixlehavencore.feature.vanish
 
-import org.bukkit.Bukkit
+import net.kyori.adventure.text.Component
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import taboolib.common.platform.event.SubscribeEvent
@@ -29,10 +29,12 @@ object VanishListener {
 
             // 若配置开启，对其他玩家广播假的退出消息
             if (VanishSettings.fakeJoinSendFakeQuit) {
-                val fakeMsg = VanishSettings.fakeQuitFormat
-                    .replace("{player}", player.name)
-                    .colored()
-                Bukkit.broadcastMessage(fakeMsg)
+                val fakeMsg = Component.text(
+                    VanishSettings.fakeQuitFormat
+                        .replace("{player}", player.name)
+                        .colored()
+                )
+                player.server.broadcast(fakeMsg)
             }
         }
     }
@@ -62,33 +64,10 @@ object VanishListener {
     // ------------------------------------------------------------------
 
     private fun suppressJoinMessage(event: PlayerJoinEvent) {
-        // 先尝试旧版 Bukkit API: setJoinMessage(String)
-        val done = runCatching {
-            val method = event.javaClass.getMethod("setJoinMessage", String::class.java)
-            method.invoke(event, null as String?)
-        }.isSuccess
-        if (!done) {
-            // 再尝试 Paper Adventure API: joinMessage(Component?) — 通过反射获取 Component 类型
-            runCatching {
-                val compClass = Class.forName("net.kyori.adventure.text.Component")
-                val method = event.javaClass.getMethod("joinMessage", compClass)
-                method.invoke(event, null)
-            }
-        }
+        event.joinMessage(null)
     }
 
     private fun suppressQuitMessage(event: PlayerQuitEvent) {
-        val done = runCatching {
-            val method = event.javaClass.getMethod("setQuitMessage", String::class.java)
-            method.invoke(event, null as String?)
-        }.isSuccess
-        if (!done) {
-            runCatching {
-                val compClass = Class.forName("net.kyori.adventure.text.Component")
-                val method = event.javaClass.getMethod("quitMessage", compClass)
-                method.invoke(event, null)
-            }
-        }
+        event.quitMessage(null)
     }
 }
-

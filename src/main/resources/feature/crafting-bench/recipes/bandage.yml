@@ -1,0 +1,18 @@
+id: "bandage"
+display_name: "绷带"
+category: "医疗"
+required_bench_tier: "T1"
+
+materials:
+  - item: "PAPER"
+    amount: 2
+  - item: "WHITE_WOOL"
+    amount: 1
+
+result:
+  item: "PAPER"
+  amount: 2
+
+craft_time_seconds: 8
+experience: 5
+unlock_permission: "craft.recipe.bandage"

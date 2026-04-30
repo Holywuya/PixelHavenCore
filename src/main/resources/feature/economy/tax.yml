@@ -1,0 +1,51 @@
+version: 6
+
+# 本模块不在玩家获得收益时即时扣税。
+# 所有通过 Vault 发放到玩家默认货币账户的收入，都会先进入“个人收益池”。
+# 到达 settlement.time 指定时间后，统一根据当前收益池计算应缴税额，
+# 再从玩家当前余额扣除并并入中心银行 C 账户。
+enabled: true
+
+scenes:
+  # 显式调用 TaxService API 的菜单交易场景开关。
+  # 通过 Vault 底层拦截的常规入账，不依赖这里的开关。
+  menu-trade: true
+  # 显式调用 TaxService API 的命令交易场景开关。
+  command-trade: true
+  # 显式调用 TaxService API 的玩家交易场景开关。
+  player-trade: true
+
+player-trade:
+  # 玩家交易税预览接口默认税率。
+  # 统一结税时，实际税额仍优先按 tax-brackets 匹配结果计算。
+  default-tax-rate: 0.02
+
+# 阶梯税率，按“玩家当前收益池总额”匹配最高档。
+tax-brackets:
+  tier1:
+    min: 0
+    rate: 0.00
+  tier2:
+    min: 1000
+    rate: 0.03
+  tier3:
+    min: 5000
+    rate: 0.06
+  tier4:
+    min: 10000
+    rate: 0.10
+
+settlement:
+  enabled: true
+  time:
+    # 默认每天凌晨 4:00 统一结税。
+    hour: 4
+    minute: 0
+  # 异步检查是否到达结税时间的间隔（刻）。
+  check-interval-ticks: 200
+  # 个人收益池/欠税数据持久化间隔（刻）。
+  pool-persist-interval-ticks: 40
+  broadcast:
+    enabled: true
+    # {amount} = 本次实际收税总额；{outstanding} = 本次结税后仍未收回的欠税总额。
+    message: "&6[税收] 本期统一结税完成，实收税额: &f{amount} &7剩余欠税: &f{outstanding}"

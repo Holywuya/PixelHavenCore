@@ -1,5 +1,6 @@
 package com.pixlehavencore.feature.veinminer
 
+import com.pixlehavencore.util.ItemUtils
 import org.bukkit.Material
 import taboolib.module.configuration.Config
 import taboolib.module.configuration.Configuration
@@ -69,12 +70,6 @@ object VeinminerSettings {
     var messageModeOff: String = "&cVeinminer disabled."
         private set
 
-    var messageMoneyNotEnough: String = "&cNot enough money. Need {cost}, balance {balance}."
-        private set
-
-    var messageMoneyFailed: String = "&cCharge failed."
-        private set
-
     var groups: List<VeinminerGroup> = emptyList()
         private set
 
@@ -104,8 +99,6 @@ object VeinminerSettings {
         messageLimitRemaining = config.getString("messages.limitRemaining") ?: "&7Remaining: &f{remaining}"
         messageModeOn = config.getString("messages.modeOn") ?: "&aVeinminer enabled. Remaining: &f{remaining}"
         messageModeOff = config.getString("messages.modeOff") ?: "&cVeinminer disabled."
-        messageMoneyNotEnough = config.getString("messages.moneyNotEnough") ?: "&cNot enough money. Need {cost}, balance {balance}."
-        messageMoneyFailed = config.getString("messages.moneyFailed") ?: "&cCharge failed."
         groups = loadGroups()
         VeinminerLimitService.updateResetSchedule()
     }
@@ -148,7 +141,7 @@ object VeinminerSettings {
 
     private fun loadGroups(): List<VeinminerGroup> {
         val section = config.getConfigurationSection("groups") ?: return listOf(
-            VeinminerGroup("default", "", 0, 64, 0.0)
+            VeinminerGroup("default", "", 0, 64)
         )
         val list = ArrayList<VeinminerGroup>()
         section.getKeys(false).forEach { key ->
@@ -156,11 +149,10 @@ object VeinminerSettings {
             val permission = node.getString("permission") ?: ""
             val priority = node.getInt("priority", 0)
             val limit = node.getInt("limit", 64)
-            val pricePerBlock = node.getDouble("pricePerBlock", 0.0)
-            list.add(VeinminerGroup(key, permission, priority, limit, pricePerBlock))
+            list.add(VeinminerGroup(key, permission, priority, limit))
         }
         if (list.isEmpty()) {
-            list.add(VeinminerGroup("default", "", 0, 64, 0.0))
+            list.add(VeinminerGroup("default", "", 0, 64))
         }
         return list.sortedWith(compareByDescending<VeinminerGroup> { it.priority }.thenBy { it.id })
     }
@@ -179,7 +171,7 @@ object VeinminerSettings {
                 return@forEach
             }
             val normalized = if (name.contains(":")) name.substringAfter(":") else name
-            val material = Material.matchMaterial(normalized.uppercase())
+            val material = ItemUtils.matchMaterial(normalized)
             if (material != null) {
                 materials.add(material)
             }
@@ -193,5 +185,4 @@ data class VeinminerGroup(
     val permission: String,
     val priority: Int,
     val limit: Int,
-    val pricePerBlock: Double,
 )

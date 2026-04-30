@@ -1,0 +1,45 @@
+version: 3
+
+settings:
+  enabled: true
+  language: "zh_CN"
+  debug: false
+
+craftengine_blocks:
+  "craftengine:wooden_crafting_bench":
+    tier: "T1"
+  "craftengine:iron_crafting_bench":
+    tier: "T2"
+
+bench_tiers:
+  T1:
+    display_name: "木制工作台"
+    speed_modifier: 1.0
+    use_permission: ""
+  T2:
+    display_name: "铁制工作台"
+    speed_modifier: 0.8
+    use_permission: "craft.bench.tier2"
+
+specializations:
+  medic:
+    permission: "craft.specialization.medic"
+    time_reduction: 0.3
+    applies_to:
+      - "医疗"
+
+queue:
+  allow_offline_crafting: true
+  auto_claim_online: true
+  full_inventory_action: "drop"
+  cancel_refund_ratio: 0.7
+  default_max_queue_size: 3
+  permission_limits:
+    vip:
+      permission: "craft.queue.vip"
+      max_queue_size: 5
+      priority: 20
+    admin:
+      permission: "phcore.admin"
+      max_queue_size: 10
+      priority: 100

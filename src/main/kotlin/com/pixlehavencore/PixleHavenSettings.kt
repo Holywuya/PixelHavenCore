@@ -29,9 +29,26 @@ object PixleHavenSettings {
     var mysqlPassword: String = "root"
         private set
 
-    var itemLibraryEnabled: Boolean = true
+    var redisEnabled: Boolean = false
         private set
 
+    var redisHost: String = "localhost"
+        private set
+
+    var redisPort: Int = 6379
+        private set
+
+    var redisUser: String = ""
+        private set
+
+    var redisPassword: String = ""
+        private set
+
+    var redisConnect: Int = 32
+        private set
+
+    var redisTimeout: Int = 1000
+        private set
 
     fun init() {
         reload()
@@ -46,6 +63,12 @@ object PixleHavenSettings {
         mysqlDatabase = config.getString("database.mysql.database") ?: "veinminer"
         mysqlUser = config.getString("database.mysql.user") ?: "root"
         mysqlPassword = config.getString("database.mysql.password") ?: "root"
-        itemLibraryEnabled = config.getBoolean("modules.itemLibrary", true)
+        redisEnabled = config.getBoolean("database.redis.enable", false)
+        redisHost = config.getString("database.redis.host") ?: "localhost"
+        redisPort = config.getInt("database.redis.port", 6379).coerceAtLeast(1)
+        redisUser = config.getString("database.redis.user") ?: ""
+        redisPassword = config.getString("database.redis.password") ?: ""
+        redisConnect = config.getInt("database.redis.connect", 32).coerceAtLeast(1)
+        redisTimeout = config.getInt("database.redis.timeout", 1000).coerceAtLeast(1)
     }
 }

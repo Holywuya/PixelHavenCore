@@ -1,0 +1,24 @@
+version: 9
+
+enabled: true
+
+messages:
+  suicide: "&c你已自杀。"
+
+creeperProtect:
+  # 是否启用苦力怕防爆（禁止苦力怕爆炸破坏方块）
+  enabled: false
+  # true=完全取消爆炸（无伤害无破坏），false=仅保护方块不受破坏（爆炸伤害保留）
+  cancelDamage: false
+
+portalProtection:
+  # 是否禁止指定生物进入传送门
+  enabled: true
+  # 禁止进入传送门的生物列表
+  blockedEntities:
+    - "FROG"
+  # 若指定生物出现在地狱或末地，是否直接清除
+  clearInNetherEnd: true
+  # 在地狱/末地自动清除的生物列表
+  clearEntitiesInNetherEnd:
+    - "FROG"

@@ -1,44 +1,32 @@
 package com.pixlehavencore.feature.optimization.viewdistance
 
-import com.pixlehavencore.PixleHavenSettings
-import com.pixlehavencore.util.ensureDataContainer
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.entity.Player
 import taboolib.common.platform.ProxyPlayer
-import taboolib.common.platform.function.getDataFolder
 import taboolib.common.platform.function.info
 import taboolib.common.platform.function.onlinePlayers
 import taboolib.common.platform.function.submit
-import taboolib.expansion.getDataContainer
-import taboolib.expansion.setupPlayerDatabase
 import taboolib.module.chat.colored
-import java.io.File
+import taboolib.platform.util.submit as submitOnEntity
 import java.lang.reflect.Method
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.math.max
 
 object ViewDistanceService {
 
-    private const val KEY_DISTANCE = "vdc_distance"
-    private const val KEY_PING_MODE = "vdc_ping_mode"
-
-    // 内存缓存：加快运行时读取，避免重复访问数据库
-    private val playerDistances = ConcurrentHashMap<UUID, Int>()
-    private val pingModeEnabled = ConcurrentHashMap<UUID, Boolean>()
-
     private val lastMoved = ConcurrentHashMap<UUID, Long>()
+    private val afkPlayers = ConcurrentHashMap.newKeySet<UUID>()
     private var afkTask: Any? = null
     private var dynamicTask: Any? = null
     private var pingTask: Any? = null
 
     fun init() {
+        ViewDistanceSettings.init()
         stopTasks()
         if (!ViewDistanceSettings.enabled) {
             return
         }
-        initDatabase()
         scheduleAfkCheck()
         scheduleDynamicMode()
         schedulePingMode()
@@ -46,22 +34,33 @@ object ViewDistanceService {
     }
 
     fun reload() {
-        ViewDistanceSettings.reload()
         init()
     }
 
+    fun stop() {
+        stopTasks()
+        lastMoved.clear()
+        afkPlayers.clear()
+    }
+
     private fun stopTasks() {
+        afkTask?.let(::invokeCancel)
+        dynamicTask?.let(::invokeCancel)
+        pingTask?.let(::invokeCancel)
         afkTask = null
         dynamicTask = null
         pingTask = null
     }
 
     private fun applyCurrentDistanceToOnlinePlayers() {
+        // Folia: 使用 onlinePlayers() 快照 + submitOnEntity 避免在全局区域线程上直接调用 Bukkit.getPlayer
         onlinePlayers().forEach { proxy ->
-            val player = Bukkit.getPlayer(proxy.uniqueId) ?: return@forEach
-            val target = resolvePlayerDistance(proxy)
-            applyDistance(player, target)
-            lastMoved[player.uniqueId] = System.currentTimeMillis()
+            val player = proxy.cast<Player>() ?: return@forEach
+            player.submitOnEntity {
+                val target = resolveTargetDistance(player, proxy)
+                applyDistance(player, target)
+                lastMoved[player.uniqueId] = System.currentTimeMillis()
+            }
         }
     }
 
@@ -69,16 +68,19 @@ object ViewDistanceService {
         if (!ViewDistanceSettings.enabled) {
             return
         }
-        val proxy = player.proxy
-        // 从数据库加载偏好到内存缓存
-        if (ViewDistanceSettings.savePlayerData) {
-            loadFromDatabase(proxy)
-        }
-        val base = resolvePlayerDistance(proxy)
+        applyJoinDistance(player, player.proxy)
+    }
+
+    private fun applyJoinDistance(player: Player, proxy: ProxyPlayer) {
         val target = if (ViewDistanceSettings.afkOnJoin && !player.hasPermission(ViewDistanceSettings.bypassAfkPermission)) {
+            afkPlayers.add(player.uniqueId)
+            if (ViewDistanceSettings.afkEnterMessage.isNotBlank()) {
+                player.sendMessage(ViewDistanceSettings.afkEnterMessage.colored())
+            }
             ViewDistanceSettings.afkDistance
         } else {
-            base
+            afkPlayers.remove(player.uniqueId)
+            clampByLimits(ViewDistanceSettings.defaultDistance)
         }
         applyDistance(player, target)
         lastMoved[player.uniqueId] = System.currentTimeMillis()
@@ -93,58 +95,51 @@ object ViewDistanceService {
 
     fun onQuit(player: Player) {
         lastMoved.remove(player.uniqueId)
-        playerDistances.remove(player.uniqueId)
-        pingModeEnabled.remove(player.uniqueId)
+        afkPlayers.remove(player.uniqueId)
     }
 
     fun markMoved(player: Player) {
         lastMoved[player.uniqueId] = System.currentTimeMillis()
-        if (ViewDistanceSettings.afkOnJoin) {
+        if (afkPlayers.remove(player.uniqueId)) {
             val proxy = player.proxy
-            val target = resolvePlayerDistance(proxy)
+            val target = resolveTargetDistance(player, proxy)
             applyDistance(player, target)
+            if (ViewDistanceSettings.afkExitMessage.isNotBlank()) {
+                player.sendMessage(ViewDistanceSettings.afkExitMessage.colored())
+            }
         }
     }
 
     fun setPlayerDistance(proxy: ProxyPlayer, distance: Int) {
-        val clamped = ViewDistanceSettings.clampDistance(distance)
-        playerDistances[proxy.uniqueId] = clamped
-        if (ViewDistanceSettings.savePlayerData) {
-            ensureContainer(proxy)
-            proxy.getDataContainer()[KEY_DISTANCE] = clamped
+        // 保留命令入口，但不再持久化到数据库或玩家偏好。
+        // Folia: 使用 proxy.cast 替代 Bukkit.getPlayer，避免跨线程调用
+        val player = proxy.cast<Player>() ?: return
+        player.submitOnEntity {
+            applyDistance(player, distance)
         }
     }
 
     fun clearPlayerDistance(proxy: ProxyPlayer) {
-        playerDistances.remove(proxy.uniqueId)
-        if (ViewDistanceSettings.savePlayerData) {
-            ensureContainer(proxy)
-            // 写空字符串表示无偏好；toIntOrNull() 读取时自然返回 null
-            proxy.getDataContainer()[KEY_DISTANCE] = ""
+        // Folia: 使用 proxy.cast 替代 Bukkit.getPlayer
+        val player = proxy.cast<Player>() ?: return
+        player.submitOnEntity {
+            applyDistance(player, ViewDistanceSettings.defaultDistance)
         }
     }
 
     fun getPlayerDistance(proxy: ProxyPlayer): Int? {
-        return playerDistances[proxy.uniqueId]
+        return clampByLimits(ViewDistanceSettings.defaultDistance)
     }
 
     fun setPingMode(proxy: ProxyPlayer, enabled: Boolean) {
-        pingModeEnabled[proxy.uniqueId] = enabled
-        if (ViewDistanceSettings.savePlayerData) {
-            ensureContainer(proxy)
-            proxy.getDataContainer()[KEY_PING_MODE] = enabled
-        }
+        // 保留命令入口，但不再持久化。
     }
 
     fun isPingModeEnabled(proxy: ProxyPlayer): Boolean {
-        return pingModeEnabled[proxy.uniqueId] ?: false
+        return false
     }
 
     fun resolvePlayerDistance(proxy: ProxyPlayer): Int {
-        val stored = getPlayerDistance(proxy)
-        if (stored != null) {
-            return clampByLimits(stored)
-        }
         return clampByLimits(ViewDistanceSettings.defaultDistance)
     }
 
@@ -171,16 +166,29 @@ object ViewDistanceService {
                 return@submit
             }
             val now = System.currentTimeMillis()
-            Bukkit.getOnlinePlayers().forEach { player ->
-                if (ViewDistanceSettings.spectatorsCanAfk && player.gameMode == GameMode.SPECTATOR) {
-                    return@forEach
-                }
-                if (player.hasPermission(ViewDistanceSettings.bypassAfkPermission)) {
-                    return@forEach
-                }
-                val last = lastMoved[player.uniqueId] ?: now
-                if (now - last >= ViewDistanceSettings.afkSeconds * 1000L) {
+            // Folia: 使用 onlinePlayers() 快照 + proxy.cast + submitOnEntity
+            onlinePlayers().forEach { proxy ->
+                val player = proxy.cast<Player>() ?: return@forEach
+                player.submitOnEntity {
+            if (ViewDistanceSettings.spectatorsCanAfk && player.gameMode == GameMode.SPECTATOR) {
+                return@submitOnEntity
+            }
+            if (player.hasPermission(ViewDistanceSettings.bypassAfkPermission)) {
+                        return@submitOnEntity
+                    }
+                    val last = lastMoved[player.uniqueId] ?: now
+                    if (now - last >= ViewDistanceSettings.afkSeconds * 1000L) {
+                    if (afkPlayers.add(player.uniqueId) && ViewDistanceSettings.afkEnterMessage.isNotBlank()) {
+                        player.sendMessage(ViewDistanceSettings.afkEnterMessage.colored())
+                    }
                     applyDistance(player, ViewDistanceSettings.afkDistance)
+                } else if (afkPlayers.remove(player.uniqueId)) {
+                        val target = resolveTargetDistance(player, proxy)
+                        applyDistance(player, target)
+                        if (ViewDistanceSettings.afkExitMessage.isNotBlank()) {
+                            player.sendMessage(ViewDistanceSettings.afkExitMessage.colored())
+                        }
+                    }
                 }
             }
         }
@@ -200,13 +208,15 @@ object ViewDistanceService {
             }
             val reduction = resolveReduction(mspt, ViewDistanceSettings.dynamicMsptMap)
             onlinePlayers().forEach { proxy ->
-                if (proxy.hasPermission(ViewDistanceSettings.dynamicBypassPermission)) {
-                    return@forEach
+                val player = proxy.cast<Player>() ?: return@forEach
+                player.submitOnEntity {
+                    if (player.hasPermission(ViewDistanceSettings.dynamicBypassPermission)) {
+                        return@submitOnEntity
+                    }
+                    val base = resolveTargetDistance(player, proxy)
+                    val target = (base - reduction).coerceAtLeast(ViewDistanceSettings.dynamicMin)
+                    applyDistance(player, target.coerceAtMost(ViewDistanceSettings.dynamicMax))
                 }
-                val player = Bukkit.getPlayer(proxy.uniqueId) ?: return@forEach
-                val base = resolvePlayerDistance(proxy)
-                val target = (base - reduction).coerceAtLeast(ViewDistanceSettings.dynamicMin)
-                applyDistance(player, target.coerceAtMost(ViewDistanceSettings.dynamicMax))
             }
         }
     }
@@ -219,21 +229,37 @@ object ViewDistanceService {
             if (!ViewDistanceSettings.enabled || !ViewDistanceSettings.pingEnabled) {
                 return@submit
             }
+            // Folia: 使用 onlinePlayers() 快照 + proxy.cast + submitOnEntity
             onlinePlayers().forEach { proxy ->
-                if (!isPingModeEnabled(proxy)) {
-                    return@forEach
+                val player = proxy.cast<Player>() ?: return@forEach
+                player.submitOnEntity {
+                    if (!isPingModeEnabled(proxy)) {
+                        return@submitOnEntity
+                    }
+                    val ping = PingAdapter.getPing(player)
+                    if (ping < 0) {
+                        return@submitOnEntity
+                    }
+                    val reduction = resolveReduction(ping.toDouble(), ViewDistanceSettings.pingMap)
+                    val base = resolveTargetDistance(player, proxy)
+                    val target = (base - reduction).coerceAtLeast(ViewDistanceSettings.pingMin)
+                    applyDistance(player, target.coerceAtMost(ViewDistanceSettings.pingMax))
                 }
-                val player = Bukkit.getPlayer(proxy.uniqueId) ?: return@forEach
-                val ping = PingAdapter.getPing(player)
-                if (ping < 0) {
-                    return@forEach
-                }
-                val reduction = resolveReduction(ping.toDouble(), ViewDistanceSettings.pingMap)
-                val base = resolvePlayerDistance(proxy)
-                val target = (base - reduction).coerceAtLeast(ViewDistanceSettings.pingMin)
-                applyDistance(player, target.coerceAtMost(ViewDistanceSettings.pingMax))
             }
         }
+    }
+
+    private fun invokeCancel(task: Any) {
+        runCatching {
+            task.javaClass.methods.firstOrNull { it.name == "cancel" && it.parameterTypes.isEmpty() }?.invoke(task)
+        }
+    }
+
+    private fun resolveTargetDistance(player: Player, proxy: ProxyPlayer): Int {
+        if (afkPlayers.contains(player.uniqueId) && !player.hasPermission(ViewDistanceSettings.bypassAfkPermission)) {
+            return ViewDistanceSettings.afkDistance
+        }
+        return resolvePlayerDistance(proxy)
     }
 
     private fun resolveReduction(value: Double, map: Map<Int, Int>): Int {
@@ -242,41 +268,12 @@ object ViewDistanceService {
         }
         var chosen = 0
         map.forEach { (threshold, reduce) ->
-            if (value >= threshold) {
-                chosen = max(chosen, reduce)
+            if (value >= threshold && reduce > chosen) {
+                chosen = reduce
             }
         }
         return chosen
     }
-
-    private fun initDatabase() {
-        if (PixleHavenSettings.databaseType == "mysql") {
-            setupPlayerDatabase(
-                host = PixleHavenSettings.mysqlHost,
-                port = PixleHavenSettings.mysqlPort.toIntOrNull() ?: 3306,
-                user = PixleHavenSettings.mysqlUser,
-                password = PixleHavenSettings.mysqlPassword,
-                database = PixleHavenSettings.mysqlDatabase,
-                table = "vdc_data"
-            )
-        } else {
-            setupPlayerDatabase(File(getDataFolder(), PixleHavenSettings.sqliteFile), "vdc_data")
-        }
-    }
-
-    // 玩家进服时从数据库加载偏好到内存缓存
-    private fun loadFromDatabase(proxy: ProxyPlayer) {
-        ensureContainer(proxy)
-        val container = proxy.getDataContainer()
-        container[KEY_DISTANCE]?.toIntOrNull()?.let { dist ->
-            playerDistances[proxy.uniqueId] = ViewDistanceSettings.clampDistance(dist)
-        }
-        container[KEY_PING_MODE]?.toBoolean()?.let { mode ->
-            pingModeEnabled[proxy.uniqueId] = mode
-        }
-    }
-
-    private fun ensureContainer(proxy: ProxyPlayer) = proxy.ensureDataContainer()
 
     private val Player.proxy: ProxyPlayer
         get() = taboolib.common.platform.function.adaptPlayer(this)

@@ -47,10 +47,14 @@ object GrindstoneRepairListener {
         if (meta.damage <= 0) {
             return
         }
-        if (!GrindstoneRepairSettings.matchMaterial(main.type, offhand.type)) {
+        val rule = GrindstoneRepairSettings.matchRule(main, offhand) ?: run {
             return
         }
-        val restore = GrindstoneRepairSettings.restorePerItem
+        val materialRule = GrindstoneRepairSettings.resolveMatchedMaterial(rule, offhand) ?: return
+        if (offhand.amount < materialRule.amount) {
+            return
+        }
+        val restore = GrindstoneRepairSettings.calculateRestoreAmount(main, rule)
         if (restore <= 0) {
             return
         }
@@ -62,18 +66,18 @@ object GrindstoneRepairListener {
         meta.damage = (meta.damage - restore).coerceAtLeast(0)
         main.itemMeta = meta
         player.inventory.setItemInMainHand(main)
-        consumeOffhand(offhand)
+        consumeOffhand(offhand, materialRule.amount)
         VeinminerMessages.send(proxyPlayer, GrindstoneRepairSettings.messageSuccess, mapOf("amount" to restore))
         event.isCancelled = true
     }
 
-    private fun consumeOffhand(item: ItemStack) {
+    private fun consumeOffhand(item: ItemStack, amount: Int) {
         if (item.type == Material.AIR) {
             return
         }
-        item.amount = item.amount - 1
+        item.amount = item.amount - amount
         if (item.amount <= 0) {
-            item.type = Material.AIR
+            item.amount = 0
         }
     }
 }

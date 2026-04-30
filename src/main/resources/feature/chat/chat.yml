@@ -1,0 +1,86 @@
+version: 2
+
+enabled: true
+
+ascii:
+  enabled: true
+  color: "GREEN"
+
+ignorePlaceholderApi: false
+
+# format / nameFormat / privateMessage / sayCommand / at.format / messageSeparator
+# 现已支持 MiniMessage 格式，同时兼容旧版 & 颜色代码与旧 hover/click 写法。
+
+format: "<hover:show_text:%player_displayname%:N_L:玩家等级: %player_level%>&7[&eLv&c.&a%player_level%&7]&r <hover:show_text:点击传送到该玩家:N_L:玩家所在世界: %player_world%><click:suggest_command:/tpa %player_name%>&7[&f%player_world%&7]"
+nameFormat: "<hover:show_text:点击私聊玩家><click:suggest_command:/msg %player_name%>&f<%player_name%>&r"
+
+privateMessage:
+  senderFormat: "&f✉&a⬆ <hover:show_text:点击追加私聊><click:suggest_command:/msg %receiver_name%>&b你 &7-> &e%receiver_name%&7: &r"
+  receiverFormat: "&f✉&a⬇ <hover:show_text:点击回复><click:suggest_command:/msg %sender_name%>&b%sender_name% &7-> &e你&7: &r"
+
+sayCommand:
+  format: "&f%sender_name%&7: &r"
+  consoleFormat: "&c[&6CONSOLE&c] &r"
+
+at:
+  enabled: true
+  format: "&b@%player_name%"
+  sound:
+    enabled: true
+    type: "ENTITY_PLAYER_LEVELUP"
+    cooldown: 5
+
+messageSeparator: " "
+
+placeholders:
+  defaultLevel: "?"
+  defaultHealth: "?"
+  defaultFood: "?"
+  defaultExp: "?"
+  defaultGamemode: "?"
+
+linkDetection:
+  enabled: true
+
+numberDetection:
+  enabled: true
+  pattern:
+    min: 5
+    max: 13
+
+redisChat:
+  enabled: false
+  host: "localhost"
+  port: 6379
+  database: 0
+  password: ""
+  serverId: "server1"
+  channel: "simplechat"
+  logOtherServers: true
+  consoleColor: "GREEN"
+  clearClick: true
+  ignoreKeywords:
+    - "点击"
+    - "click"
+  whitelistKeywords:
+    - "点击打开链接"
+    - "点击复制"
+    - "打开URL"
+    - "复制内容"
+
+chat:
+  color:
+    enabled: true
+  format:
+    enabled: true
+  mention:
+    enabled: true
+  ignore:
+    enabled: true
+  bypass:
+    enabled: true
+  json:
+    enabled: false
+
+permissions:
+  admin: "simplechat.admin"

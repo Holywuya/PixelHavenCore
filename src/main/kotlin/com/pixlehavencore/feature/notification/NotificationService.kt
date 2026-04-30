@@ -1,6 +1,7 @@
 package com.pixlehavencore.feature.notification
 
 import com.pixlehavencore.util.broadcastColored
+import com.pixlehavencore.util.EntityUtils
 import taboolib.module.chat.colored
 import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerJoinEvent
@@ -10,6 +11,7 @@ import taboolib.common.platform.function.info
 import taboolib.common.platform.function.onlinePlayers
 import taboolib.common.platform.function.submit
 import taboolib.common.platform.function.warning
+import taboolib.platform.util.submit as submitOnEntity
 import kotlin.random.Random
 
 object NotificationService {
@@ -18,6 +20,7 @@ object NotificationService {
     private var isRunning = false
 
     fun init() {
+        NotificationSettings.init()
         if (!NotificationSettings.enabled) {
             return
         }
@@ -31,7 +34,6 @@ object NotificationService {
 
     fun reload() {
         stopAutoNotifications()
-        NotificationSettings.reload()
         init()
     }
 
@@ -62,7 +64,19 @@ object NotificationService {
 
     fun stopAutoNotifications() {
         isRunning = false
+        invokeCancel(autoNotificationTask)
         autoNotificationTask = null
+    }
+
+    private fun invokeCancel(task: Any?) {
+        if (task == null) {
+            return
+        }
+        runCatching {
+            task.javaClass.methods.firstOrNull {
+                it.name == "cancel" && it.parameterTypes.isEmpty()
+            }?.invoke(task)
+        }
     }
 
     /**
@@ -100,18 +114,25 @@ object NotificationService {
                 broadcastMessage(formattedMessage)
             }
             "WORLD" -> {
-                val coloredMessage = formattedMessage.colored()
-                sender.world.players.forEach { player -> player.sendMessage(coloredMessage) }
-            }
-            "RADIUS" -> {
-                val center = sender.location
-                val radius = NotificationSettings.adminNotificationRadius.toDouble()
-                val radiusSquared = radius * radius
+                // Folia: 对世界内每个玩家在其区域线程上发送消息
                 val coloredMessage = formattedMessage.colored()
                 sender.world.players.forEach { player ->
-                    if (player.location.distanceSquared(center) <= radiusSquared) {
+                    player.submitOnEntity {
                         player.sendMessage(coloredMessage)
                     }
+                }
+            }
+            "RADIUS" -> {
+                // Folia: 对半径内每个玩家在其区域线程上发送消息
+                val coloredMessage = formattedMessage.colored()
+                sender.submitOnEntity {
+                    val center = sender.location
+                    EntityUtils.nearbyPlayers(sender.world, center, NotificationSettings.adminNotificationRadius.toDouble())
+                        .forEach { nearby ->
+                            nearby.submitOnEntity {
+                                nearby.sendMessage(coloredMessage)
+                            }
+                        }
                 }
             }
         }

@@ -3,7 +3,8 @@
 build
 .kotlin
 bin
-
+.codeartsdoer
+.arts
 ### VSCode ###
 .vscode
 
@@ -13,3 +14,11 @@ bin
 
 ### Cursor ###
 .cursor
+
+### Node.js ###
+node_modules/
+package-lock.json
+package.json
+
+### Temp ###
+nul

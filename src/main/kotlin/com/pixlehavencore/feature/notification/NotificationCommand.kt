@@ -1,14 +1,16 @@
 package com.pixlehavencore.feature.notification
 
 import com.pixlehavencore.util.msg
+import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.requirePlayer
 import taboolib.common.platform.ProxyCommandSender
 import taboolib.common.platform.command.CommandBody
 import taboolib.common.platform.command.CommandHeader
+import taboolib.common.platform.command.PermissionDefault
 import taboolib.common.platform.command.mainCommand
 import taboolib.common.platform.command.subCommand
 
-@CommandHeader(name = "notification", aliases = ["notify", "servernotify"], permission = "phcore.notify.admin")
+@CommandHeader(name = "notification", aliases = ["notify", "servernotify"], permissionDefault = PermissionDefault.TRUE)
 object NotificationCommand {
 
     @CommandBody
@@ -29,6 +31,7 @@ object NotificationCommand {
     @CommandBody
     val send = subCommand {
         execute<ProxyCommandSender> { sender, _, argument ->
+            if (!sender.requirePermission(NotificationSettings.adminNotificationPermission)) return@execute
             if (!NotificationSettings.enabled || !NotificationSettings.adminNotificationsEnabled) {
                 sender.msg("&c服务器通知功能已禁用")
                 return@execute
@@ -57,6 +60,7 @@ object NotificationCommand {
     val auto = subCommand {
         literal("on") {
             execute<ProxyCommandSender> { sender, _, _ ->
+                if (!sender.requirePermission(NotificationSettings.adminNotificationPermission)) return@execute
                 if (!NotificationSettings.enabled) {
                     sender.msg("&c服务器通知功能已禁用")
                     return@execute
@@ -70,6 +74,7 @@ object NotificationCommand {
 
         literal("off") {
             execute<ProxyCommandSender> { sender, _, _ ->
+                if (!sender.requirePermission(NotificationSettings.adminNotificationPermission)) return@execute
                 NotificationSettings.setAutoNotificationsEnabled(false)
                 NotificationService.stopAutoNotifications()
                 sender.msg(NotificationSettings.messageAutoDisabled)
@@ -78,6 +83,7 @@ object NotificationCommand {
 
         literal("status") {
             execute<ProxyCommandSender> { sender, _, _ ->
+                if (!sender.requirePermission(NotificationSettings.adminNotificationPermission)) return@execute
                 val status = if (NotificationSettings.autoNotificationsEnabled) "启用" else "禁用"
                 sender.msg(NotificationSettings.messageAutoStatus.replace("{status}", status))
             }
@@ -85,6 +91,7 @@ object NotificationCommand {
 
         literal("interval") {
             execute<ProxyCommandSender> { sender, _, argument ->
+                if (!sender.requirePermission(NotificationSettings.adminNotificationPermission)) return@execute
                 val interval = argument.toString()
                 val parsedInterval = NotificationSettings.parseTimeInterval(interval)
                 if (parsedInterval == null) {
@@ -102,6 +109,7 @@ object NotificationCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
+            if (!sender.requirePermission(NotificationSettings.adminNotificationPermission)) return@execute
             NotificationService.reload()
             sender.msg(NotificationSettings.messageReloadSuccess)
         }
@@ -110,6 +118,7 @@ object NotificationCommand {
     @CommandBody
     val test = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
+            if (!sender.requirePermission(NotificationSettings.adminNotificationPermission)) return@execute
             val player = sender.requirePlayer() ?: return@execute
             NotificationService.sendAdminNotification(player.cast(), "&e这是一条测试通知消息")
             sender.msg("&a测试通知已发送！")

@@ -1,15 +1,16 @@
 package com.pixlehavencore.feature.optimization.viewdistance
 
 import com.pixlehavencore.util.msg
+import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.requirePlayer
-import org.bukkit.entity.Player
 import taboolib.common.platform.ProxyCommandSender
 import taboolib.common.platform.command.CommandBody
 import taboolib.common.platform.command.CommandHeader
+import taboolib.common.platform.command.PermissionDefault
 import taboolib.common.platform.command.mainCommand
 import taboolib.common.platform.command.subCommand
 
-@CommandHeader(name = "viewdistance", aliases = ["vd"], permission = "phcore.vdc.admin")
+@CommandHeader(name = "viewdistance", aliases = ["vd"], permissionDefault = PermissionDefault.TRUE)
 object ViewDistanceCommand {
 
     @CommandBody
@@ -26,6 +27,7 @@ object ViewDistanceCommand {
     @CommandBody
     val get = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
+            if (!sender.requirePermission("phcore.viewdistance.admin")) return@execute
             val player = sender.requirePlayer() ?: return@execute
             val distance = ViewDistanceService.resolvePlayerDistance(player)
             sender.msg("&a当前视距为 $distance。")
@@ -36,6 +38,7 @@ object ViewDistanceCommand {
     val set = subCommand {
         dynamic(comment = "distance") {
             execute<ProxyCommandSender> { sender, _, argument ->
+                if (!sender.requirePermission("phcore.viewdistance.admin")) return@execute
                 val value = argument.toIntOrNull()
                 if (value == null) {
                     sender.msg("&c无效的视距参数。")
@@ -43,8 +46,6 @@ object ViewDistanceCommand {
                 }
                 val player = sender.requirePlayer() ?: return@execute
                 ViewDistanceService.setPlayerDistance(player, value)
-                val bukkit = player.cast<Player>() ?: return@execute
-                ViewDistanceService.applyDistance(bukkit, value)
                 sender.msg("&a视距已设置为 ${ViewDistanceService.clampByLimits(value)}。")
             }
         }
@@ -53,11 +54,10 @@ object ViewDistanceCommand {
     @CommandBody
     val reset = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
+            if (!sender.requirePermission("phcore.viewdistance.admin")) return@execute
             val player = sender.requirePlayer() ?: return@execute
             ViewDistanceService.clearPlayerDistance(player)
-            val bukkit = player.cast<Player>() ?: return@execute
             val target = ViewDistanceService.resolvePlayerDistance(player)
-            ViewDistanceService.applyDistance(bukkit, target)
             sender.msg("&a视距已重置为 $target。")
         }
     }
@@ -65,6 +65,7 @@ object ViewDistanceCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
+            if (!sender.requirePermission("phcore.viewdistance.admin")) return@execute
             ViewDistanceService.reload()
             sender.msg("&a视距控制配置已重载。")
         }

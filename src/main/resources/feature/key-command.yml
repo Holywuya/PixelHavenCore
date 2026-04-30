@@ -1,0 +1,17 @@
+version: 1
+
+# 按键触发命令模块（仅支持服务端可可靠捕获的 F / Shift+F）
+enabled: true
+
+# 未打开界面时按 F 执行，支持 {player}
+f: "warehouse"
+
+# 未打开界面时按 Shift + F 执行，支持 {player}
+shiftF: "warehouse shared open public"
+
+# 预留项（服务端无法可靠识别 Ctrl / Alt）
+ctrlF: ""
+altF: ""
+
+# 触发冷却（毫秒）
+cooldownMillis: 500

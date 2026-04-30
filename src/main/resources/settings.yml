@@ -2,6 +2,8 @@
 # VeinminerPlus 主配置文件
 # =============================================================================
 
+version: 8
+
 # 数据库配置
 database:
   # 数据库类型: sqlite / mysql
@@ -10,7 +12,7 @@ database:
   # SQLite 数据库配置
   sqlite:
     # 数据库文件名（相对于服务器根目录）
-    file: "veinminer.db"
+    file: "pixelhavencore.db"
 
   # MySQL 数据库配置（当 type 为 mysql 时使用）
   mysql:
@@ -19,11 +21,25 @@ database:
     # MySQL 端口
     port: "3306"
     # 数据库名称
-    database: "veinminer"
+    database: "pixelhavencore"
     # 用户名
     user: "root"
     # 密码
     password: "root"
 
-# 模块开关
-modules:
+  # Redis 缓存配置（用于 PlayerDatabase Redis 集成）
+  redis:
+    # 是否启用 Redis 缓存
+    enable: false
+    # Redis 地址
+    host: "localhost"
+    # Redis 端口
+    port: 6379
+    # Redis 用户（无 ACL 可留空）
+    user: ""
+    # Redis 密码
+    password: ""
+    # 连接池大小
+    connect: 32
+    # 连接超时（毫秒）
+    timeout: 1000

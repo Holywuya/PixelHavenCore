@@ -1,3 +1,5 @@
+version: 1
+
 # =============================================================================
 # 服务器通知模块配置文件
 # =============================================================================
@@ -27,7 +29,7 @@ adminNotifications:
   enabled: true
 
   # 发送管理员通知的权限节点
-  permission: "phcore.notify.admin"
+  permission: "phcore.notification.admin"
 
   # 无权限时的提示消息
   noPermissionMessage: "&c你没有权限发送服务器通知！"

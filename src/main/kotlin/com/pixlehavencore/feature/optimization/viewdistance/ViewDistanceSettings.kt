@@ -23,13 +23,16 @@ object ViewDistanceSettings {
     var minDistance: Int = 2
         private set
 
-    var savePlayerData: Boolean = true
-        private set
-
     var displayOnJoin: Boolean = true
         private set
 
     var displayJoinMessage: String = "&7View distance set to &f{distance}&7."
+        private set
+
+    var afkEnterMessage: String = "&7你已进入 AFK 状态。"
+        private set
+
+    var afkExitMessage: String = "&a你已退出 AFK 状态。"
         private set
 
     var afkEnabled: Boolean = true
@@ -62,7 +65,7 @@ object ViewDistanceSettings {
     var dynamicMsptMap: Map<Int, Int> = emptyMap()
         private set
 
-    var dynamicBypassPermission: String = "phcore.vdc.dynamic.bypass"
+    var dynamicBypassPermission: String = "phcore.viewdistance.dynamic.bypass"
         private set
 
     var pingEnabled: Boolean = false
@@ -80,10 +83,10 @@ object ViewDistanceSettings {
     var pingMap: Map<Int, Int> = emptyMap()
         private set
 
-    var pingTogglePermission: String = "phcore.vdc.ping.toggle"
+    var pingTogglePermission: String = "phcore.viewdistance.ping.toggle"
         private set
 
-    var bypassAfkPermission: String = "phcore.vdc.afk.bypass"
+    var bypassAfkPermission: String = "phcore.viewdistance.afk.bypass"
         private set
 
     fun init() {
@@ -97,9 +100,10 @@ object ViewDistanceSettings {
         defaultDistance = clampDistance(config.getInt("defaultDistance", 10))
         maxDistance = clampDistance(config.getInt("maxDistance", 32))
         minDistance = clampDistance(config.getInt("minDistance", 2))
-        savePlayerData = config.getBoolean("savePlayerData", true)
         displayOnJoin = config.getBoolean("displayOnJoin", true)
         displayJoinMessage = config.getString("displayJoinMessage") ?: "&7View distance set to &f{distance}&7."
+        afkEnterMessage = config.getString("afk.enterMessage") ?: "&7你已进入 AFK 状态。"
+        afkExitMessage = config.getString("afk.exitMessage") ?: "&a你已退出 AFK 状态。"
         afkEnabled = config.getBoolean("afk.enabled", true)
         afkOnJoin = config.getBoolean("afk.afkOnJoin", false)
         afkSeconds = config.getInt("afk.seconds", 60).coerceAtLeast(5)
@@ -110,18 +114,18 @@ object ViewDistanceSettings {
         dynamicMin = clampDistance(config.getInt("dynamic.min", 2))
         dynamicMax = clampDistance(config.getInt("dynamic.max", 32))
         dynamicMsptMap = parseIntMap("dynamic.mspt")
-        dynamicBypassPermission = config.getString("dynamic.bypassPermission") ?: "phcore.vdc.dynamic.bypass"
+        dynamicBypassPermission = config.getString("dynamic.bypassPermission") ?: "phcore.viewdistance.dynamic.bypass"
         pingEnabled = config.getBoolean("ping.enabled", false)
         pingIntervalTicks = config.getLong("ping.intervalTicks", 600L).coerceAtLeast(20L)
         pingMin = clampDistance(config.getInt("ping.min", 2))
         pingMax = clampDistance(config.getInt("ping.max", 32))
         pingMap = parseIntMap("ping.values")
-        pingTogglePermission = config.getString("ping.togglePermission") ?: "phcore.vdc.ping.toggle"
-        bypassAfkPermission = config.getString("afk.bypassPermission") ?: "phcore.vdc.afk.bypass"
+        pingTogglePermission = config.getString("ping.togglePermission") ?: "phcore.viewdistance.ping.toggle"
+        bypassAfkPermission = config.getString("afk.bypassPermission") ?: "phcore.viewdistance.afk.bypass"
     }
 
     fun clampDistance(value: Int): Int {
-        return value.coerceIn(2, 32)
+        return value.coerceIn(minDistance, maxDistance)
     }
 
     private fun parseIntMap(path: String): Map<Int, Int> {

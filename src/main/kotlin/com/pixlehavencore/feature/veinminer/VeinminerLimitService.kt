@@ -4,6 +4,7 @@ import com.pixlehavencore.util.ensureDataContainer
 import taboolib.common.platform.ProxyPlayer
 import taboolib.common.platform.function.getDataFolder
 import taboolib.common.platform.function.onlinePlayers
+import taboolib.common.platform.function.submitAsync
 import taboolib.expansion.getDataContainer
 import taboolib.expansion.setupPlayerDatabase
 import com.pixlehavencore.PixleHavenSettings
@@ -75,8 +76,49 @@ object VeinminerLimitService {
         return resolveGroup(player)?.limit ?: 0
     }
 
-    fun getPricePerBlock(player: ProxyPlayer): Double {
-        return resolveGroup(player)?.pricePerBlock ?: 0.0
+    fun getUsed(player: ProxyPlayer): Int {
+        resetIfNeeded(player)
+        return getUsage(player)
+    }
+
+    fun addRemaining(player: ProxyPlayer, amount: Int): Int? {
+        if (amount < 0) {
+            return removeRemaining(player, -amount)
+        }
+        val limit = getLimitValue(player)
+        if (limit <= 0) {
+            return null
+        }
+        resetIfNeeded(player)
+        val nextUsed = (getUsage(player) - amount).coerceAtLeast(0)
+        setUsage(player, nextUsed)
+        return (limit - nextUsed).coerceAtLeast(0)
+    }
+
+    fun removeRemaining(player: ProxyPlayer, amount: Int): Int? {
+        if (amount < 0) {
+            return addRemaining(player, -amount)
+        }
+        val limit = getLimitValue(player)
+        if (limit <= 0) {
+            return null
+        }
+        resetIfNeeded(player)
+        val nextUsed = (getUsage(player) + amount).coerceAtMost(limit)
+        setUsage(player, nextUsed)
+        return (limit - nextUsed).coerceAtLeast(0)
+    }
+
+    fun setRemaining(player: ProxyPlayer, amount: Int): Int? {
+        val limit = getLimitValue(player)
+        if (limit <= 0) {
+            return null
+        }
+        resetIfNeeded(player)
+        val targetRemaining = amount.coerceIn(0, limit)
+        val nextUsed = (limit - targetRemaining).coerceAtLeast(0)
+        setUsage(player, nextUsed)
+        return targetRemaining
     }
 
     private fun resolveGroup(player: ProxyPlayer): VeinminerGroup? {
@@ -157,8 +199,11 @@ object VeinminerLimitService {
             val marker = currentFixedMarker(LocalDateTime.now())
             if (marker != lastFixedMarker) {
                 lastFixedMarker = marker
-                onlinePlayers().forEach { player ->
-                    setUsage(player, 0, marker)
+                val players = onlinePlayers().toList()
+                submitAsync {
+                    players.forEach { player ->
+                        setUsage(player, 0, marker)
+                    }
                 }
             }
         }

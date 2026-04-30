@@ -1,0 +1,22 @@
+version: 6
+
+enabled: true
+
+# 默认货币 ID。
+# 只有默认货币会进入中心银行 C/D 双账户治理与税务收益池。
+defaultCurrency: coin
+
+# 玩家余额落库间隔，单位刻。
+# 数值越小，磁盘/数据库写入越频繁。
+storage:
+  autoSaveTicks: 100
+
+# 货币定义。
+# currencies 下的每个子键都代表一种货币，可自由增删。
+currencies:
+  coin:
+    singular: Coin
+    plural: Coins
+  gem:
+    singular: Gem
+    plural: Gems

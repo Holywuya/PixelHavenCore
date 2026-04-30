@@ -3,7 +3,11 @@ package com.pixlehavencore.feature.vanish
 import com.pixlehavencore.util.broadcastToPermission
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
+import org.bukkit.potion.PotionEffect
+import org.bukkit.potion.PotionEffectType
+import taboolib.platform.util.submit as submitOnEntity
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 隐身服务：负责管理玩家隐身状态，以及对观察者应用/撤销隐身效果。
@@ -14,15 +18,16 @@ import java.util.UUID
  */
 object VanishService {
 
-    /** 普通隐身玩家的 UUID 集合 */
-    private val normalVanished = mutableSetOf<UUID>()
+    /** 普通隐身玩家的 UUID 集合（Folia 线程安全：ConcurrentHashMap.keySet） */
+    private val normalVanished: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
 
     /**
      * vanishViewers[observerUUID] = Set<targetUUID>
      * 记录某观察者通过 /vanish-show 显式解除了哪些普通隐身玩家的隐身效果。
      * 注意：仅适用于普通隐身玩家。
+     * Folia 线程安全：外层 ConcurrentHashMap，内层 ConcurrentHashMap.newKeySet
      */
-    private val vanishViewers = mutableMapOf<UUID, MutableSet<UUID>>()
+    private val vanishViewers = ConcurrentHashMap<UUID, MutableSet<UUID>>()
 
     // ------------------------------------------------------------------
     // 插件实例（用于 hidePlayer / showPlayer API）
@@ -71,6 +76,9 @@ object VanishService {
     private fun enableNormalVanish(player: Player) {
         normalVanished.add(player.uniqueId)
         applyVanishToAllObservers(player)
+        player.submitOnEntity {
+            applyVanishingEffect(player)
+        }
         notifyAdmins(player, vanishOn = true)
     }
 
@@ -79,6 +87,9 @@ object VanishService {
         // 清理该玩家在所有观察者的 viewerMap 中的记录
         vanishViewers.values.forEach { it.remove(player.uniqueId) }
         revealToAllObservers(player)
+        player.submitOnEntity {
+            removeVanishingEffect(player)
+        }
         notifyAdmins(player, vanishOn = false)
     }
 
@@ -91,13 +102,16 @@ object VanishService {
      * 普通隐身：只对无 see 权限者隐藏。
      */
     private fun applyVanishToAllObservers(target: Player) {
-        Bukkit.getOnlinePlayers().forEach { observer ->
+        // Folia: 对每个观察者在各自的区域线程上执行 hidePlayer
+        Bukkit.getOnlinePlayers().toList().forEach { observer ->
             if (observer.uniqueId == target.uniqueId) return@forEach
-            // 普通隐身：有 see 权限的保持可见
-            if (observer.hasPermission("phcore.vanish.see")) {
-                // see 权限者保持能看见（不做 hidePlayer）
-            } else {
-                observer.hidePlayer(plugin, target)
+            observer.submitOnEntity {
+                // 普通隐身：有 see 权限的保持可见
+                if (observer.hasPermission("phcore.vanish.see")) {
+                    // see 权限者保持能看见（不做 hidePlayer）
+                } else {
+                    observer.hidePlayer(plugin, target)
+                }
             }
         }
     }
@@ -106,9 +120,12 @@ object VanishService {
      * 当 target 退出隐身时，对所有在线观察者恢复可见。
      */
     private fun revealToAllObservers(target: Player) {
-        Bukkit.getOnlinePlayers().forEach { observer ->
+        // Folia: 对每个观察者在各自的区域线程上执行 showPlayer
+        Bukkit.getOnlinePlayers().toList().forEach { observer ->
             if (observer.uniqueId == target.uniqueId) return@forEach
-            observer.showPlayer(plugin, target)
+            observer.submitOnEntity {
+                observer.showPlayer(plugin, target)
+            }
         }
     }
 
@@ -121,14 +138,16 @@ object VanishService {
      * 须在 PlayerJoinEvent 中调用。
      */
     fun applyVanishToNewObserver(observer: Player) {
-        val hasSeePermission = observer.hasPermission("phcore.vanish.see")
+        observer.submitOnEntity {
+            val hasSeePermission = observer.hasPermission("phcore.vanish.see")
+            if (hasSeePermission) {
+                return@submitOnEntity
+            }
 
-        normalVanished.mapNotNull { Bukkit.getPlayer(it) }.forEach { vanished ->
-            if (vanished.uniqueId != observer.uniqueId) {
-                if (!hasSeePermission) {
+            normalVanished.toList().mapNotNull { Bukkit.getPlayer(it) }.forEach { vanished ->
+                if (vanished.uniqueId != observer.uniqueId) {
                     observer.hidePlayer(plugin, vanished)
                 }
-                // 有 see 权限者保持默认可见，不做操作
             }
         }
     }
@@ -145,8 +164,10 @@ object VanishService {
         return when {
             !isNormalVanished(target) -> ShowResult.NOT_VANISHED
             else -> {
-                vanishViewers.getOrPut(observer.uniqueId) { mutableSetOf() }.add(target.uniqueId)
-                observer.showPlayer(plugin, target)
+                vanishViewers.getOrPut(observer.uniqueId) { ConcurrentHashMap.newKeySet() }.add(target.uniqueId)
+                observer.submitOnEntity {
+                    observer.showPlayer(plugin, target)
+                }
                 ShowResult.OK
             }
         }
@@ -158,9 +179,11 @@ object VanishService {
      */
     fun showAllNormalVanishedTo(observer: Player): Int {
         val targets = getNormalVanishedPlayers()
-        targets.forEach { target ->
-            vanishViewers.getOrPut(observer.uniqueId) { mutableSetOf() }.add(target.uniqueId)
-            observer.showPlayer(plugin, target)
+        observer.submitOnEntity {
+            targets.forEach { target ->
+                vanishViewers.getOrPut(observer.uniqueId) { ConcurrentHashMap.newKeySet() }.add(target.uniqueId)
+                observer.showPlayer(plugin, target)
+            }
         }
         return targets.size
     }
@@ -189,6 +212,27 @@ object VanishService {
         val template = if (vanishOn) VanishSettings.msgAdminNotifyOn else VanishSettings.msgAdminNotifyOff
         val message = template.replace("{player}", player.name)
         broadcastToPermission(message, "phcore.vanish.notify", exclude = player.uniqueId)
+    }
+
+    private fun applyVanishingEffect(player: Player) {
+        val effectType = PotionEffectType.INVISIBILITY ?: return
+        player.addPotionEffect(
+            PotionEffect(
+                effectType,
+                Int.MAX_VALUE,
+                0,
+                false,
+                false,
+                false
+            )
+        )
+    }
+
+    private fun removeVanishingEffect(player: Player) {
+        val effectType = PotionEffectType.INVISIBILITY ?: return
+        if (player.hasPotionEffect(effectType)) {
+            player.removePotionEffect(effectType)
+        }
     }
 
     // ------------------------------------------------------------------

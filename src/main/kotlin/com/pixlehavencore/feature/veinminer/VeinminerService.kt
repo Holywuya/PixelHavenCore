@@ -5,12 +5,11 @@ import org.bukkit.block.Block
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.Damageable
+import com.pixlehavencore.util.InventoryUtils
 import taboolib.common.platform.ProxyGameMode
 import taboolib.common.platform.ProxyPlayer
 import taboolib.common.platform.function.adaptPlayer
-import taboolib.platform.compat.isEconomySupported
-import taboolib.platform.compat.getBalance
-import taboolib.platform.compat.withdrawBalance
+import taboolib.platform.util.submit as submitOnLocation
 import kotlin.math.min
 import java.util.ArrayDeque
 import java.util.Collections
@@ -68,10 +67,6 @@ object VeinminerService {
         }
         if (!VeinminerLimitService.consume(proxyPlayer, chain.size)) {
             VeinminerMessages.send(proxyPlayer, VeinminerSettings.messageLimitDenied)
-            return false
-        }
-        if (!checkEconomy(player, chain.size)) {
-            VeinminerLimitService.consume(proxyPlayer, -chain.size)
             return false
         }
         mining.add(proxyPlayer.uniqueId)
@@ -163,8 +158,13 @@ object VeinminerService {
         return (x shl 38) or (z shl 12) or y
     }
 
+    private data class MergedDrop(
+        val model: ItemStack,
+        var totalAmount: Int
+    )
+
     private fun breakChain(player: Player, tool: ItemStack, blocks: List<Block>) {
-        val drops: MutableList<ItemStack> = ArrayList()
+        val mergedDrops = LinkedHashMap<String, MergedDrop>()
         val world = player.world
         var canContinue = true
         blocks.forEach { block ->
@@ -175,9 +175,12 @@ object VeinminerService {
                 return@forEach
             }
             if (VeinminerSettings.mergeItemDrops) {
-                drops.addAll(block.getDrops(tool, player))
+                mergeDropsInto(block.getDrops(tool, player), mergedDrops)
+                // Folia: block.type 设置必须在方块所属区域线程上执行
+                // 当前从 BlockBreakEvent 处理器调用，事件在区域线程上触发，同一区块内的方块操作是安全的
                 block.type = Material.AIR
             } else {
+                // Folia: 同上，block.breakNaturally 在区域线程上执行
                 block.breakNaturally(tool)
             }
             if (VeinminerSettings.durabilityDecrease) {
@@ -187,9 +190,37 @@ object VeinminerService {
                 }
             }
         }
-        if (VeinminerSettings.mergeItemDrops && drops.isNotEmpty()) {
+        if (mergedDrops.isNotEmpty()) {
             val location = blocks.first().location.add(0.5, 0.5, 0.5)
-            drops.forEach { world.dropItemNaturally(location, it) }
+            // Folia: dropItemNaturally 需要在位置所属的区域线程上执行
+            location.submitOnLocation {
+                mergedDrops.values.forEach { merged ->
+                    val maxStackSize = merged.model.maxStackSize.coerceAtLeast(1)
+                    var remaining = merged.totalAmount
+                    while (remaining > 0) {
+                        val piece = merged.model.clone()
+                        val amount = min(remaining, maxStackSize)
+                        piece.amount = amount
+                        world.dropItemNaturally(location, piece)
+                        remaining -= amount
+                    }
+                }
+            }
+        }
+    }
+
+    private fun mergeDropsInto(drops: Collection<ItemStack>, mergedDrops: MutableMap<String, MergedDrop>) {
+        drops.forEach { drop ->
+            if (drop.type == Material.AIR || drop.amount <= 0) {
+                return@forEach
+            }
+            val key = InventoryUtils.stackKey(drop)
+            val bucket = mergedDrops[key]
+            if (bucket == null) {
+                mergedDrops[key] = MergedDrop(drop.clone(), drop.amount)
+            } else {
+                bucket.totalAmount += drop.amount
+            }
         }
     }
 
@@ -218,29 +249,6 @@ object VeinminerService {
             return false
         }
         return block.getDrops(tool, player).isNotEmpty()
-    }
-
-    private fun checkEconomy(player: Player, count: Int): Boolean {
-        val proxyPlayer = adaptPlayer(player)
-        val pricePerBlock = VeinminerLimitService.getPricePerBlock(proxyPlayer)
-        val cost = pricePerBlock * count
-        if (cost <= 0) {
-            return true
-        }
-        if (!isEconomySupported) {
-            return true
-        }
-        val balance = player.getBalance()
-        if (balance < cost) {
-            VeinminerMessages.send(proxyPlayer, VeinminerSettings.messageMoneyNotEnough, mapOf("cost" to cost, "balance" to balance))
-            return false
-        }
-        val response = player.withdrawBalance(cost)
-        if (!response.transactionSuccess()) {
-            VeinminerMessages.send(proxyPlayer, VeinminerSettings.messageMoneyFailed, mapOf("cost" to cost))
-            return false
-        }
-        return true
     }
 
     private data class Offset(val x: Int, val y: Int, val z: Int)

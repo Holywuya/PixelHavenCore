@@ -1,3 +1,5 @@
+version: 2
+
 # =============================================================================
 # 砂轮修复配置
 # =============================================================================
@@ -5,11 +7,40 @@ grindstoneRepair: # 砂轮修复
   enabled: true # 总开关在 
   requireSneak: false # 是否需要潜行
   permission: "" # 为空则不限制权限
-  restorePerItem: 100 # 每个材料恢复的耐久值
+  restorePerItem: 100 # 默认每个材料恢复的耐久值
+  restorePercent: 0.0 # 默认按最大耐久百分比恢复，0 表示不启用
   chance: 1.0 # 修复成功概率
   messages:
     success: "&a修复了 +{amount} 耐久度。"
     failed: "&c修复失败。"
-  materialOverrides:
-    DIAMOND_PICKAXE: DIAMOND
-    NETHERITE_PICKAXE: NETHERITE_INGOT
+  # 新版规则：主手与材料都支持原版物品、bai:<id> 或 ce:<namespace:id>
+  rules:
+    diamond_pickaxe:
+      main: DIAMOND_PICKAXE
+      material: DIAMOND
+      restore: 100
+      restorePercent: 0.0
+    custom_pickaxe:
+      main: bai:custom_pickaxe
+      materials:
+        first:
+          spec: bai:repair_core
+          amount: 2
+        second:
+          spec: DIAMOND
+          amount: 1
+      restore: 250
+      restorePercent: 0.0
+    custom_elytra:
+      main: bai:custom_elytra
+      materials:
+        first:
+          spec: bai:phantom_membrane_plus
+          amount: 1
+        second:
+          spec: PHANTOM_MEMBRANE
+          amount: 4
+      restore: 0
+      restorePercent: 0.2
+
+  # materials 支持多个候选材料；amount 表示该候选材料单次消耗数量

@@ -1,3 +1,5 @@
+version: 1
+
 # =============================================================================
 # 连锁挖掘配置
 # =============================================================================
@@ -70,17 +72,13 @@ messages: # 消息配置
   limitRemaining: "&7剩余次数：&f{remaining}"
   modeOn: "&a连锁挖掘已启用。剩余次数：&f{remaining}"
   modeOff: "&c连锁挖掘已禁用。"
-  moneyNotEnough: "&c金钱不足。需要 {cost}，余额 {balance}。"
-  moneyFailed: "&c扣费失败。"
 
 groups: # 权限组设置（按 priority 从高到低匹配）
   default:
     permission: ""
     priority: 0
     limit: 64
-    pricePerBlock: 1.0
   vip:
     permission: "veinminer.group.vip"
     priority: 10
     limit: 128
-    pricePerBlock: 0.5

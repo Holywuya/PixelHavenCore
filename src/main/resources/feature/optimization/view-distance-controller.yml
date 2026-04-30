@@ -1,3 +1,5 @@
+version: 2
+
 # =============================================================================
 # 视野距离控制器配置
 # =============================================================================
@@ -11,9 +13,6 @@ defaultDistance: 10
 minDistance: 2
 maxDistance: 32
 
-# 将玩家偏好设置保存到数据库
-savePlayerData: true
-
 # 加入消息
 displayOnJoin: true
 displayJoinMessage: "&7视野距离设置为 &f{distance}&7。"
@@ -24,14 +23,14 @@ afk:
   seconds: 60
   distance: 2
   spectatorsCanAfk: true
-  bypassPermission: "phcore.vdc.afk.bypass"
+  bypassPermission: "phcore.viewdistance.afk.bypass"
 
 dynamic:
   enabled: false
   intervalTicks: 1200
   min: 2
   max: 32
-  bypassPermission: "phcore.vdc.dynamic.bypass"
+  bypassPermission: "phcore.viewdistance.dynamic.bypass"
   mspt:
     "45": 1
     "50": 2
@@ -42,7 +41,7 @@ ping:
   intervalTicks: 600
   min: 2
   max: 32
-  togglePermission: "phcore.vdc.ping.toggle"
+  togglePermission: "phcore.viewdistance.ping.toggle"
   values:
     "150": 2
     "300": 3

@@ -1,0 +1,144 @@
+version: 4
+
+# 仓库模块
+enabled: true
+
+personal:
+  # 玩家默认仓库行数（每行9格）
+  defaultRows: 2
+  # 最大仓库行数（不超过6行）
+  maxRows: 6
+  # 按权限组提升仓库行数（按 rows 从大到小匹配第一条）
+  rowsByPermission:
+    - permission: "group.vip"
+      rows: 3
+    - permission: "group.svip"
+      rows: 4
+    - permission: "group.mvp"
+      rows: 5
+    - permission: "group.legend"
+      rows: 6
+
+  # 当权限变化导致仓库缩容时，超出容量的物品会直接返还到背包，满了则掉落在脚下
+
+shared:
+  # 共享仓库初始行数（默认3行）
+  initialRows: 3
+  # 共享仓库最大行数（最多2页=6行）
+  maxRows: 6
+  unlock:
+    # 每解锁1格消耗金币
+    costPerSlot: 1000.0
+    # 未解锁格子显示材质
+    lockedMaterial: "BARRIER"
+
+  manage:
+    title: "&8共享仓库管理 - {name}"
+    memberPreviewLimit: 5
+    hintLore:
+      - "&7仅创建者可使用"
+    items:
+      members:
+        material: "PLAYER_HEAD"
+        name: "&b成员列表"
+        lore:
+          - "&7当前成员："
+          - "{members}"
+          - "&e点击聊天输出完整列表"
+        # 仓库公开时替换上方的名称和说明
+        publicName: "&e公开仓库"
+        publicLore:
+          - "&7此仓库为公开状态"
+          - "&7所有玩家均可访问"
+      add:
+        material: "LIME_WOOL"
+        name: "&a添加使用者"
+        lore:
+          - "&7点击后在聊天输入玩家ID"
+      remove:
+        material: "RED_WOOL"
+        name: "&c删除使用者"
+        lore:
+          - "&7点击后在聊天输入玩家ID"
+      back:
+        material: "ARROW"
+        name: "&e返回仓库"
+        lore:
+          - "&7返回共享仓库界面"
+      toggleVisibility:
+        material: "LIME_CONCRETE"
+        toPublicName: "&a切换为公开"
+        toPublicLore:
+          - "&7点击将此仓库设为公开"
+          - "&7所有人均可访问"
+        toPrivateName: "&c切换为私有"
+        toPrivateLore:
+          - "&7点击将此仓库设为私有"
+          - "&7仅成员可访问"
+      entry:
+        material: "COMPARATOR"
+        name: "&e仓库管理"
+        lore:
+          - "&7仅创建者可点击"
+          - "&e点击打开管理界面"
+
+# 个人仓库标题，支持 {player}
+title: "&8随身仓库 - {player}"
+
+# 共享仓库标题，支持 {name}
+sharedTitle: "&8共享仓库 - {name}"
+
+database:
+  table: "player_warehouse"
+  sharedTable: "shared_warehouse"
+  sharedMemberTable: "shared_warehouse_member"
+
+permissions:
+  use: "phcore.backpack.use"
+  admin: "phcore.backpack.admin"
+
+commands:
+  sharedAlias: "wh"
+
+messages:
+  disabled: "&c仓库模块当前已禁用。"
+  noPermission: "&c你没有权限使用仓库。"
+  playerNotFound: "&c未找到玩家: {player}"
+  openSelf: ""
+  openOther: "&a已打开玩家 &f{player} &a的仓库。"
+  saveFailed: "&c仓库保存失败，请稍后重试。"
+  reload: "&a仓库配置已重载。"
+
+  sharedCreateNoQuota: "&c你没有共享仓库创建次数。"
+  sharedCreated: "&a共享仓库 &f{name} &a创建成功。"
+  sharedExists: "&c共享仓库名称已存在: {name}"
+  sharedNotFound: "&c共享仓库不存在: {name}"
+  sharedNoAccess: "&c你没有权限访问共享仓库: {name}"
+  sharedMemberAdded: "&a已添加成员 &f{player} &a到共享仓库 &f{name}&a。"
+  sharedMemberRemoved: "&a已从共享仓库 &f{name} &a移除成员 &f{player}&a。"
+  sharedUpgrade: "&a共享仓库 &f{name} &a已升级到 &f{size} &a格。"
+  sharedQuotaGranted: "&a已给予玩家 &f{player} &a共享仓库创建次数 &f{amount}&a。"
+
+  # 整理：现在改为打开仓库自动整理，此提示保留作兼容
+  sortDone: "&a仓库已整理。"
+  sharedSortNotOwner: "&c只有共享仓库创建者可以整理。"
+
+  sharedUnlockNeedMoney: "&c解锁失败，余额不足。需要: &f{cost}"
+  sharedUnlockSuccess: "&a已解锁共享仓库格子，消耗 &f{cost}"
+  sharedLockedName: "&c未解锁格子"
+  sharedLockedLore:
+    - "&7解锁费用: &f{cost}"
+    - "&e左键点击解锁"
+
+  chatInputAddPrompt: "&e请输入要添加的玩家ID，输入 &fcancel &e取消。"
+  chatInputRemovePrompt: "&e请输入要移除的玩家ID，输入 &fcancel &e取消。"
+  chatInputCancelled: "&e已取消输入。"
+  chatInputDone: "&a操作完成。"
+  chatInputPlayerNotFound: "&c未找到玩家: {player}"
+  sharedManageNoPermission: "&c只有共享仓库创建者可以管理。"
+  sharedSetPublic: "&a共享仓库 &f{name} &a已设置为公开。"
+  sharedSetPrivate: "&a共享仓库 &f{name} &a已设置为私有。"
+  sharedMembersChatHeader: "&6=== 共享仓库成员: {name} ==="
+  sharedMembersChatItem: "&b- {player}"
+
+  personalOverflowFallback: "&e仓库容量已调整，超额物品已返还至你的背包/脚下。"
