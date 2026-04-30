@@ -3,12 +3,12 @@ name: Build PixelHavenCore
 on:
   push:
     branches:
-      - ver/3.x
+      - master
     tags:
       - 'v*'
   pull_request:
     branches:
-      - ver/3.x
+      - master
   workflow_dispatch:
 
 permissions:
