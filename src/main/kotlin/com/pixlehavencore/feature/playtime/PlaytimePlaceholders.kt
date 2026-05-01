@@ -22,27 +22,31 @@ object PlaytimePlaceholders : PlaceholderExpansion {
         val lower = args.lowercase()
         val data = PlaytimeStorage.getData(playerUuid)
         val sessionSeconds = PlaytimeStorage.getSessionDuration(playerUuid)
+        val total = (data?.totalSeconds ?: 0L) + sessionSeconds
+        val today = (data?.todaySeconds ?: 0L) + sessionSeconds
+        val week = (data?.weekSeconds ?: 0L) + sessionSeconds
+        val month = (data?.monthSeconds ?: 0L) + sessionSeconds
 
         return when {
-            lower == "total" -> PlaytimeSettings.formatByType(data?.totalSeconds ?: 0L, "readable")
-            lower == "total_seconds" -> (data?.totalSeconds ?: 0L).toString()
-            lower == "total_minutes" -> ((data?.totalSeconds ?: 0L) / 60).toString()
-            lower == "total_hours" -> String.format("%.1f", (data?.totalSeconds ?: 0L) / 3600.0)
+            lower == "total" -> PlaytimeSettings.formatByType(total, "readable")
+            lower == "total_seconds" -> total.toString()
+            lower == "total_minutes" -> (total / 60).toString()
+            lower == "total_hours" -> String.format("%.1f", total / 3600.0)
 
-            lower == "today" -> PlaytimeSettings.formatByType(data?.todaySeconds ?: 0L, "readable")
-            lower == "today_seconds" -> (data?.todaySeconds ?: 0L).toString()
-            lower == "today_minutes" -> ((data?.todaySeconds ?: 0L) / 60).toString()
-            lower == "today_hours" -> String.format("%.1f", (data?.todaySeconds ?: 0L) / 3600.0)
+            lower == "today" -> PlaytimeSettings.formatByType(today, "readable")
+            lower == "today_seconds" -> today.toString()
+            lower == "today_minutes" -> (today / 60).toString()
+            lower == "today_hours" -> String.format("%.1f", today / 3600.0)
 
-            lower == "week" -> PlaytimeSettings.formatByType(data?.weekSeconds ?: 0L, "readable")
-            lower == "week_seconds" -> (data?.weekSeconds ?: 0L).toString()
-            lower == "week_minutes" -> ((data?.weekSeconds ?: 0L) / 60).toString()
-            lower == "week_hours" -> String.format("%.1f", (data?.weekSeconds ?: 0L) / 3600.0)
+            lower == "week" -> PlaytimeSettings.formatByType(week, "readable")
+            lower == "week_seconds" -> week.toString()
+            lower == "week_minutes" -> (week / 60).toString()
+            lower == "week_hours" -> String.format("%.1f", week / 3600.0)
 
-            lower == "month" -> PlaytimeSettings.formatByType(data?.monthSeconds ?: 0L, "readable")
-            lower == "month_seconds" -> (data?.monthSeconds ?: 0L).toString()
-            lower == "month_minutes" -> ((data?.monthSeconds ?: 0L) / 60).toString()
-            lower == "month_hours" -> String.format("%.1f", (data?.monthSeconds ?: 0L) / 3600.0)
+            lower == "month" -> PlaytimeSettings.formatByType(month, "readable")
+            lower == "month_seconds" -> month.toString()
+            lower == "month_minutes" -> (month / 60).toString()
+            lower == "month_hours" -> String.format("%.1f", month / 3600.0)
 
             lower == "session" || lower == "session_formatted" -> PlaytimeSettings.formatSeconds(sessionSeconds)
             lower == "session_seconds" -> sessionSeconds.toString()

@@ -320,6 +320,38 @@ object PlaytimeStorage {
         }
     }
 
+    private fun accumulateAndFlushAll() {
+        val ids = dirtyPlayers.toList()
+        if (ids.isEmpty()) return
+        val currentHandler = handler ?: return
+        val now = System.currentTimeMillis()
+        ids.forEach { uuid ->
+            val sessionStart = sessionCache[uuid] ?: return@forEach
+            synchronized(lockFor(uuid)) {
+                val delta = ((now - sessionStart) / 1000).coerceAtLeast(0L)
+                if (delta > 0) {
+                    val existing = dataCache[uuid] ?: return@forEach
+                    dataCache[uuid] = existing.copy(
+                        totalSeconds = existing.totalSeconds + delta,
+                        todaySeconds = existing.todaySeconds + delta,
+                        weekSeconds = existing.weekSeconds + delta,
+                        monthSeconds = existing.monthSeconds + delta,
+                        updatedAt = now
+                    )
+                    sessionCache[uuid] = now
+                }
+            }
+        }
+        runCatching {
+            ids.forEach { uuid ->
+                persistPlayer(currentHandler, uuid)
+                dirtyPlayers.remove(uuid)
+            }
+        }.onFailure { ex ->
+            warning("[在线时长] 保存数据失败: ${ex.message}")
+        }
+    }
+
     private fun flushAll() {
         val ids = dirtyPlayers.toList()
         if (ids.isEmpty()) return
@@ -337,7 +369,7 @@ object PlaytimeStorage {
     private fun scheduleFlush() {
         invokeCancel(flushTask)
         flushTask = submitAsync(period = PlaytimeSettings.autoSaveTicks) {
-            flushAll()
+            accumulateAndFlushAll()
         }
     }
 

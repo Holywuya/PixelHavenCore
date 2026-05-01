@@ -21,6 +21,9 @@ object SpawnReducerSettings {
     )
         private set
 
+    var enabledWorld: Set<String> = emptySet()
+        private set
+
     fun init() {
         reload()
     }
@@ -46,5 +49,6 @@ object SpawnReducerSettings {
         } else {
             loadedReasons
         }
+        enabledWorld = config.getStringList("enabled-world").toSet()
     }
 }

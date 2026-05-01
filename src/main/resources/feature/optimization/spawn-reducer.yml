@@ -1,7 +1,14 @@
-version: 1
+version: 2
 
 # 总开关
 enabled: true
+
+# 生效世界列表（空列表 = 全部世界生效，非空列表 = 仅列表中的世界生效）
+# 默认包含三个标准维度世界，可根据需要增删
+enabled-world:
+  - world
+  - world_the_end
+  - world_nether
 
 # 自然生成削减百分比（0-100）
 # 例如 90 表示拦截 90% 的自然生成

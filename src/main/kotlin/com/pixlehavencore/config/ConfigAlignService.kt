@@ -50,8 +50,11 @@ object ConfigAlignService {
         // economy 货币定义：用户可自由增删货币类型
         "feature/economy/economy.yml" to listOf("currencies"),
         // crafting bench 的工作台映射、等级和专精均允许自由扩展
-        "feature/crafting-bench/config.yml" to listOf("craftengine_blocks", "bench_tiers", "specializations", "queue.permission_limits")
-        // spawn-reducer 未定义动态 section，无需白名单
+        "feature/crafting-bench/config.yml" to listOf("craftengine_blocks", "bench_tiers", "specializations", "queue.permission_limits"),
+        // spawn-reducer 列表型配置，enabled-world 是管理员整体控制的列表，注册空白名单以便对齐发现
+        "feature/optimization/spawn-reducer.yml" to emptyList(),
+        // redstone-limiter 列表型配置，无嵌套动态 section，注册空白名单以便对齐发现
+        "feature/optimization/redstone-limiter.yml" to emptyList()
     )
 
     /**

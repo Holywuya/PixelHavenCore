@@ -1,6 +1,7 @@
 package com.pixlehavencore.feature.optimization.spawnreducer
 
 import org.bukkit.event.entity.CreatureSpawnEvent
+import taboolib.common.platform.function.warning
 import java.util.concurrent.ThreadLocalRandom
 
 object SpawnReducerService {
@@ -20,6 +21,17 @@ object SpawnReducerService {
     fun shouldCancelNaturalSpawn(event: CreatureSpawnEvent): Boolean {
         if (!SpawnReducerSettings.enabled) {
             return false
+        }
+        val enabledWorld = SpawnReducerSettings.enabledWorld
+        if (enabledWorld.isNotEmpty()) {
+            val worldName = event.entity?.world?.name
+            if (worldName == null) {
+                warning("[SpawnReducer] CreatureSpawnEvent 中实体世界引用为 null，跳过缩减判定")
+                return false
+            }
+            if (worldName !in enabledWorld) {
+                return false
+            }
         }
         if (event.isCancelled) {
             return false
