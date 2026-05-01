@@ -1,5 +1,6 @@
 package com.pixlehavencore.feature.chat
 
+import taboolib.common.platform.function.info
 import taboolib.module.configuration.Config
 import taboolib.module.configuration.Configuration
 
@@ -54,6 +55,27 @@ object SimpleChatSettings {
         private set
 
     var atSoundCooldownSeconds: Int = 5
+        private set
+
+    var atTitleEnabled: Boolean = false
+        private set
+
+    var atTitleMain: String = "&e%player_name% &6@了你!"
+        private set
+
+    var atTitleSub: String = ""
+        private set
+
+    var atTitleFadeIn: Int = 10
+        private set
+
+    var atTitleStay: Int = 60
+        private set
+
+    var atTitleFadeOut: Int = 10
+        private set
+
+    var atTitleCooldownSeconds: Int = 5
         private set
 
     var linkDetectionEnabled: Boolean = true
@@ -140,6 +162,10 @@ object SimpleChatSettings {
     var chatAdminPermission: String = "simplechat.admin"
         private set
 
+    /** 世界原始标识名 → 友好显示名称 的映射表，O(1) 查询 */
+    var worldNameMapping: Map<String, String> = emptyMap()
+        private set
+
     fun init() {
         reload()
     }
@@ -170,6 +196,14 @@ object SimpleChatSettings {
         atSoundEnabled = config.getBoolean("at.sound.enabled", true)
         atSoundType = config.getString("at.sound.type") ?: "ENTITY_PLAYER_LEVELUP"
         atSoundCooldownSeconds = config.getInt("at.sound.cooldown", 5).coerceAtLeast(0)
+
+        atTitleEnabled = config.getBoolean("at.title.enabled", false)
+        atTitleMain = config.getString("at.title.main") ?: "&e%player_name% &6@了你!"
+        atTitleSub = config.getString("at.title.sub") ?: ""
+        atTitleFadeIn = config.getInt("at.title.fadeIn", 10).coerceAtLeast(0)
+        atTitleStay = config.getInt("at.title.stay", 60).coerceAtLeast(1)
+        atTitleFadeOut = config.getInt("at.title.fadeOut", 10).coerceAtLeast(0)
+        atTitleCooldownSeconds = config.getInt("at.title.cooldown", 5).coerceAtLeast(0)
 
         linkDetectionEnabled = config.getBoolean("linkDetection.enabled", true)
         numberDetectionEnabled = config.getBoolean("numberDetection.enabled", true)
@@ -203,5 +237,17 @@ object SimpleChatSettings {
         chatJsonEnabled = config.getBoolean("chat.json.enabled", false)
 
         chatAdminPermission = config.getString("permissions.admin") ?: "simplechat.admin"
+
+        // --- world-name-mapping ---
+        worldNameMapping = config.getConfigurationSection("world-name-mapping")
+            ?.getKeys(false)
+            ?.associateWith { key ->
+                config.getString("world-name-mapping.$key")?.takeIf { it.isNotBlank() } ?: key
+            } ?: emptyMap()
+        if (worldNameMapping.isNotEmpty()) {
+            info("[SimpleChat] 世界名称映射已加载，共 ${worldNameMapping.size} 条。")
+        } else {
+            info("[SimpleChat] 世界名称映射为空，所有世界名将使用原始标识。")
+        }
     }
 }

@@ -10,4 +10,7 @@ object SimpleChatState {
 
     /** @提醒音效冷却 */
     val atSoundCooldowns: MutableMap<UUID, Long> = ConcurrentHashMap()
+
+    /** @提醒 Title 冷却 */
+    val atTitleCooldowns: MutableMap<UUID, Long> = ConcurrentHashMap()
 }

@@ -1,4 +1,4 @@
-version: 2
+version: 4
 
 enabled: true
 
@@ -28,6 +28,17 @@ at:
   sound:
     enabled: true
     type: "ENTITY_PLAYER_LEVELUP"
+    cooldown: 5
+  # @提及 Title 提醒：在屏幕中央显示标题消息。
+  # main = 主标题，sub = 副标题，支持 & 颜色代码与 %player_name% 占位符。
+  # fadeIn/stay/fadeOut = 显示时长（tick），cooldown = 冷却秒数。
+  title:
+    enabled: false
+    main: "&e%player_name% &6@了你!"
+    sub: ""
+    fadeIn: 10
+    stay: 60
+    fadeOut: 10
     cooldown: 5
 
 messageSeparator: " "
@@ -84,3 +95,12 @@ chat:
 
 permissions:
   admin: "simplechat.admin"
+
+# 世界名称映射：将世界原始标识名映射为友好显示名称。
+# 键 = Bukkit World.getName() 返回值（大小写敏感）
+# 值 = 用于聊天消息展示的友好名称（支持 & 颜色代码）
+# 未在此处定义的世界将保留原始标识名。
+world-name-mapping:
+  world: "主世界"
+  world_nether: "下界"
+  world_the_end: "末地"

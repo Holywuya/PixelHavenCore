@@ -1,0 +1,39 @@
+version: 1
+
+# =============================================================================
+# 红石限制模块配置
+# 检测并阻断高频红石信号，防止服务器卡顿
+# =============================================================================
+
+# 总开关
+enabled: true
+
+# 生效世界列表（仅在这些世界中执行检测）
+enabled-worlds:
+  - world
+  - world_nether
+
+# 每秒激活次数阈值（超过此值判定为高频红石）
+threshold-activations-per-second: 10
+
+# 滑动窗口时长（秒），频率统计的时间跨度
+window-seconds: 5
+
+# 最大追踪点数量（内存安全上限，超出时触发紧急回收）
+max-tracked-points: 1500
+
+# 过期追踪点清理周期（秒）
+cleanup-interval-seconds: 60
+
+# 管理员通知
+notify:
+  # 是否向在线 OP 发送阻断通知
+  enabled: true
+  # 同一位置通知冷却时间（秒），防止刷屏
+  cooldown-seconds: 10
+  # 通知消息模板（支持变量: {world}, {x}, {y}, {z}, {block}, {frequency}）
+  message: "&c[红石限制] &7检测到高频红石: &f{block} &7@ &e{world} {x},{y},{z} &7频率: &c{frequency}/s"
+
+# 额外监听方块类型（Material 名称，不区分大小写）
+# 用于扩展默认红石方块类型集合之外的方块
+additional-block-types: []

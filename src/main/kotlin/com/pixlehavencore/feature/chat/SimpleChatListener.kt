@@ -3,12 +3,17 @@ package com.pixlehavencore.feature.chat
 import com.pixlehavencore.util.broadcastComponent
 import io.papermc.paper.event.player.AsyncChatEvent
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.title.Title
+import io.papermc.paper.registry.RegistryAccess
+import io.papermc.paper.registry.RegistryKey
 import org.bukkit.Bukkit
+import org.bukkit.NamespacedKey
 import org.bukkit.Sound
 import taboolib.common.platform.ProxyPlayer
 import taboolib.common.platform.event.SubscribeEvent
 import taboolib.common.platform.function.onlinePlayers
 import taboolib.platform.util.submit as submitOnEntity
+import java.time.Duration
 
 object SimpleChatListener {
 
@@ -44,6 +49,7 @@ object SimpleChatListener {
             if (mentionTargets.isNotEmpty()) {
                 mentionTargets.forEach { target ->
                     playAtSound(target)
+                    sendAtTitle(target, sender)
                 }
             }
 
@@ -81,9 +87,62 @@ object SimpleChatListener {
             }
             SimpleChatState.atSoundCooldowns[bukkit.uniqueId] = now
 
-            val sound = runCatching { Sound.valueOf(SimpleChatSettings.atSoundType.uppercase()) }.getOrNull() ?: return@submitOnEntity
+            val sound = RegistryAccess.registryAccess()
+                .getRegistry(RegistryKey.SOUND_EVENT)
+                .get(NamespacedKey.minecraft(SimpleChatSettings.atSoundType.lowercase()))
+                ?: return@submitOnEntity
             bukkit.playSound(bukkit.location, sound, 1f, 1f)
         }
+    }
+
+    /**
+     * 被 @提及时在屏幕中央显示 Title 提醒。
+     * 采用与 playAtSound 完全一致的 Folia submitOnEntity 调度范式。
+     */
+    private fun sendAtTitle(player: ProxyPlayer, sender: org.bukkit.entity.Player) {
+        if (!SimpleChatSettings.atTitleEnabled) return
+        val bukkit = player.cast<org.bukkit.entity.Player>() ?: return
+        bukkit.submitOnEntity {
+            runCatching {
+                val now = System.currentTimeMillis()
+                val cooldown = SimpleChatSettings.atTitleCooldownSeconds * 1000L
+                val last = SimpleChatState.atTitleCooldowns[bukkit.uniqueId] ?: 0L
+                if (cooldown > 0L && now - last < cooldown) return@submitOnEntity
+                SimpleChatState.atTitleCooldowns[bukkit.uniqueId] = now
+
+                val mainText = SimpleChatSettings.atTitleMain
+                    .replace("%player_name%", sender.name)
+                    .take(64)
+                val subText = SimpleChatSettings.atTitleSub
+                    .replace("%player_name%", sender.name)
+                    .take(128)
+
+                val mainComponent = stripClickEvent(SimpleChatComponentParser.parseRaw(mainText))
+                val subComponent = stripClickEvent(SimpleChatComponentParser.parseRaw(subText))
+
+                val times = Title.Times.times(
+                    Duration.ofMillis(SimpleChatSettings.atTitleFadeIn * 50L),
+                    Duration.ofMillis(SimpleChatSettings.atTitleStay * 50L),
+                    Duration.ofMillis(SimpleChatSettings.atTitleFadeOut * 50L)
+                )
+                bukkit.showTitle(Title.title(mainComponent, subComponent, times))
+            }.onFailure {
+                // Title 发送失败不应阻断聊天广播和声音提醒
+            }
+        }
+    }
+
+    /** 递归剥离 Component 树中所有 ClickEvent，防止 Title 中嵌入可执行点击事件 */
+    private fun stripClickEvent(component: Component): Component {
+        var result = component
+        if (result.clickEvent() != null) {
+            result = result.clickEvent(null)
+        }
+        val children = result.children()
+        if (children.isNotEmpty()) {
+            result = result.children(children.map { stripClickEvent(it) })
+        }
+        return result
     }
 
     fun handleCrossServerMessage(component: Component, senderServerId: String) {

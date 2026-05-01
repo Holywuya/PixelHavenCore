@@ -39,8 +39,8 @@ object ConfigAlignService {
     private val DYNAMIC_SECTIONS: Map<String, List<String>> = mapOf(
         // veinminer 权限组：用户可自行添加任意组，插件只提供示例
         "feature/veinminer.yml" to listOf("groups"),
-        // chat 当前无动态 section
-        "feature/chat/chat.yml" to emptyList(),
+        // chat 世界名称映射：用户可自行添加任意世界映射，插件只提供示例
+        "feature/chat/chat.yml" to listOf("world-name-mapping"),
         // mob-drop 怪物掉落表：drops 下每个 key 是 EntityType，用户可自行添加/删除任意怪物
         "feature/mob-drop.yml" to listOf("drops"),
         // economy/tax 阶梯税率：用户可自由增删档位（tier1/tier2/...），插件只提供示例

@@ -1,5 +1,6 @@
 package com.pixlehavencore.feature.chat
 
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.entity.Player
 import taboolib.common.platform.function.getDataFolder
 import taboolib.common.platform.function.submit
@@ -18,11 +19,21 @@ object SimpleChatPlaceholderService {
         levelCache.clear()
         missingLevels.clear()
         loadingLevels.clear()
+        SimpleChatState.atTitleCooldowns.clear()
+    }
+
+    /**
+     * 将世界原始标识名映射为友好显示名称。
+     * 若映射表中无对应条目，回退返回原始标识名。
+     * 时间复杂度 O(1)。
+     */
+    fun resolveWorldName(rawWorldName: String): String {
+        return SimpleChatSettings.worldNameMapping[rawWorldName] ?: rawWorldName
     }
 
     fun apply(player: Player, text: String): String {
-        val displayName = player.displayName
-        val worldName = player.world.name
+        val displayName = PlainTextComponentSerializer.plainText().serialize(player.name())
+        val worldName = resolveWorldName(player.world.name)
         var result = text
             .replace("%player_server%", SimpleChatSettings.redisServerId)
             .replace("%player_server_alias%", SimpleChatSettings.redisServerId.take(1).lowercase())
@@ -47,10 +58,10 @@ object SimpleChatPlaceholderService {
     }
 
     fun applyPrivate(sender: Player, receiver: Player, text: String): String {
-        val senderDisplayName = sender.displayName
-        val senderWorldName = sender.world.name
-        val receiverDisplayName = receiver.displayName
-        val receiverWorldName = receiver.world.name
+        val senderDisplayName = PlainTextComponentSerializer.plainText().serialize(sender.name())
+        val senderWorldName = resolveWorldName(sender.world.name)
+        val receiverDisplayName = PlainTextComponentSerializer.plainText().serialize(receiver.name())
+        val receiverWorldName = resolveWorldName(receiver.world.name)
         return apply(sender, text)
             .replace("%sender_name%", sender.name)
             .replace("%sender_displayname%", senderDisplayName)
@@ -61,8 +72,8 @@ object SimpleChatPlaceholderService {
     }
 
     fun applySay(sender: Player, text: String): String {
-        val displayName = sender.displayName
-        val worldName = sender.world.name
+        val displayName = PlainTextComponentSerializer.plainText().serialize(sender.name())
+        val worldName = resolveWorldName(sender.world.name)
         return apply(sender, text)
             .replace("%sender_name%", sender.name)
             .replace("%sender_displayname%", displayName)

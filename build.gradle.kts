@@ -15,7 +15,7 @@ import io.izzel.taboolib.gradle.AlkaidRedis
 
 plugins {
     java
-    id("io.izzel.taboolib") version "2.0.36"
+    id("io.izzel.taboolib") version "2.0.37"
     id("org.jetbrains.kotlin.jvm") version "2.2.0"
 }
 
