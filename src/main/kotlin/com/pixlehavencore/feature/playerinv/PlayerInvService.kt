@@ -554,21 +554,27 @@ object PlayerInvService {
             return true
         }
 
-        val result = if (pending.mode == PendingMode.ADD) {
-            addSharedMember(player, pending.sharedName, target)
-        } else {
-            removeSharedMember(player, pending.sharedName, target)
-        }
-
-        when (result) {
-            SharedMemberResult.OK -> player.sendMessage(PlayerInvSettings.chatInputDone.colored())
-            SharedMemberResult.NO_ACCESS -> player.sendMessage(PlayerInvSettings.sharedManageNoPermission.colored())
-            SharedMemberResult.NOT_FOUND -> player.sendMessage(PlayerInvSettings.sharedNotFoundMessage.replace("{name}", pending.sharedName).colored())
-            SharedMemberResult.CANNOT_REMOVE_OWNER -> player.sendMessage("&c不能移除共享仓库创建者".colored())
-            else -> player.sendMessage("&c操作失败".colored())
-        }
+        // Folia: DB 操作必须在异步线程执行，回调通过 submitOnRegion 回到玩家区域线程
+        val sharedName = pending.sharedName
+        val mode = pending.mode
         pendingMemberInputs.remove(player.uniqueId)
-        reopenManageAfterChat(player, pending.sharedName)
+        submit(async = true) {
+            val result = if (mode == PendingMode.ADD) {
+                addSharedMember(player, sharedName, target)
+            } else {
+                removeSharedMember(player, sharedName, target)
+            }
+            player.submitOnEntity {
+                when (result) {
+                    SharedMemberResult.OK -> player.sendMessage(PlayerInvSettings.chatInputDone.colored())
+                    SharedMemberResult.NO_ACCESS -> player.sendMessage(PlayerInvSettings.sharedManageNoPermission.colored())
+                    SharedMemberResult.NOT_FOUND -> player.sendMessage(PlayerInvSettings.sharedNotFoundMessage.replace("{name}", sharedName).colored())
+                    SharedMemberResult.CANNOT_REMOVE_OWNER -> player.sendMessage("&c不能移除共享仓库创建者".colored())
+                    else -> player.sendMessage("&c操作失败".colored())
+                }
+                reopenManageAfterChat(player, sharedName)
+            }
+        }
         return true
     }
 

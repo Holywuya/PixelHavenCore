@@ -5,6 +5,7 @@ import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.potion.PotionEffect
 import org.bukkit.potion.PotionEffectType
+import taboolib.common.platform.function.onlinePlayers
 import taboolib.platform.util.submit as submitOnEntity
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -32,12 +33,11 @@ object VanishService {
     // ------------------------------------------------------------------
     // 插件实例（用于 hidePlayer / showPlayer API）
     // ------------------------------------------------------------------
-    private val plugin by lazy {
-        Bukkit.getPluginManager().getPlugin("phcore") ?: Bukkit.getPluginManager().plugins.first()
-    }
+    private lateinit var plugin: org.bukkit.plugin.Plugin
 
     fun init() {
-        // 目前无需额外初始化；状态在内存中维护
+        // Folia: 在 init()（onEnable 全局调度器）中安全获取插件实例
+        plugin = Bukkit.getPluginManager().getPlugin("phcore") ?: Bukkit.getPluginManager().plugins.first()
     }
 
     // ------------------------------------------------------------------
@@ -48,8 +48,15 @@ object VanishService {
     fun isAnyVanished(player: Player): Boolean = isNormalVanished(player)
 
     /** 返回所有普通隐身玩家（在线）的快照列表 */
-    fun getNormalVanishedPlayers(): List<Player> =
-        normalVanished.mapNotNull { Bukkit.getPlayer(it) }
+    fun getNormalVanishedPlayers(): List<Player> {
+        // Folia: 使用 onlinePlayers() 快照避免 Bukkit.getPlayer() 的线程安全问题
+        val vanished = normalVanished
+        if (vanished.isEmpty()) return emptyList()
+        val vanishedSet = vanished.toSet()
+        return onlinePlayers().mapNotNull { proxy ->
+            proxy.cast<Player>()?.takeIf { it.uniqueId in vanishedSet }
+        }
+    }
 
     // ------------------------------------------------------------------
     // 隐身切换
@@ -102,14 +109,11 @@ object VanishService {
      * 普通隐身：只对无 see 权限者隐藏。
      */
     private fun applyVanishToAllObservers(target: Player) {
-        // Folia: 对每个观察者在各自的区域线程上执行 hidePlayer
-        Bukkit.getOnlinePlayers().toList().forEach { observer ->
+        // Folia: 使用 onlinePlayers() 快照 + submitOnEntity 在各自区域线程执行 hidePlayer
+        onlinePlayers().mapNotNull { it.cast<Player>() }.forEach { observer ->
             if (observer.uniqueId == target.uniqueId) return@forEach
             observer.submitOnEntity {
-                // 普通隐身：有 see 权限的保持可见
-                if (observer.hasPermission("phcore.vanish.see")) {
-                    // see 权限者保持能看见（不做 hidePlayer）
-                } else {
+                if (!observer.hasPermission("phcore.vanish.see")) {
                     observer.hidePlayer(plugin, target)
                 }
             }
@@ -120,8 +124,8 @@ object VanishService {
      * 当 target 退出隐身时，对所有在线观察者恢复可见。
      */
     private fun revealToAllObservers(target: Player) {
-        // Folia: 对每个观察者在各自的区域线程上执行 showPlayer
-        Bukkit.getOnlinePlayers().toList().forEach { observer ->
+        // Folia: 使用 onlinePlayers() 快照 + submitOnEntity 在各自区域线程执行 showPlayer
+        onlinePlayers().mapNotNull { it.cast<Player>() }.forEach { observer ->
             if (observer.uniqueId == target.uniqueId) return@forEach
             observer.submitOnEntity {
                 observer.showPlayer(plugin, target)
@@ -144,8 +148,11 @@ object VanishService {
                 return@submitOnEntity
             }
 
-            normalVanished.toList().mapNotNull { Bukkit.getPlayer(it) }.forEach { vanished ->
-                if (vanished.uniqueId != observer.uniqueId) {
+            // Folia: 使用 onlinePlayers() 快照安全查找，避免 Bukkit.getPlayer() 的线程安全问题
+            val vanishedSet = normalVanished.toSet()
+            if (vanishedSet.isEmpty()) return@submitOnEntity
+            onlinePlayers().mapNotNull { it.cast<Player>() }.forEach { vanished ->
+                if (vanished.uniqueId in vanishedSet && vanished.uniqueId != observer.uniqueId) {
                     observer.hidePlayer(plugin, vanished)
                 }
             }

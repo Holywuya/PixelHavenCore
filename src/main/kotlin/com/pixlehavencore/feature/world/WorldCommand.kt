@@ -55,7 +55,6 @@ object WorldCommand {
             dynamic(comment = "player", optional = true) {
                 suggestPlayers()
                 execute<ProxyCommandSender> { sender, context, argument ->
-                    val player = sender.requirePlayer()?.cast<Player>() ?: return@execute
                     val worldName = context.getOrNull("world")?.toString().orEmpty().trim()
                     if (worldName.isBlank()) {
                         sender.msg("&c请输入目标世界。")
@@ -63,6 +62,8 @@ object WorldCommand {
                     }
                     val targetName = argument.toString().trim()
                     if (targetName.isBlank()) {
+                        // 未指定目标玩家：发送者必须是玩家，传送自己
+                        val player = sender.requirePlayer()?.cast<Player>() ?: return@execute
                         if (!player.hasPermission(WorldSettings.teleportSelfPermission) && !player.hasPermission(WorldSettings.adminPermission)) {
                             sender.msg("&c你没有传送权限。")
                             return@execute
@@ -71,6 +72,7 @@ object WorldCommand {
                             sender.msg(WorldSettings.messageModuleDisabled)
                         }
                     } else {
+                        // 指定目标玩家：发送者无需是玩家（支持 NPC/控制台调用）
                         if (!sender.requirePermission(WorldSettings.teleportOtherPermission) && !sender.hasPermission(WorldSettings.adminPermission)) {
                             return@execute
                         }

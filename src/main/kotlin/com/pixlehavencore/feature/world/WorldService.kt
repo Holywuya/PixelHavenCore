@@ -35,6 +35,7 @@ object WorldService {
         if (!WorldSettings.enabled) {
             return
         }
+        // Folia: submit {} 调度到全局区域调度器，createWorld 在此上下文中是安全的
         submit {
             WorldSettings.allWorldNames().forEach { worldName ->
                 ensureWorldLoaded(worldName)
@@ -59,6 +60,9 @@ object WorldService {
         return ensureWorldLoaded(normalized)
     }
 
+    /**
+     * 同步加载世界。只允许在全局区域调度器上调用（preloadConfiguredWorlds 已确保）。
+     */
     private fun ensureWorldLoaded(worldName: String): World? {
         Bukkit.getWorld(worldName)?.let { return it }
         if (!WorldSettings.shouldLoadOnDemand(worldName)) {
@@ -71,6 +75,10 @@ object WorldService {
         }
     }
 
+    /**
+     * 异步传送玩家到目标世界。
+     * 如果世界未加载，先在全局区域调度器上加载，再在玩家区域线程上执行传送。
+     */
     fun teleportSelf(player: Player, targetWorldName: String): Boolean {
         if (!WorldSettings.enabled) {
             return false
@@ -81,20 +89,36 @@ object WorldService {
             }
             return false
         }
-        val world = ensureWorldLoaded(worldName) ?: run {
+        // 已加载的世界直接传送
+        val existing = Bukkit.getWorld(worldName)
+        if (existing != null) {
+            doTeleport(player, existing)
+            return true
+        }
+        if (!WorldSettings.shouldLoadOnDemand(worldName)) {
             player.submitOnEntity {
                 player.sendMessage(WorldSettings.messageWorldMissing.replace("{world}", worldName).colored())
             }
             return false
         }
-        player.submitOnEntity {
-            player.teleportAsync(world.spawnLocation).thenAccept {
-                player.sendMessage(WorldSettings.messageTeleportSelf.replace("{world}", world.name).colored())
+        // Folia: 异步加载世界 → 加载完成后在玩家区域线程上执行传送
+        submit {
+            val world = runCatching { Bukkit.createWorld(WorldCreator(worldName)) }.getOrNull()
+            player.submitOnEntity {
+                if (!player.isOnline) return@submitOnEntity
+                if (world != null) {
+                    doTeleport(player, world)
+                } else {
+                    player.sendMessage(WorldSettings.messageWorldMissing.replace("{world}", worldName).colored())
+                }
             }
         }
         return true
     }
 
+    /**
+     * 异步传送其他玩家到目标世界。
+     */
     fun teleportOther(target: Player, targetWorldName: String): Boolean {
         if (!WorldSettings.enabled) {
             return false
@@ -105,18 +129,38 @@ object WorldService {
             }
             return false
         }
-        val world = ensureWorldLoaded(worldName) ?: run {
+        val existing = Bukkit.getWorld(worldName)
+        if (existing != null) {
+            doTeleport(target, existing)
+            return true
+        }
+        if (!WorldSettings.shouldLoadOnDemand(worldName)) {
             target.submitOnEntity {
                 target.sendMessage(WorldSettings.messageWorldMissing.replace("{world}", worldName).colored())
             }
             return false
         }
-        target.submitOnEntity {
-            target.teleportAsync(world.spawnLocation).thenAccept {
-                target.sendMessage(WorldSettings.messageTeleportSelf.replace("{world}", world.name).colored())
+        submit {
+            val world = runCatching { Bukkit.createWorld(WorldCreator(worldName)) }.getOrNull()
+            target.submitOnEntity {
+                if (!target.isOnline) return@submitOnEntity
+                if (world != null) {
+                    doTeleport(target, world)
+                } else {
+                    target.sendMessage(WorldSettings.messageWorldMissing.replace("{world}", worldName).colored())
+                }
             }
         }
         return true
+    }
+
+    /**
+     * 在玩家区域线程上执行传送（已通过 submitOnEntity 保证线程安全）。
+     */
+    private fun doTeleport(player: Player, world: World) {
+        player.teleportAsync(world.spawnLocation).thenAccept {
+            player.sendMessage(WorldSettings.messageTeleportSelf.replace("{world}", world.name).colored())
+        }
     }
 
     fun currentWorldName(player: Player): String? {

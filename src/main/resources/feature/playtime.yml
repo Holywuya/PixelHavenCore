@@ -1,0 +1,36 @@
+version: 1
+
+# =============================================================================
+# 在线时长统计配置
+# =============================================================================
+enabled: true
+
+# 自动保存间隔（tick），20tick = 1秒
+autoSaveTicks: 200
+
+# PlaceholderAPI 配置
+papi:
+  enabled: true
+  # 默认输出格式: readable / seconds / minutes / hours
+  defaultFormat: readable
+
+# 排行榜配置
+leaderboard:
+  maxLimit: 100
+  defaultLimit: 10
+
+# 数据清理配置
+cleanup:
+  # 默认清理天数（最后登出超过此天数的玩家数据将被清理）
+  defaultDays: 90
+  # 批量删除大小
+  batchSize: 50
+
+# 统计重置调度
+resetSchedule:
+  # 每日重置时间（HH:mm，24小时制）
+  daily: "00:00"
+  # 每周重置（星期几，1=周一，7=周日）
+  weeklyDay: 1
+  # 每月重置日期（1-28）
+  monthlyDay: 1

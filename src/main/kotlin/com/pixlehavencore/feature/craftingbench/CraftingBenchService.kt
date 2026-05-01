@@ -84,7 +84,9 @@ object CraftingBenchService {
     }
 
     fun getAvailableRecipes(player: Player, tier: BenchTier): List<RecipePreview> {
-        val warehouseCounts = loadWarehouseCounts(player, recipes.values.flatMap { recipe -> recipe.materials.map { it.item } })
+        val allSpecs = recipes.values.flatMap { recipe -> recipe.materials.map { it.item } }.distinct()
+        val warehouseCounts = loadWarehouseCounts(player, allSpecs)
+        val inventoryCounts = countAllInventoryMaterials(player, allSpecs)
         return recipes.values
             .filter { recipe ->
                 recipe.requiredBenchTier.isNotBlank() &&
@@ -96,7 +98,7 @@ object CraftingBenchService {
                 RecipePreview(
                     recipe = recipe,
                     canCraft = canCraft(player, tier, recipe),
-                    enoughMaterials = hasMaterials(player, recipe, warehouseCounts, 1),
+                    enoughMaterials = hasMaterials(player, recipe, inventoryCounts, warehouseCounts, 1),
                     estimatedSeconds = calculateTimeSeconds(recipe, tier, player, 1),
                 )
             }
@@ -118,9 +120,11 @@ object CraftingBenchService {
 
     fun getRecipeMaterialStatuses(player: Player, recipe: CraftingRecipe, craftCount: Int = 1): List<RecipeMaterialStatus> {
         val finalCount = craftCount.coerceAtLeast(1)
-        val warehouseCounts = loadWarehouseCounts(player, recipe.materials.map { it.item })
+        val specs = recipe.materials.map { it.item }
+        val warehouseCounts = loadWarehouseCounts(player, specs)
+        val inventoryCounts = countAllInventoryMaterials(player, specs)
         return recipe.materials.map { material ->
-            val inventoryAmount = countInventoryMaterial(player, material.item)
+            val inventoryAmount = inventoryCounts[material.item] ?: 0
             val requiredAmount = material.amount * finalCount
             val warehouseAmount = warehouseCounts[material.item] ?: 0
             val warehouseWillUse = (requiredAmount - inventoryAmount).coerceAtLeast(0).coerceAtMost(warehouseAmount)
@@ -169,8 +173,10 @@ object CraftingBenchService {
                 return SubmitResult(false, "你的制作队列已满。")
             }
         }
-        val warehouseCounts = loadWarehouseCounts(player, recipe.materials.map { it.item })
-        if (!hasMaterials(player, recipe, warehouseCounts, finalCount)) {
+        val specs = recipe.materials.map { it.item }
+        val warehouseCounts = loadWarehouseCounts(player, specs)
+        val inventoryCounts = countAllInventoryMaterials(player, specs)
+        if (!hasMaterials(player, recipe, inventoryCounts, warehouseCounts, finalCount)) {
             return SubmitResult(false, "材料不足。")
         }
         if (!consumeMaterials(player, recipe, warehouseCounts, finalCount)) {
@@ -228,13 +234,13 @@ object CraftingBenchService {
     private fun canCraft(player: Player, tier: BenchTier, recipe: CraftingRecipe): Boolean {
         return CraftingBenchSettings.canUseTier(player::hasPermission, tier) &&
             (recipe.unlockPermission.isBlank() || player.hasPermission(recipe.unlockPermission) || player.hasPermission("phcore.admin")) &&
-            hasMaterials(player, recipe, loadWarehouseCounts(player, recipe.materials.map { it.item }), 1)
+            hasMaterials(player, recipe, countAllInventoryMaterials(player, recipe.materials.map { it.item }), loadWarehouseCounts(player, recipe.materials.map { it.item }), 1)
     }
 
-    private fun hasMaterials(player: Player, recipe: CraftingRecipe, warehouseCounts: Map<String, Int>, craftCount: Int): Boolean {
+    private fun hasMaterials(player: Player, recipe: CraftingRecipe, inventoryCounts: Map<String, Int>, warehouseCounts: Map<String, Int>, craftCount: Int): Boolean {
         val finalCount = craftCount.coerceAtLeast(1)
         return recipe.materials.all { material ->
-            countInventoryMaterial(player, material.item) + (warehouseCounts[material.item] ?: 0) >= material.amount * finalCount
+            (inventoryCounts[material.item] ?: 0) + (warehouseCounts[material.item] ?: 0) >= material.amount * finalCount
         }
     }
 
@@ -242,11 +248,29 @@ object CraftingBenchService {
         return player.inventory.contents.filterNotNull().filter { ItemUtils.matchesSpec(spec, it) }.sumOf { it.amount }
     }
 
+    /**
+     * 单次遍历背包统计多种材料规格的库存量，避免对每种材料独立遍历整个背包。
+     */
+    private fun countAllInventoryMaterials(player: Player, specs: List<String>): Map<String, Int> {
+        val result = mutableMapOf<String, Int>()
+        if (specs.isEmpty()) return result
+        player.inventory.contents.filterNotNull().forEach { stack ->
+            specs.forEach { spec ->
+                if (ItemUtils.matchesSpec(spec, stack)) {
+                    result.merge(spec, stack.amount) { a, b -> a + b }
+                }
+            }
+        }
+        return result
+    }
+
     private fun consumeMaterials(player: Player, recipe: CraftingRecipe, warehouseCounts: Map<String, Int>, craftCount: Int): Boolean {
         val finalCount = craftCount.coerceAtLeast(1)
+        // 预计算所有材料的背包库存量（单次遍历替代 N 次独立遍历）
+        val inventoryCounts = countAllInventoryMaterials(player, recipe.materials.map { it.item })
         val warehouseRequired = linkedMapOf<String, Int>()
         recipe.materials.forEach { material ->
-            val inventoryCount = countInventoryMaterial(player, material.item)
+            val inventoryCount = inventoryCounts[material.item] ?: 0
             val requiredAmount = material.amount * finalCount
             val shortage = (requiredAmount - inventoryCount).coerceAtLeast(0)
             val warehouseAvailable = warehouseCounts[material.item] ?: 0

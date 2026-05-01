@@ -1,9 +1,9 @@
 package com.pixlehavencore.util
 
 import net.kyori.adventure.text.format.NamedTextColor
-import org.bukkit.Bukkit
 import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
+import taboolib.common.platform.function.onlinePlayers
 import taboolib.common.platform.function.warning
 import top.maplex.arim.Arim
 
@@ -21,7 +21,8 @@ object ArimGlowUtils {
     }
 
     fun setEntityGlowingForAll(entity: Entity, color: NamedTextColor?) {
-        Bukkit.getOnlinePlayers().toList().forEach { player ->
+        // Folia: 使用 onlinePlayers() 快照避免 Bukkit.getOnlinePlayers() 的线程安全问题
+        onlinePlayers().mapNotNull { it.cast<Player>() }.forEach { player ->
             setEntityGlowing(entity, player, color)
         }
     }

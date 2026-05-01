@@ -35,6 +35,10 @@ import com.pixlehavencore.feature.optimization.entityclearer.EntityClearerServic
 import com.pixlehavencore.feature.optimization.spawnreducer.SpawnReducerService
 import com.pixlehavencore.feature.optimization.viewdistance.ViewDistanceService
 import com.pixlehavencore.feature.optimization.viewdistance.ViewDistanceSettings
+import com.pixlehavencore.feature.playtime.PlaytimeSettings
+import com.pixlehavencore.feature.playtime.PlaytimeStorage
+import com.pixlehavencore.feature.playtime.PlaytimeService
+import com.pixlehavencore.feature.playtime.PlaytimePlaceholders
 import com.pixlehavencore.util.BaikirutoItemsUtil
 import com.pixlehavencore.util.CraftEngineItemsUtil
 import com.pixlehavencore.util.EconomyUtils
@@ -72,6 +76,10 @@ object PixleHavenCore : Plugin() {
         SecurityService.init()
         SpawnerService.init()
         WorldService.init()
+        PlaytimeSettings.init()
+        PlaytimeStorage.init()
+        PlaytimeService.init()
+        PlaytimePlaceholders
         logModulesStatus()
         info("Successfully running PixleHavenCore!")
     }
@@ -90,6 +98,7 @@ object PixleHavenCore : Plugin() {
         ))
         logEnabledGroup("独立模块", listOf(
             "Economy System" to EconomySettings.enabled,
+            "Playtime" to PlaytimeSettings.enabled,
             "Crafting Bench" to CraftingBenchService.isEnabled(),
             "Security" to SecuritySettings.enabled,
             "Spawner" to SpawnerService.isEnabled(),
@@ -130,5 +139,7 @@ object PixleHavenCore : Plugin() {
         WorldService.stop()
         EconomyProvider.stop()
         SimpleChatService.shutdown()
+        PlaytimeService.stop()
+        PlaytimeStorage.stop()
     }
 }

@@ -161,7 +161,7 @@ object ViewDistanceService {
         if (!ViewDistanceSettings.afkEnabled) {
             return
         }
-        afkTask = submit(period = 20L) {
+        afkTask = submit(period = 100L) {
             if (!ViewDistanceSettings.enabled || !ViewDistanceSettings.afkEnabled) {
                 return@submit
             }

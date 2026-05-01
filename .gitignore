@@ -19,6 +19,9 @@ bin
 node_modules/
 package-lock.json
 package.json
-
+gradle.properties
 ### Temp ###
 nul
+CLAUDE.md
+AGENTS.md
+skills

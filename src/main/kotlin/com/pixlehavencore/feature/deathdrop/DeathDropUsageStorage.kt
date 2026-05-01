@@ -89,9 +89,15 @@ object DeathDropUsageStorage {
     private fun getRecord(player: UUID, dateKey: String): UsageRecord {
         val cacheKey = cacheKey(player, dateKey)
         cache[cacheKey]?.let { return it }
-        val loaded = loadRecord(player, dateKey)
-        cache[cacheKey] = loaded
-        return loaded
+        // Folia: 缓存未命中时返回默认值（0次使用/0奖励），异步预热缓存，
+        // 避免在 PlayerDeathEvent 实体线程上同步读数据库
+        val placeholder = UsageRecord()
+        cache[cacheKey] = placeholder
+        submitAsync {
+            val loaded = loadRecord(player, dateKey)
+            cache[cacheKey] = loaded
+        }
+        return placeholder
     }
 
     private fun loadRecord(player: UUID, dateKey: String): UsageRecord {

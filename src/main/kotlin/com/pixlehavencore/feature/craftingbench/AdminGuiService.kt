@@ -10,6 +10,7 @@ import taboolib.common.platform.function.getDataFolder
 import taboolib.common.platform.function.submit
 import taboolib.common.platform.function.submitAsync
 import taboolib.common.platform.function.warning
+import taboolib.platform.util.submit as submitOnEntity
 import java.io.File
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -205,14 +206,15 @@ object AdminGuiService {
         // 阶段1：数据回写在当前异步线程执行（纯内存操作，线程安全）
         pending.callback(message)
 
-        // 阶段2：GUI 打开操作调度到主线程执行（AsyncChatEvent 回调线程不允许调用 openInventory）
+        // 阶段2：GUI 打开操作调度到玩家区域线程执行（AsyncChatEvent 回调线程不允许调用 openInventory）
+        // Folia: 必须在玩家的区域线程上调用 openInventory，而非全局调度器
         if (pending.onSyncComplete != null) {
             val playerId = player.uniqueId
             val syncAction = pending.onSyncComplete
-            submit {
+            player.submitOnEntity {
                 val onlinePlayer = Bukkit.getPlayer(playerId)
                 if (onlinePlayer == null || !onlinePlayer.isOnline) {
-                    return@submit
+                    return@submitOnEntity
                 }
                 syncAction.invoke(onlinePlayer)
             }

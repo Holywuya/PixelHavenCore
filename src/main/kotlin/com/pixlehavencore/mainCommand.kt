@@ -1,5 +1,6 @@
 package com.pixlehavencore
 
+import org.bukkit.Bukkit
 import com.pixlehavencore.feature.base.BaseCommandSettings
 import com.pixlehavencore.feature.chat.SimpleChatService
 import com.pixlehavencore.feature.craftingbench.CraftingBenchService
@@ -20,6 +21,9 @@ import com.pixlehavencore.feature.trade.TradeService
 import com.pixlehavencore.feature.vanish.VanishSettings
 import com.pixlehavencore.feature.world.WorldService
 import com.pixlehavencore.feature.veinminer.VeinminerSettings
+import com.pixlehavencore.feature.playtime.PlaytimeSettings
+import com.pixlehavencore.feature.playtime.PlaytimeStorage
+import com.pixlehavencore.feature.playtime.PlaytimeService
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission
 import taboolib.common.platform.ProxyCommandSender
@@ -30,7 +34,7 @@ import taboolib.common.platform.command.mainCommand
 import taboolib.common.platform.command.subCommand
 import taboolib.common.platform.function.submit
 import taboolib.common.platform.function.warning
-import java.util.concurrent.CountDownLatch
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -93,24 +97,35 @@ object MainCommand {
     }
 
     private fun runMainThreadStep(step: ReloadStep, failed: MutableList<String>) {
-        val latch = CountDownLatch(1)
-        var error: Throwable? = null
-        submit {
-            runCatching { step.action() }.onFailure { ex ->
-                error = ex
+        // Folia: 使用 CompletableFuture + 全局区域调度器 API 替代 CountDownLatch，
+        // 避免与 TabooLib submit {} 的线程池争用导致潜在死锁
+        val future = CompletableFuture<Unit>()
+        val plugin = Bukkit.getPluginManager().getPlugin("phcore")
+        if (plugin != null) {
+            Bukkit.getGlobalRegionScheduler().run(plugin) { _ ->
+                runCatching { step.action() }.onFailure { ex ->
+                    val reason = ex.message ?: ex.javaClass.simpleName
+                    failed += "${step.name}: $reason"
+                    warning("[MainCommand] /phc reload failed at ${step.name}: ${ex.stackTraceToString()}")
+                }
+                future.complete(Unit)
             }
-            latch.countDown()
+        } else {
+            // 降级：使用 submit {}（不应发生，但保持健壮性）
+            submit {
+                runCatching { step.action() }.onFailure { ex ->
+                    val reason = ex.message ?: ex.javaClass.simpleName
+                    failed += "${step.name}: $reason"
+                    warning("[MainCommand] /phc reload failed at ${step.name}: ${ex.stackTraceToString()}")
+                }
+                future.complete(Unit)
+            }
         }
-        val completed = runCatching { latch.await(30, TimeUnit.SECONDS) }.getOrDefault(false)
+        val completed = runCatching { future.get(30, TimeUnit.SECONDS) }.getOrDefault(null) != null
         if (!completed) {
             failed += "${step.name}: timeout"
             warning("[MainCommand] /phc reload timed out at ${step.name}")
-            return
         }
-        val ex = error ?: return
-        val reason = ex.message ?: ex.javaClass.simpleName
-        failed += "${step.name}: $reason"
-        warning("[MainCommand] /phc reload failed at ${step.name}: ${ex.stackTraceToString()}")
     }
 
     private fun runWrappedStep(step: ReloadStep, failed: MutableList<String>) {
@@ -145,7 +160,10 @@ object MainCommand {
             ReloadStep("spawners", false) { SpawnerService.reload() },
             ReloadStep("world", true) { WorldService.reload() },
             ReloadStep("base-command", false) { BaseCommandSettings.init() },
-            ReloadStep("security", false) { SecurityService.reload() }
+            ReloadStep("security", false) { SecurityService.reload() },
+            ReloadStep("playtime-settings", false) { PlaytimeSettings.reload() },
+            ReloadStep("playtime-storage", false) { PlaytimeStorage.reload() },
+            ReloadStep("playtime-service", false) { PlaytimeService.reload() }
         )
 
         steps.forEach { step ->

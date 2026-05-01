@@ -136,7 +136,8 @@ object EntityClearerService {
     }
 
     private fun snapshotChunks(): List<Chunk> {
-        // Folia: 在全局区域调度器上获取世界和区块快照是安全的（只读元数据）
+        // Folia: submit(period = 1L) 调度到全局区域调度器（TabooLib 行为），
+        // Bukkit.getWorlds() 和 world.loadedChunks（只读快照）在此上下文中是安全的
         return Bukkit.getWorlds().flatMap { world -> world.loadedChunks.asList() }
     }
 

@@ -267,28 +267,38 @@ object CentralBankService {
 
     private fun refreshMacroState() {
         val currency = EconomySettings.defaultCurrency
-        val accountBalances = EconomyStorageService.snapshotBalances(currency)
-            .filterKeys { accountId -> !isCentralBankAccount(accountId) && !isExemptAccount(accountId) }
-        val lastSeenSnapshot = EconomyStorageService.snapshotLastSeenAt(accountBalances.keys)
+        val rawBalances = EconomyStorageService.snapshotBalances(currency)
+        val lastSeenSnapshot = EconomyStorageService.snapshotLastSeenAt(rawBalances.keys)
 
         val now = System.currentTimeMillis()
         val activeThreshold = now - Duration.ofDays(CentralBankSettings.activeThresholdDays.toLong()).toMillis()
         val dormantThreshold = now - Duration.ofDays(CentralBankSettings.dormantThresholdDays.toLong()).toMillis()
 
-        val totalBalance = accountBalances.values.fold(BigDecimal.ZERO, BigDecimal::add)
-        val activePlayers = lastSeenSnapshot.filterValues { it >= activeThreshold }
-        val activeBalance = accountBalances.entries
-            .filter { (accountId, _) -> (lastSeenSnapshot[accountId] ?: 0L) >= activeThreshold }
-            .fold(BigDecimal.ZERO) { sum, entry -> sum.add(entry.value) }
+        // 单次遍历计算所有统计值（优化：避免多次 filter + fold）
+        var totalBalance = BigDecimal.ZERO
+        var activeBalance = BigDecimal.ZERO
+        var activeCount = 0
+        val eligibleBalances = linkedMapOf<UUID, BigDecimal>()
 
-        val expectedActive = activePlayers.size.coerceAtLeast(1)
+        for ((accountId, balance) in rawBalances) {
+            if (isCentralBankAccount(accountId) || isExemptAccount(accountId)) continue
+            eligibleBalances[accountId] = balance
+            totalBalance = totalBalance.add(balance)
+            val seenAt = lastSeenSnapshot[accountId] ?: 0L
+            if (seenAt >= activeThreshold) {
+                activeCount++
+                activeBalance = activeBalance.add(balance)
+            }
+        }
+
+        val expectedActive = activeCount.coerceAtLeast(1)
         val theoreticalSupply = CentralBankSettings.expectedBalance
             .multiply(CentralBankSettings.bufferMultiplier)
             .multiply(expectedActive.toBigDecimal())
             .setScale(0, RoundingMode.HALF_UP)
 
         synchronized(stateLock) {
-            activePlayerCount = activePlayers.size
+            activePlayerCount = activeCount
             activeM0 = activeBalance
             totalPlayerBalance = totalBalance
 
@@ -311,7 +321,7 @@ object CentralBankService {
 
             val shouldRecoverDormant = lastDormantRecoveryAt <= 0L || now - lastDormantRecoveryAt >= WEEK_MILLIS
             if (shouldRecoverDormant) {
-                recoverDormantBalances(accountBalances, lastSeenSnapshot, dormantThreshold)
+                recoverDormantBalances(eligibleBalances, lastSeenSnapshot, dormantThreshold)
                 lastDormantRecoveryAt = now
             }
 
