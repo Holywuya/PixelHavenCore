@@ -1,5 +1,6 @@
 package com.pixlehavencore.feature.chat
 
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.entity.Player
 import taboolib.common.platform.function.getDataFolder
 import taboolib.common.platform.function.submit
@@ -21,7 +22,7 @@ object SimpleChatPlaceholderService {
     }
 
     fun apply(player: Player, text: String): String {
-        val displayName = player.displayName
+        val displayName = PlainTextComponentSerializer.plainText().serialize(player.name())
         val worldName = player.world.name
         var result = text
             .replace("%player_server%", SimpleChatSettings.redisServerId)
@@ -47,9 +48,9 @@ object SimpleChatPlaceholderService {
     }
 
     fun applyPrivate(sender: Player, receiver: Player, text: String): String {
-        val senderDisplayName = sender.displayName
+        val senderDisplayName = PlainTextComponentSerializer.plainText().serialize(sender.name())
         val senderWorldName = sender.world.name
-        val receiverDisplayName = receiver.displayName
+        val receiverDisplayName = PlainTextComponentSerializer.plainText().serialize(receiver.name())
         val receiverWorldName = receiver.world.name
         return apply(sender, text)
             .replace("%sender_name%", sender.name)
@@ -61,7 +62,7 @@ object SimpleChatPlaceholderService {
     }
 
     fun applySay(sender: Player, text: String): String {
-        val displayName = sender.displayName
+        val displayName = PlainTextComponentSerializer.plainText().serialize(sender.name())
         val worldName = sender.world.name
         return apply(sender, text)
             .replace("%sender_name%", sender.name)

@@ -3,7 +3,10 @@ package com.pixlehavencore.feature.chat
 import com.pixlehavencore.util.broadcastComponent
 import io.papermc.paper.event.player.AsyncChatEvent
 import net.kyori.adventure.text.Component
+import io.papermc.paper.registry.RegistryAccess
+import io.papermc.paper.registry.RegistryKey
 import org.bukkit.Bukkit
+import org.bukkit.NamespacedKey
 import org.bukkit.Sound
 import taboolib.common.platform.ProxyPlayer
 import taboolib.common.platform.event.SubscribeEvent
@@ -81,7 +84,10 @@ object SimpleChatListener {
             }
             SimpleChatState.atSoundCooldowns[bukkit.uniqueId] = now
 
-            val sound = runCatching { Sound.valueOf(SimpleChatSettings.atSoundType.uppercase()) }.getOrNull() ?: return@submitOnEntity
+            val sound = RegistryAccess.registryAccess()
+                .getRegistry(RegistryKey.SOUND_EVENT)
+                .get(NamespacedKey.minecraft(SimpleChatSettings.atSoundType.lowercase()))
+                ?: return@submitOnEntity
             bukkit.playSound(bukkit.location, sound, 1f, 1f)
         }
     }
