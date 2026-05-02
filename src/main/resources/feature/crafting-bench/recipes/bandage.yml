@@ -9,9 +9,9 @@ materials:
   - item: "WHITE_WOOL"
     amount: 1
 
-result:
-  item: "PAPER"
-  amount: 2
+results:
+  - item: "PAPER"
+    amount: 2
 
 craft_time_seconds: 8
 experience: 5

@@ -26,8 +26,23 @@ import java.nio.charset.StandardCharsets
  *   以保护用户自定义数据不被覆盖或删除。
  *
  * 适用范围：settings.yml、feature/ 下的 yml 文件。
+ *
+ * 对齐黑名单：
+ *   某些配置文件由对应模块自行管理格式迁移（如 CraftingBenchRecipeLoader），
+ *   不需要 ConfigAlignService 参与键对齐，否则会产生循环冲突。
+ *   黑名单中的路径前缀下的所有文件跳过对齐处理。
  */
 object ConfigAlignService {
+
+    /**
+     * 对齐黑名单：路径前缀列表。
+     * 以这些前缀开头的资源路径将跳过整个对齐处理。
+     * 目录型条目以 "/" 结尾，避免误匹配同级其他文件。
+     */
+    private val ALIGN_BLACKLIST: List<String> = listOf(
+        // 工作台配方由 CraftingBenchRecipeLoader 自行管理格式迁移
+        "feature/crafting-bench/recipes/"
+    )
 
     /**
      * 动态 section 白名单：文件路径 → 白名单 section 前缀列表。
@@ -68,10 +83,21 @@ object ConfigAlignService {
         }
     }
 
+    /**
+     * 判断资源路径是否命中对齐黑名单（路径前缀匹配）。
+     */
+    private fun isBlacklisted(resourcePath: String): Boolean {
+        return ALIGN_BLACKLIST.any { resourcePath.startsWith(it) }
+    }
+
     fun alignAll() {
         val resources = discoverManagedResources()
         var aligned = 0
         resources.forEach { resourcePath ->
+            if (isBlacklisted(resourcePath)) {
+                info("[Config] [$resourcePath] 跳过对齐（黑名单）")
+                return@forEach
+            }
             if (alignResource(resourcePath)) aligned++
         }
         if (aligned > 0) {
