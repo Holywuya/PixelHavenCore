@@ -1,12 +1,15 @@
 package com.pixlehavencore.feature.optimization.redstonelimiter
 
 import org.bukkit.entity.Player
+import com.pixlehavencore.feature.chat.WorldNameMapper
+import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
+import com.pixlehavencore.util.cancelTaskSafely
 import taboolib.common.platform.ProxyPlayer
 import taboolib.common.platform.function.info
 import taboolib.common.platform.function.onlinePlayers
 import taboolib.common.platform.function.submit
 import taboolib.common.platform.function.warning
-import taboolib.module.chat.colored
+import com.pixlehavencore.util.TextUtils
 import taboolib.platform.util.submit as submitOnEntity
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
@@ -33,7 +36,7 @@ object RedstoneLimiterService {
     }
 
     fun stop() {
-        invokeCancel(cleanupTask)
+        cleanupTask.cancelTaskSafely()
         cleanupTask = null
         tracker.clear()
         notifyCooldowns.clear()
@@ -88,14 +91,15 @@ object RedstoneLimiterService {
         }
         notifyCooldowns[key] = now
 
-        val message = RedstoneLimiterSettings.notifyMessage
-            .replace("{world}", key.worldName)
-            .replace("{x}", key.x.toString())
-            .replace("{y}", key.y.toString())
-            .replace("{z}", key.z.toString())
-            .replace("{block}", blockType)
-            .replace("{frequency}", "%.1f".format(frequency))
-            .colored()
+        val message = TextUtils.parse(RedstoneLimiterSettings.notifyMessage
+            .resolvePlaceholders(
+                "{world}" to WorldNameMapper.resolve(key.worldName),
+                "{x}" to key.x.toString(),
+                "{y}" to key.y.toString(),
+                "{z}" to key.z.toString(),
+                "{block}" to blockType,
+                "{frequency}" to "%.1f".format(frequency)
+            ))
 
         info("[RedstoneLimiter] 阻断高频红石: ${key.worldName} (${key.x},${key.y},${key.z}) $blockType 频率: ${"%.1f".format(frequency)}/s")
 
@@ -153,10 +157,4 @@ object RedstoneLimiterService {
         }
     }
 
-    private fun invokeCancel(task: Any?) {
-        if (task == null) return
-        runCatching {
-            task.javaClass.methods.firstOrNull { it.name == "cancel" && it.parameterTypes.isEmpty() }?.invoke(task)
-        }
-    }
 }

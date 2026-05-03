@@ -1,17 +1,19 @@
 package com.pixlehavencore.feature.veinminer
 
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import taboolib.common.platform.ProxyCommandSender
 import taboolib.common.platform.function.adaptCommandSender
-import taboolib.module.chat.colored
+import com.pixlehavencore.util.TextUtils
 
 object VeinminerMessages {
 
-    fun format(template: String, placeholders: Map<String, Any> = emptyMap()): String {
+    fun format(template: String, placeholders: Map<String, Any> = emptyMap()): Component {
         var message = template
         placeholders.forEach { (key, value) ->
             message = message.replace("{$key}", value.toString())
         }
-        return message.colored()
+        return TextUtils.parse(message)
     }
 
     fun send(sender: Any, template: String, placeholders: Map<String, Any> = emptyMap()) {
@@ -19,6 +21,6 @@ object VeinminerMessages {
             return
         }
         val proxy = if (sender is ProxyCommandSender) sender else adaptCommandSender(sender)
-        proxy.sendMessage(format(template, placeholders))
+        proxy.sendMessage(LegacyComponentSerializer.legacySection().serialize(format(template, placeholders)))
     }
 }

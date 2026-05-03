@@ -4,9 +4,11 @@ import org.bukkit.Bukkit
 import org.bukkit.World
 import org.bukkit.WorldCreator
 import org.bukkit.entity.Player
+import com.pixlehavencore.feature.chat.WorldNameMapper
+import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import taboolib.common.platform.function.info
 import taboolib.common.platform.function.submit
-import taboolib.module.chat.colored
+import com.pixlehavencore.util.TextUtils
 import taboolib.platform.util.submit as submitOnEntity
 
 object WorldService {
@@ -85,7 +87,7 @@ object WorldService {
         }
         val worldName = WorldSettings.resolveWorldName(targetWorldName) ?: run {
             player.submitOnEntity {
-                player.sendMessage(WorldSettings.messageWorldMissing.replace("{world}", targetWorldName).colored())
+                player.sendMessage(TextUtils.parse(WorldSettings.messageWorldMissing.resolvePlaceholders("{world}" to targetWorldName)))
             }
             return false
         }
@@ -97,7 +99,7 @@ object WorldService {
         }
         if (!WorldSettings.shouldLoadOnDemand(worldName)) {
             player.submitOnEntity {
-                player.sendMessage(WorldSettings.messageWorldMissing.replace("{world}", worldName).colored())
+                player.sendMessage(TextUtils.parse(WorldSettings.messageWorldMissing.resolvePlaceholders("{world}" to worldName)))
             }
             return false
         }
@@ -109,7 +111,7 @@ object WorldService {
                 if (world != null) {
                     doTeleport(player, world)
                 } else {
-                    player.sendMessage(WorldSettings.messageWorldMissing.replace("{world}", worldName).colored())
+                    player.sendMessage(TextUtils.parse(WorldSettings.messageWorldMissing.resolvePlaceholders("{world}" to worldName)))
                 }
             }
         }
@@ -125,7 +127,7 @@ object WorldService {
         }
         val worldName = WorldSettings.resolveWorldName(targetWorldName) ?: run {
             target.submitOnEntity {
-                target.sendMessage(WorldSettings.messageWorldMissing.replace("{world}", targetWorldName).colored())
+                target.sendMessage(TextUtils.parse(WorldSettings.messageWorldMissing.resolvePlaceholders("{world}" to targetWorldName)))
             }
             return false
         }
@@ -136,7 +138,7 @@ object WorldService {
         }
         if (!WorldSettings.shouldLoadOnDemand(worldName)) {
             target.submitOnEntity {
-                target.sendMessage(WorldSettings.messageWorldMissing.replace("{world}", worldName).colored())
+                target.sendMessage(TextUtils.parse(WorldSettings.messageWorldMissing.resolvePlaceholders("{world}" to worldName)))
             }
             return false
         }
@@ -147,7 +149,7 @@ object WorldService {
                 if (world != null) {
                     doTeleport(target, world)
                 } else {
-                    target.sendMessage(WorldSettings.messageWorldMissing.replace("{world}", worldName).colored())
+                    target.sendMessage(TextUtils.parse(WorldSettings.messageWorldMissing.resolvePlaceholders("{world}" to worldName)))
                 }
             }
         }
@@ -159,7 +161,7 @@ object WorldService {
      */
     private fun doTeleport(player: Player, world: World) {
         player.teleportAsync(world.spawnLocation).thenAccept {
-            player.sendMessage(WorldSettings.messageTeleportSelf.replace("{world}", world.name).colored())
+            player.sendMessage(TextUtils.parse(WorldSettings.messageTeleportSelf.resolvePlaceholders("{world}" to WorldNameMapper.resolve(world.name))))
         }
     }
 

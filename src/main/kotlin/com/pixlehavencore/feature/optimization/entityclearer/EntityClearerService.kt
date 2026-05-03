@@ -9,7 +9,7 @@ import org.bukkit.entity.Entity
 import org.bukkit.entity.Item
 import org.bukkit.entity.Monster
 import taboolib.common.platform.function.submit
-import taboolib.module.chat.colored
+
 import taboolib.platform.util.submit as submitOnEntity
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean

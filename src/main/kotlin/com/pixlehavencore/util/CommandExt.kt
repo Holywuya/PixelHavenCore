@@ -1,8 +1,8 @@
 package com.pixlehavencore.util
 
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import taboolib.common.platform.ProxyCommandSender
 import taboolib.common.platform.ProxyPlayer
-import taboolib.module.chat.colored
 import org.bukkit.command.CommandSender
 
 private val PERMISSION_ALIASES = mapOf(
@@ -17,9 +17,10 @@ private val PERMISSION_ALIASES = mapOf(
 )
 
 /**
- * 发送带颜色代码的消息，省去每次 .colored() 的模板代码。
+ * 发送带颜色代码的消息，支持 MiniMessage 标签和 & 颜色码。
  */
-fun ProxyCommandSender.msg(text: String) = sendMessage(text.colored())
+fun ProxyCommandSender.msg(text: String) =
+    sendMessage(LegacyComponentSerializer.legacySection().serialize(TextUtils.parse(text)))
 
 /**
  * 全局超级权限：`phcore.admin`。

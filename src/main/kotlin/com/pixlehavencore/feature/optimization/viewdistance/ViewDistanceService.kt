@@ -1,13 +1,15 @@
 package com.pixlehavencore.feature.optimization.viewdistance
 
+import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.entity.Player
+import com.pixlehavencore.util.TextUtils
+import com.pixlehavencore.util.cancelTaskSafely
 import taboolib.common.platform.ProxyPlayer
 import taboolib.common.platform.function.info
 import taboolib.common.platform.function.onlinePlayers
 import taboolib.common.platform.function.submit
-import taboolib.module.chat.colored
 import taboolib.platform.util.submit as submitOnEntity
 import java.lang.reflect.Method
 import java.util.UUID
@@ -44,9 +46,9 @@ object ViewDistanceService {
     }
 
     private fun stopTasks() {
-        afkTask?.let(::invokeCancel)
-        dynamicTask?.let(::invokeCancel)
-        pingTask?.let(::invokeCancel)
+        afkTask.cancelTaskSafely()
+        dynamicTask.cancelTaskSafely()
+        pingTask.cancelTaskSafely()
         afkTask = null
         dynamicTask = null
         pingTask = null
@@ -75,7 +77,7 @@ object ViewDistanceService {
         val target = if (ViewDistanceSettings.afkOnJoin && !player.hasPermission(ViewDistanceSettings.bypassAfkPermission)) {
             afkPlayers.add(player.uniqueId)
             if (ViewDistanceSettings.afkEnterMessage.isNotBlank()) {
-                player.sendMessage(ViewDistanceSettings.afkEnterMessage.colored())
+                player.sendMessage(TextUtils.parse(ViewDistanceSettings.afkEnterMessage))
             }
             ViewDistanceSettings.afkDistance
         } else {
@@ -86,9 +88,8 @@ object ViewDistanceService {
         lastMoved[player.uniqueId] = System.currentTimeMillis()
         if (ViewDistanceSettings.displayOnJoin && !ViewDistanceSettings.afkOnJoin) {
             player.sendMessage(
-                ViewDistanceSettings.displayJoinMessage
-                    .replace("{distance}", target.toString())
-                    .colored()
+                TextUtils.parse(ViewDistanceSettings.displayJoinMessage
+                    .resolvePlaceholders("{distance}" to target.toString()))
             )
         }
     }
@@ -105,7 +106,7 @@ object ViewDistanceService {
             val target = resolveTargetDistance(player, proxy)
             applyDistance(player, target)
             if (ViewDistanceSettings.afkExitMessage.isNotBlank()) {
-                player.sendMessage(ViewDistanceSettings.afkExitMessage.colored())
+                player.sendMessage(TextUtils.parse(ViewDistanceSettings.afkExitMessage))
             }
         }
     }
@@ -179,14 +180,14 @@ object ViewDistanceService {
                     val last = lastMoved[player.uniqueId] ?: now
                     if (now - last >= ViewDistanceSettings.afkSeconds * 1000L) {
                     if (afkPlayers.add(player.uniqueId) && ViewDistanceSettings.afkEnterMessage.isNotBlank()) {
-                        player.sendMessage(ViewDistanceSettings.afkEnterMessage.colored())
+                        player.sendMessage(TextUtils.parse(ViewDistanceSettings.afkEnterMessage))
                     }
                     applyDistance(player, ViewDistanceSettings.afkDistance)
                 } else if (afkPlayers.remove(player.uniqueId)) {
                         val target = resolveTargetDistance(player, proxy)
                         applyDistance(player, target)
                         if (ViewDistanceSettings.afkExitMessage.isNotBlank()) {
-                            player.sendMessage(ViewDistanceSettings.afkExitMessage.colored())
+                            player.sendMessage(TextUtils.parse(ViewDistanceSettings.afkExitMessage))
                         }
                     }
                 }
@@ -246,12 +247,6 @@ object ViewDistanceService {
                     applyDistance(player, target.coerceAtMost(ViewDistanceSettings.pingMax))
                 }
             }
-        }
-    }
-
-    private fun invokeCancel(task: Any) {
-        runCatching {
-            task.javaClass.methods.firstOrNull { it.name == "cancel" && it.parameterTypes.isEmpty() }?.invoke(task)
         }
     }
 

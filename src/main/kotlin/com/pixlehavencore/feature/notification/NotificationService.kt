@@ -1,8 +1,10 @@
 package com.pixlehavencore.feature.notification
 
+import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import com.pixlehavencore.util.broadcastColored
+import com.pixlehavencore.util.cancelTaskSafely
 import com.pixlehavencore.util.EntityUtils
-import taboolib.module.chat.colored
+import com.pixlehavencore.util.TextUtils
 import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
@@ -64,19 +66,8 @@ object NotificationService {
 
     fun stopAutoNotifications() {
         isRunning = false
-        invokeCancel(autoNotificationTask)
+        autoNotificationTask.cancelTaskSafely()
         autoNotificationTask = null
-    }
-
-    private fun invokeCancel(task: Any?) {
-        if (task == null) {
-            return
-        }
-        runCatching {
-            task.javaClass.methods.firstOrNull {
-                it.name == "cancel" && it.parameterTypes.isEmpty()
-            }?.invoke(task)
-        }
     }
 
     /**
@@ -106,8 +97,7 @@ object NotificationService {
         }
 
         val formattedMessage = NotificationSettings.adminNotificationFormat
-            .replace("{player}", sender.name)
-            .replace("{message}", message)
+            .resolvePlaceholders("{player}" to sender.name, "{message}" to message)
 
         when (NotificationSettings.adminNotificationScope.uppercase()) {
             "ALL" -> {
@@ -115,22 +105,22 @@ object NotificationService {
             }
             "WORLD" -> {
                 // Folia: 对世界内每个玩家在其区域线程上发送消息
-                val coloredMessage = formattedMessage.colored()
+                val componentMessage = TextUtils.parse(formattedMessage)
                 sender.world.players.forEach { player ->
                     player.submitOnEntity {
-                        player.sendMessage(coloredMessage)
+                        player.sendMessage(componentMessage)
                     }
                 }
             }
             "RADIUS" -> {
                 // Folia: 对半径内每个玩家在其区域线程上发送消息
-                val coloredMessage = formattedMessage.colored()
+                val componentMessage = TextUtils.parse(formattedMessage)
                 sender.submitOnEntity {
                     val center = sender.location
                     EntityUtils.nearbyPlayers(sender.world, center, NotificationSettings.adminNotificationRadius.toDouble())
                         .forEach { nearby ->
                             nearby.submitOnEntity {
-                                nearby.sendMessage(coloredMessage)
+                                nearby.sendMessage(componentMessage)
                             }
                         }
                 }
@@ -147,7 +137,7 @@ object NotificationService {
         }
 
         val message = NotificationSettings.serverRestartNotificationFormat
-            .replace("{minutes}", minutes.toString())
+            .resolvePlaceholders("{minutes}" to minutes.toString())
 
         broadcastMessage(message)
     }
@@ -164,8 +154,7 @@ object NotificationService {
         }
 
         val message = NotificationSettings.playerJoinNotificationFormat
-            .replace("{player}", event.player.name)
-            .replace("{online}", onlinePlayers().size.toString())
+            .resolvePlaceholders("{player}" to event.player.name, "{online}" to onlinePlayers().size.toString())
 
         broadcastMessage(message)
     }
@@ -177,7 +166,7 @@ object NotificationService {
         }
 
         val message = NotificationSettings.playerQuitNotificationFormat
-            .replace("{player}", event.player.name)
+            .resolvePlaceholders("{player}" to event.player.name)
 
         broadcastMessage(message)
     }

@@ -1,10 +1,11 @@
 package com.pixlehavencore.feature.deathdrop
 
+import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
+import com.pixlehavencore.util.TextUtils
 import org.bukkit.entity.Player
 import org.bukkit.event.entity.PlayerDeathEvent
 import taboolib.common.platform.event.EventPriority
 import taboolib.common.platform.event.SubscribeEvent
-import taboolib.module.chat.colored
 
 object DeathDropListener {
 
@@ -24,19 +25,20 @@ object DeathDropListener {
             event.keepLevel = true
             event.drops.clear()
             player.sendMessage(
-                DeathDropSettings.keepMessage
-                    .replace("{consume}", "1")
-                    .replace("{left}", (total - used).coerceAtLeast(0).toString())
-                    .replace("{used}", used.toString())
-                    .replace("{total}", total.toString())
-                    .colored()
+                TextUtils.parse(DeathDropSettings.keepMessage
+                    .resolvePlaceholders(
+                        "{consume}" to "1",
+                        "{left}" to (total - used).coerceAtLeast(0).toString(),
+                        "{used}" to used.toString(),
+                        "{total}" to total.toString()
+                    ))
             )
             return
         }
-        
+
         // 否则正常掉落（没有墓碑）
         if (DeathDropSettings.outOfProtectionMessage.isNotBlank()) {
-            player.sendMessage(DeathDropSettings.outOfProtectionMessage.colored())
+            player.sendMessage(TextUtils.parse(DeathDropSettings.outOfProtectionMessage))
         }
     }
 

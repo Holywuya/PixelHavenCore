@@ -1,10 +1,10 @@
 package com.pixlehavencore.feature.vanish
 
-import net.kyori.adventure.text.Component
+import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import taboolib.common.platform.event.SubscribeEvent
-import taboolib.module.chat.colored
+import com.pixlehavencore.util.TextUtils
 
 /**
  * 隐身模块事件监听器：
@@ -29,10 +29,9 @@ object VanishListener {
 
             // 若配置开启，对其他玩家广播假的退出消息
             if (VanishSettings.fakeJoinSendFakeQuit) {
-                val fakeMsg = Component.text(
+                val fakeMsg = TextUtils.parse(
                     VanishSettings.fakeQuitFormat
-                        .replace("{player}", player.name)
-                        .colored()
+                        .resolvePlaceholders("{player}" to player.name)
                 )
                 player.server.broadcast(fakeMsg)
             }

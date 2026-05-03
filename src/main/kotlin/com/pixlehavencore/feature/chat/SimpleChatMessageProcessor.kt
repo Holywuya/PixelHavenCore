@@ -3,8 +3,7 @@ package com.pixlehavencore.feature.chat
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-import taboolib.module.chat.colored
+import com.pixlehavencore.util.TextUtils
 
 object SimpleChatMessageProcessor {
 
@@ -12,7 +11,7 @@ object SimpleChatMessageProcessor {
 
     fun process(message: String): Component {
         if (!SimpleChatSettings.linkDetectionEnabled && !SimpleChatSettings.numberDetectionEnabled) {
-            return LegacyComponentSerializer.legacySection().deserialize(message.colored())
+            return TextUtils.parse(message)
         }
 
         var result = Component.empty()
@@ -29,14 +28,14 @@ object SimpleChatMessageProcessor {
         }
 
         if (matches.isEmpty()) {
-            return LegacyComponentSerializer.legacySection().deserialize(message.colored())
+            return TextUtils.parse(message)
         }
 
         matches.sortBy { it.start }
         matches.forEach { m ->
             if (m.start < cursor) return@forEach
             if (cursor < m.start) {
-                result = result.append(LegacyComponentSerializer.legacySection().deserialize(message.substring(cursor, m.start).colored()))
+                result = result.append(TextUtils.parse(message.substring(cursor, m.start)))
             }
             result = result.append(
                 when (m.type) {
@@ -48,7 +47,7 @@ object SimpleChatMessageProcessor {
         }
 
         if (cursor < message.length) {
-            result = result.append(LegacyComponentSerializer.legacySection().deserialize(message.substring(cursor).colored()))
+            result = result.append(TextUtils.parse(message.substring(cursor)))
         }
         return result
     }

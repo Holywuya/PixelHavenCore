@@ -5,7 +5,6 @@ import com.pixlehavencore.util.EconomyUtils
 import com.pixlehavencore.util.InventoryUtils
 import com.pixlehavencore.util.ItemUtils
 import com.pixlehavencore.util.TextUtils
-import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
 import org.bukkit.Bukkit
@@ -14,7 +13,6 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 import taboolib.common.platform.function.submit
-import taboolib.module.chat.colored
 import taboolib.platform.util.submit as submitOnEntity
 import taboolib.platform.util.submit as submitOnLocation
 import java.math.BigDecimal
@@ -57,7 +55,7 @@ object TradeService {
             return false
         }
         if (isTrading(sender) || isTrading(target)) {
-            sender.sendMessage(TradeSettings.requestAlreadyTradingMessage.resolvePlaceholders("{player}" to target.name).colored())
+            sender.sendMessage(TextUtils.parse(TradeSettings.requestAlreadyTradingMessage.resolvePlaceholders("{player}" to target.name)))
             return false
         }
         val reverse = requests[sender.uniqueId]
@@ -70,12 +68,12 @@ object TradeService {
         cleanupExpiredRequests(sender, target)
         val existing = requests[target.uniqueId]
         if (existing != null && existing.sender == sender.uniqueId && !existing.isExpired()) {
-            sender.sendMessage(TradeSettings.requestAlreadySentMessage.resolvePlaceholders("{player}" to target.name).colored())
+            sender.sendMessage(TextUtils.parse(TradeSettings.requestAlreadySentMessage.resolvePlaceholders("{player}" to target.name)))
             return false
         }
         requests[target.uniqueId] = TradeRequest(sender.uniqueId, System.currentTimeMillis())
         sendRequestMessage(target, sender)
-        sender.sendMessage(TradeSettings.requestSentMessage.resolvePlaceholders("{player}" to target.name).colored())
+        sender.sendMessage(TextUtils.parse(TradeSettings.requestSentMessage.resolvePlaceholders("{player}" to target.name)))
         return true
     }
 
@@ -98,7 +96,7 @@ object TradeService {
         }
         if (request.isExpired()) {
             requests.remove(target.uniqueId)
-            target.sendMessage(TradeSettings.requestExpiredMessage.colored())
+            target.sendMessage(TextUtils.parse(TradeSettings.requestExpiredMessage))
             return false
         }
         requests.remove(target.uniqueId)
@@ -114,8 +112,8 @@ object TradeService {
             return false
         }
         requests.remove(target.uniqueId)
-        requester.sendMessage(TradeSettings.requestDeniedSenderMessage.resolvePlaceholders("{player}" to target.name).colored())
-        target.sendMessage(TradeSettings.requestDeniedReceiverMessage.resolvePlaceholders("{player}" to requester.name).colored())
+        requester.sendMessage(TextUtils.parse(TradeSettings.requestDeniedSenderMessage.resolvePlaceholders("{player}" to target.name)))
+        target.sendMessage(TextUtils.parse(TradeSettings.requestDeniedReceiverMessage.resolvePlaceholders("{player}" to requester.name)))
         return true
     }
 
@@ -129,21 +127,21 @@ object TradeService {
         requests.entries.removeIf { entry ->
             val expired = now - entry.value.createdAt > TradeSettings.requestTimeoutSeconds * 1000L
             if (expired && (relatedIds.isEmpty() || entry.key in relatedIds || entry.value.sender in relatedIds)) {
-                Bukkit.getPlayer(entry.value.sender)?.sendMessage(TradeSettings.requestExpiredMessage.colored())
+                Bukkit.getPlayer(entry.value.sender)?.sendMessage(TextUtils.parse(TradeSettings.requestExpiredMessage))
             }
             expired
         }
     }
 
     private fun sendRequestMessage(target: Player, sender: Player) {
-        target.sendMessage(TradeSettings.requestMessage.resolvePlaceholders("{player}" to sender.name).colored())
-        val accept = Component.text(TradeSettings.requestAcceptButtonMessage.colored())
+        target.sendMessage(TextUtils.parse(TradeSettings.requestMessage.resolvePlaceholders("{player}" to sender.name)))
+        val accept = TextUtils.parse(TradeSettings.requestAcceptButtonMessage)
             .clickEvent(ClickEvent.runCommand("/trade accept ${sender.name}"))
-            .hoverEvent(HoverEvent.showText(Component.text(TradeSettings.requestAcceptHoverMessage.resolvePlaceholders("{player}" to sender.name).colored())))
+            .hoverEvent(HoverEvent.showText(TextUtils.parse(TradeSettings.requestAcceptHoverMessage.resolvePlaceholders("{player}" to sender.name))))
 
-        val deny = Component.text(" " + TradeSettings.requestDenyButtonMessage.colored())
+        val deny = TextUtils.parse(" " + TradeSettings.requestDenyButtonMessage)
             .clickEvent(ClickEvent.runCommand("/trade deny ${sender.name}"))
-            .hoverEvent(HoverEvent.showText(Component.text(TradeSettings.requestDenyHoverMessage.resolvePlaceholders("{player}" to sender.name).colored())))
+            .hoverEvent(HoverEvent.showText(TextUtils.parse(TradeSettings.requestDenyHoverMessage.resolvePlaceholders("{player}" to sender.name))))
 
         target.sendMessage(accept.append(deny))
     }
@@ -157,8 +155,8 @@ object TradeService {
         render(session)
         left.openInventory(leftInventory)
         right.openInventory(rightInventory)
-        left.sendMessage(TradeSettings.tradeStartedMessage.resolvePlaceholders("{player}" to right.name).colored())
-        right.sendMessage(TradeSettings.tradeStartedMessage.resolvePlaceholders("{player}" to left.name).colored())
+        left.sendMessage(TextUtils.parse(TradeSettings.tradeStartedMessage.resolvePlaceholders("{player}" to right.name)))
+        right.sendMessage(TextUtils.parse(TradeSettings.tradeStartedMessage.resolvePlaceholders("{player}" to left.name)))
     }
 
     fun isTradeInventory(player: Player, inventory: Inventory): Boolean {
@@ -242,13 +240,13 @@ object TradeService {
         val input = message.trim()
         if (input.equals("cancel", ignoreCase = true)) {
             moneyInputs.remove(player.uniqueId)
-            player.sendMessage(TradeSettings.moneyInputCancelledMessage.colored())
+            player.sendMessage(TextUtils.parse(TradeSettings.moneyInputCancelledMessage))
             player.submitOnEntity { reopen(player, session) }
             return true
         }
         val amount = input.toBigDecimalOrNull()
         if (amount == null || amount < BigDecimal.ZERO) {
-            player.sendMessage(TradeSettings.moneyInputInvalidMessage.colored())
+            player.sendMessage(TextUtils.parse(TradeSettings.moneyInputInvalidMessage))
             return true
         }
 
@@ -277,9 +275,8 @@ object TradeService {
         sessionSuspendClose[player.uniqueId] = System.currentTimeMillis() + 3000L
         player.closeInventory()
         player.sendMessage(
-            TradeSettings.moneyInputPromptMessage
-                .resolvePlaceholders("{current}" to formatMoney(session.moneyOffers[player.uniqueId] ?: BigDecimal.ZERO))
-                .colored()
+            TextUtils.parse(TradeSettings.moneyInputPromptMessage
+                .resolvePlaceholders("{current}" to formatMoney(session.moneyOffers[player.uniqueId] ?: BigDecimal.ZERO)))
         )
     }
 
@@ -296,19 +293,19 @@ object TradeService {
         val leftItems = snapshotOwnerItems(session, session.left)
         val rightItems = snapshotOwnerItems(session, session.right)
         if (!canFit(right, leftItems) || !canFit(left, rightItems)) {
-            left.sendMessage(TradeSettings.inventoryFullMessage.colored())
-            right.sendMessage(TradeSettings.inventoryFullMessage.colored())
+            left.sendMessage(TextUtils.parse(TradeSettings.inventoryFullMessage))
+            right.sendMessage(TextUtils.parse(TradeSettings.inventoryFullMessage))
             return
         }
 
         val leftMoney = session.moneyOffers[session.left] ?: BigDecimal.ZERO
         val rightMoney = session.moneyOffers[session.right] ?: BigDecimal.ZERO
         if (leftMoney > BigDecimal.ZERO && !EconomyUtils.has(left, leftMoney)) {
-            left.sendMessage("&c你的余额不足，交易取消。".colored())
+            left.sendMessage(TextUtils.parse("&c你的余额不足，交易取消。"))
             return abort(session, true)
         }
         if (rightMoney > BigDecimal.ZERO && !EconomyUtils.has(right, rightMoney)) {
-            right.sendMessage("&c你的余额不足，交易取消。".colored())
+            right.sendMessage(TextUtils.parse("&c你的余额不足，交易取消。"))
             return abort(session, true)
         }
 
@@ -336,8 +333,8 @@ object TradeService {
         unregister(session)
         left.closeInventory()
         right.closeInventory()
-        left.sendMessage(TradeSettings.tradeCompletedMessage.colored())
-        right.sendMessage(TradeSettings.tradeCompletedMessage.colored())
+        left.sendMessage(TextUtils.parse(TradeSettings.tradeCompletedMessage))
+        right.sendMessage(TextUtils.parse(TradeSettings.tradeCompletedMessage))
     }
 
     private fun abort(session: TradeSession, closeInventory: Boolean) {
@@ -351,8 +348,8 @@ object TradeService {
             left?.closeInventory()
             right?.closeInventory()
         }
-        left?.sendMessage(TradeSettings.tradeCancelledMessage.colored())
-        right?.sendMessage(TradeSettings.tradeCancelledMessage.colored())
+        left?.sendMessage(TextUtils.parse(TradeSettings.tradeCancelledMessage))
+        right?.sendMessage(TextUtils.parse(TradeSettings.tradeCancelledMessage))
     }
 
     private fun unregister(session: TradeSession) {
@@ -505,12 +502,12 @@ object TradeService {
     private fun infoItem(left: String, right: String): ItemStack {
         return ItemStack(Material.BOOK).apply {
             itemMeta = itemMeta?.apply {
-                displayName(Component.text("&e交易信息".colored()))
+                displayName(TextUtils.parse("&e交易信息"))
                 lore(listOf(
-                    Component.text("&7左侧玩家: &f$left".colored()),
-                    Component.text("&7右侧玩家: &f$right".colored()),
-                    Component.text("&7双方确认后才会完成交换".colored()),
-                    Component.text("&7修改物品或金额会重置确认".colored())
+                    TextUtils.parse("&7左侧玩家: &f$left"),
+                    TextUtils.parse("&7右侧玩家: &f$right"),
+                    TextUtils.parse("&7双方确认后才会完成交换"),
+                    TextUtils.parse("&7修改物品或金额会重置确认")
                 ))
             }
         }
@@ -524,12 +521,12 @@ object TradeService {
         val otherStatus = if (otherConfirmed) "&a已确认" else "&c未确认"
         return ItemStack(material).apply {
             itemMeta = itemMeta?.apply {
-                displayName(Component.text("&e$side 确认按钮".colored()))
+                displayName(TextUtils.parse("&e$side 确认按钮"))
                 lore(listOf(
-                    Component.text("&7$side 状态: $selfStatus".colored()),
-                    Component.text("&7$otherSide 状态: $otherStatus".colored()),
-                    Component.text("&7$side 报价: &f${formatMoney(money)}".colored()),
-                    Component.text("&7确认后会锁定该侧的交易操作".colored())
+                    TextUtils.parse("&7$side 状态: $selfStatus"),
+                    TextUtils.parse("&7$otherSide 状态: $otherStatus"),
+                    TextUtils.parse("&7$side 报价: &f${formatMoney(money)}"),
+                    TextUtils.parse("&7确认后会锁定该侧的交易操作")
                 ))
             }
         }
@@ -539,12 +536,12 @@ object TradeService {
         val side = if (leftSide) "左侧" else "右侧"
         return ItemStack(Material.GOLD_INGOT).apply {
             itemMeta = itemMeta?.apply {
-                displayName(Component.text("&6$side 金币报价: &f${formatMoney(amount)}".colored()))
+                displayName(TextUtils.parse("&6$side 金币报价: &f${formatMoney(amount)}"))
                 lore(listOf(
-                    Component.text("&7当前编辑的是${side}的金币报价".colored()),
-                    Component.text("&7点击后通过聊天输入金额".colored()),
-                    Component.text("&7输入 cancel 取消本次输入".colored()),
-                    Component.text("&7税收会在交易完成时结算".colored())
+                    TextUtils.parse("&7当前编辑的是${side}的金币报价"),
+                    TextUtils.parse("&7点击后通过聊天输入金额"),
+                    TextUtils.parse("&7输入 cancel 取消本次输入"),
+                    TextUtils.parse("&7税收会在交易完成时结算")
                 ))
             }
         }
@@ -553,8 +550,8 @@ object TradeService {
     private fun cancelItem(): ItemStack {
         return ItemStack(Material.BARRIER).apply {
             itemMeta = itemMeta?.apply {
-                displayName(Component.text("&c取消交易".colored()))
-                lore(listOf(Component.text("&7点击后立即取消并退回双方物品".colored())))
+                displayName(TextUtils.parse("&c取消交易"))
+                lore(listOf(TextUtils.parse("&7点击后立即取消并退回双方物品")))
             }
         }
     }

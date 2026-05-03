@@ -4,7 +4,6 @@ import net.kyori.adventure.text.Component
 import org.bukkit.entity.Player
 import taboolib.common.platform.function.onlinePlayers
 import taboolib.common.platform.function.submit
-import taboolib.module.chat.colored
 import taboolib.platform.util.submit as submitOnEntity
 import java.util.UUID
 
@@ -13,7 +12,7 @@ import java.util.UUID
  * 替换 NotificationService 中的私有 broadcastMessage()。
  */
 fun broadcastColored(message: String) {
-    broadcastComponent(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message.colored()))
+    broadcastComponent(TextUtils.parse(message))
 }
 
 fun broadcastComponent(component: Component) {
@@ -34,14 +33,14 @@ fun broadcastComponent(component: Component) {
  * 替换 VanishService.notifyAdmins() 中的内联广播逻辑。
  */
 fun broadcastToPermission(message: String, permission: String, exclude: UUID? = null) {
-    val colored = message.colored()
+    val component = TextUtils.parse(message)
     submit {
         onlinePlayers().toList().forEach { proxy ->
             if (exclude != null && proxy.uniqueId == exclude) return@forEach
             val player = proxy.cast<Player>() ?: return@forEach
             player.submitOnEntity {
                 if (player.hasPermission(permission)) {
-                    player.sendMessage(colored)
+                    player.sendMessage(component)
                 }
             }
         }

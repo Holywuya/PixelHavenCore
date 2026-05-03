@@ -1,5 +1,7 @@
 package com.pixlehavencore.feature.world
 
+import com.pixlehavencore.feature.chat.WorldNameMapper
+import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.requirePlayer
@@ -12,7 +14,7 @@ import taboolib.common.platform.command.PermissionDefault
 import taboolib.common.platform.command.mainCommand
 import taboolib.common.platform.command.suggestPlayers
 import taboolib.common.platform.command.subCommand
-import taboolib.module.chat.colored
+
 
 @CommandHeader(name = "world", aliases = ["mfw"], permissionDefault = PermissionDefault.TRUE)
 object WorldCommand {
@@ -64,16 +66,12 @@ object WorldCommand {
                     if (targetName.isBlank()) {
                         // 未指定目标玩家：发送者必须是玩家，传送自己
                         val player = sender.requirePlayer()?.cast<Player>() ?: return@execute
-                        if (!player.hasPermission(WorldSettings.teleportSelfPermission) && !player.hasPermission(WorldSettings.adminPermission)) {
-                            sender.msg("&c你没有传送权限。")
-                            return@execute
-                        }
                         if (!WorldService.teleportSelf(player, worldName)) {
                             sender.msg(WorldSettings.messageModuleDisabled)
                         }
                     } else {
                         // 指定目标玩家：发送者无需是玩家（支持 NPC/控制台调用）
-                        if (!sender.requirePermission(WorldSettings.teleportOtherPermission) && !sender.hasPermission(WorldSettings.adminPermission)) {
+                        if (!sender.requirePermission("phcore.admin")) {
                             return@execute
                         }
                         val target = Bukkit.getPlayerExact(targetName)
@@ -84,7 +82,10 @@ object WorldCommand {
                         if (!WorldService.teleportOther(target, worldName)) {
                             sender.msg(WorldSettings.messageModuleDisabled)
                         } else {
-                            sender.msg(WorldSettings.messageTeleportOther.replace("{player}", target.name).replace("{world}", worldName))
+                            sender.msg(WorldSettings.messageTeleportOther.resolvePlaceholders(
+                                "{player}" to target.name,
+                                "{world}" to WorldNameMapper.resolve(worldName)
+                            ))
                         }
                     }
                 }
@@ -94,10 +95,6 @@ object WorldCommand {
                 val worldName = context.getOrNull("world")?.toString().orEmpty().trim()
                 if (worldName.isBlank()) {
                     sender.msg("&c请输入目标世界。")
-                    return@execute
-                }
-                if (!player.hasPermission(WorldSettings.teleportSelfPermission) && !player.hasPermission(WorldSettings.adminPermission)) {
-                    sender.msg("&c你没有传送权限。")
                     return@execute
                 }
                 if (!WorldService.teleportSelf(player, worldName)) {
@@ -111,7 +108,7 @@ object WorldCommand {
     val load = subCommand {
         dynamic(comment = "world") {
             execute<ProxyCommandSender> { sender, _, argument ->
-                if (!sender.requirePermission(WorldSettings.adminPermission)) return@execute
+                if (!sender.requirePermission("phcore.admin")) return@execute
                 val worldName = argument.toString().trim()
                 if (worldName.isBlank()) {
                     sender.msg("&c请输入世界名。")
@@ -122,7 +119,7 @@ object WorldCommand {
                         Bukkit.createWorld(org.bukkit.WorldCreator(worldName))
                     }.getOrNull()
                 if (world == null) {
-                    sender.msg(WorldSettings.messageWorldMissing.replace("{world}", worldName))
+                    sender.msg(WorldSettings.messageWorldMissing.resolvePlaceholders("{world}" to worldName))
                     return@execute
                 }
                 sender.msg("&a世界已加载：&f${world.name}")
@@ -133,7 +130,7 @@ object WorldCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission(WorldSettings.adminPermission)) return@execute
+            if (!sender.requirePermission("phcore.admin")) return@execute
             WorldService.reload()
             sender.msg(WorldSettings.messageReloadSuccess)
         }

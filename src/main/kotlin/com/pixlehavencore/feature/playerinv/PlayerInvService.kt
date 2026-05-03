@@ -24,7 +24,6 @@ import taboolib.common.platform.function.info
 import taboolib.common.platform.function.submit
 import taboolib.common.platform.function.warning
 import taboolib.expansion.MultipleHandler
-import taboolib.module.chat.colored
 import taboolib.platform.util.submit as submitOnEntity
 import java.sql.Connection
 import java.sql.PreparedStatement
@@ -151,7 +150,7 @@ object PlayerInvService {
 
     fun openSelf(player: Player): Boolean {
         if (!isReady()) {
-            player.sendMessage(PlayerInvSettings.saveFailedMessage.colored())
+            player.sendMessage(TextUtils.parse(PlayerInvSettings.saveFailedMessage))
             return false
         }
         openSelfAsync(player) { }
@@ -236,12 +235,12 @@ object PlayerInvService {
                 player.world.dropItemNaturally(player.location, left)
             }
         }
-        player.sendMessage(PlayerInvSettings.personalOverflowFallbackMessage.colored())
+        player.sendMessage(TextUtils.parse(PlayerInvSettings.personalOverflowFallbackMessage))
     }
 
     fun openOther(viewer: Player, target: OfflinePlayer): Boolean {
         if (!isReady()) {
-            viewer.sendMessage(PlayerInvSettings.saveFailedMessage.colored())
+            viewer.sendMessage(TextUtils.parse(PlayerInvSettings.saveFailedMessage))
             return false
         }
         openOtherAsync(viewer, target) { }
@@ -334,7 +333,7 @@ object PlayerInvService {
 
     fun openShared(viewer: Player, rawName: String, forceAdmin: Boolean = false): SharedOpenResult {
         if (!isReady()) {
-            viewer.sendMessage(PlayerInvSettings.saveFailedMessage.colored())
+            viewer.sendMessage(TextUtils.parse(PlayerInvSettings.saveFailedMessage))
             return SharedOpenResult.FAILED
         }
         val name = normalizeSharedName(rawName) ?: return SharedOpenResult.NOT_FOUND
@@ -545,13 +544,13 @@ object PlayerInvService {
         val pending = pendingMemberInputs[player.uniqueId] ?: return false
         if (message.equals("cancel", ignoreCase = true)) {
             pendingMemberInputs.remove(player.uniqueId)
-            player.sendMessage(PlayerInvSettings.chatInputCancelled.colored())
+            player.sendMessage(TextUtils.parse(PlayerInvSettings.chatInputCancelled))
             reopenManageAfterChat(player, pending.sharedName)
             return true
         }
         val target = resolveOfflinePlayer(message.trim())
         if (target == null) {
-            player.sendMessage(PlayerInvSettings.chatInputPlayerNotFound.resolvePlaceholders("{player}" to message.trim()).colored())
+            player.sendMessage(TextUtils.parse(PlayerInvSettings.chatInputPlayerNotFound.resolvePlaceholders("{player}" to message.trim())))
             return true
         }
 
@@ -567,11 +566,11 @@ object PlayerInvService {
             }
             player.submitOnEntity {
                 when (result) {
-                    SharedMemberResult.OK -> player.sendMessage(PlayerInvSettings.chatInputDone.colored())
-                    SharedMemberResult.NO_ACCESS -> player.sendMessage(PlayerInvSettings.sharedManageNoPermission.colored())
-                    SharedMemberResult.NOT_FOUND -> player.sendMessage(PlayerInvSettings.sharedNotFoundMessage.resolvePlaceholders("{name}" to sharedName).colored())
-                    SharedMemberResult.CANNOT_REMOVE_OWNER -> player.sendMessage("&c不能移除共享仓库创建者".colored())
-                    else -> player.sendMessage("&c操作失败".colored())
+                    SharedMemberResult.OK -> player.sendMessage(TextUtils.parse(PlayerInvSettings.chatInputDone))
+                    SharedMemberResult.NO_ACCESS -> player.sendMessage(TextUtils.parse(PlayerInvSettings.sharedManageNoPermission))
+                    SharedMemberResult.NOT_FOUND -> player.sendMessage(TextUtils.parse(PlayerInvSettings.sharedNotFoundMessage.resolvePlaceholders("{name}" to sharedName)))
+                    SharedMemberResult.CANNOT_REMOVE_OWNER -> player.sendMessage(TextUtils.parse("&c不能移除共享仓库创建者"))
+                    else -> player.sendMessage(TextUtils.parse("&c操作失败"))
                 }
                 reopenManageAfterChat(player, sharedName)
             }
@@ -592,7 +591,7 @@ object PlayerInvService {
         if (session.type == SessionType.SHARED) {
             if (slot == SHARED_MANAGE_ENTRY_SLOT) {
                 if (session.owner != player.uniqueId) {
-                    player.sendMessage(PlayerInvSettings.sharedManageNoPermission.colored())
+                    player.sendMessage(TextUtils.parse(PlayerInvSettings.sharedManageNoPermission))
                 } else {
                     openSharedManage(player, session)
                 }
@@ -604,9 +603,8 @@ object PlayerInvService {
                     val unlocked = tryUnlockSharedSlot(player, session, slot)
                     if (unlocked == UnlockResult.NO_MONEY) {
                         player.sendMessage(
-                            PlayerInvSettings.sharedUnlockNeedMoneyMessage
-                                .resolvePlaceholders("{cost}" to "%.2f".format(PlayerInvSettings.sharedUnlockCost))
-                                .colored()
+                            TextUtils.parse(PlayerInvSettings.sharedUnlockNeedMoneyMessage
+                                .resolvePlaceholders("{cost}" to "%.2f".format(PlayerInvSettings.sharedUnlockCost)))
                         )
                     }
                 }
@@ -645,7 +643,7 @@ object PlayerInvService {
             }
             if (!success) {
                 player.submitOnRegion {
-                    player.sendMessage(PlayerInvSettings.saveFailedMessage.colored())
+                    player.sendMessage(TextUtils.parse(PlayerInvSettings.saveFailedMessage))
                 }
             }
         }
@@ -701,9 +699,9 @@ object PlayerInvService {
                         if (!player.isOnline) {
                             return@submitOnRegion
                         }
-                        player.sendMessage((PlayerInvSettings.sharedMembersChatHeader.resolvePlaceholders("{name}" to sharedName)).colored())
+                        player.sendMessage(TextUtils.parse(PlayerInvSettings.sharedMembersChatHeader.resolvePlaceholders("{name}" to sharedName)))
                         members.forEach {
-                            player.sendMessage(PlayerInvSettings.sharedMembersChatItem.resolvePlaceholders("{player}" to it.playerName).colored())
+                            player.sendMessage(TextUtils.parse(PlayerInvSettings.sharedMembersChatItem.resolvePlaceholders("{player}" to it.playerName)))
                         }
                     }
                 }
@@ -711,12 +709,12 @@ object PlayerInvService {
             "add" -> {
                 pendingMemberInputs[player.uniqueId] = PendingMemberInput(session.sharedName ?: return true, PendingMode.ADD)
                 player.closeInventory()
-                player.sendMessage(PlayerInvSettings.chatInputAddPrompt.colored())
+                player.sendMessage(TextUtils.parse(PlayerInvSettings.chatInputAddPrompt))
             }
             "remove" -> {
                 pendingMemberInputs[player.uniqueId] = PendingMemberInput(session.sharedName ?: return true, PendingMode.REMOVE)
                 player.closeInventory()
-                player.sendMessage(PlayerInvSettings.chatInputRemovePrompt.colored())
+                player.sendMessage(TextUtils.parse(PlayerInvSettings.chatInputRemovePrompt))
             }
             "back" -> {
                 val sharedName = session.sharedName ?: return true
@@ -726,18 +724,16 @@ object PlayerInvService {
                         when (result) {
                             SharedOpenResult.OK -> Unit
                             SharedOpenResult.NOT_FOUND -> player.sendMessage(
-                                PlayerInvSettings.sharedNotFoundMessage
-                                    .resolvePlaceholders("{name}" to sharedName)
-                                    .colored()
+                                TextUtils.parse(PlayerInvSettings.sharedNotFoundMessage
+                                    .resolvePlaceholders("{name}" to sharedName))
                             )
 
                             SharedOpenResult.NO_ACCESS -> player.sendMessage(
-                                PlayerInvSettings.sharedNoAccessMessage
-                                    .resolvePlaceholders("{name}" to sharedName)
-                                    .colored()
+                                TextUtils.parse(PlayerInvSettings.sharedNoAccessMessage
+                                    .resolvePlaceholders("{name}" to sharedName))
                             )
 
-                            SharedOpenResult.FAILED -> player.sendMessage("&c打开共享仓库失败".colored())
+                            SharedOpenResult.FAILED -> player.sendMessage(TextUtils.parse("&c打开共享仓库失败"))
                         }
                     }
                 }
@@ -755,16 +751,16 @@ object PlayerInvService {
                             is SharedSetVisibilityResult.OK -> {
                                 val msg = if (result.isPublic) PlayerInvSettings.sharedSetPublicMessage
                                           else PlayerInvSettings.sharedSetPrivateMessage
-                                player.sendMessage(msg.resolvePlaceholders("{name}" to sharedName).colored())
+                                player.sendMessage(TextUtils.parse(msg.resolvePlaceholders("{name}" to sharedName)))
                                 player.submitOnRegion(delay = 1L) {
                                     openSharedManage(player, owner, sharedId, sharedName)
                                 }
                             }
 
                             SharedSetVisibilityResult.NO_ACCESS ->
-                                player.sendMessage(PlayerInvSettings.sharedManageNoPermission.colored())
+                                player.sendMessage(TextUtils.parse(PlayerInvSettings.sharedManageNoPermission))
 
-                            else -> player.sendMessage("&c操作失败".colored())
+                            else -> player.sendMessage(TextUtils.parse("&c操作失败"))
                         }
                     }
                 }
@@ -779,7 +775,7 @@ object PlayerInvService {
 
     private fun openSharedManage(player: Player, owner: UUID, sharedId: UUID?, sharedName: String) {
         if (owner != player.uniqueId && !player.hasPermission("phcore.admin")) {
-            player.sendMessage(PlayerInvSettings.sharedManageNoPermission.colored())
+            player.sendMessage(TextUtils.parse(PlayerInvSettings.sharedManageNoPermission))
             return
         }
         submit(async = true) {
@@ -963,9 +959,8 @@ object PlayerInvService {
                 applySharedLockOverlay(session)
 
                 player.sendMessage(
-                    PlayerInvSettings.sharedUnlockSuccessMessage
-                        .resolvePlaceholders("{cost}" to "%.2f".format(PlayerInvSettings.sharedUnlockCost))
-                        .colored()
+                    TextUtils.parse(PlayerInvSettings.sharedUnlockSuccessMessage
+                        .resolvePlaceholders("{cost}" to "%.2f".format(PlayerInvSettings.sharedUnlockCost)))
                 )
             }
         }
