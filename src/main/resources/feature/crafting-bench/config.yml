@@ -43,3 +43,15 @@ queue:
       permission: "phcore.admin"
       max_queue_size: 10
       priority: 100
+
+gui:
+  border_item: "GRAY_STAINED_GLASS_PANE"
+  border_accent: "BLACK_STAINED_GLASS_PANE"
+  category_slots: [7, 17, 26, 35, 44]
+  recipe_start_slot: 10
+  page_size: 28
+  prev_page_slot: 52
+  next_page_slot: 53
+  info_slot: 50
+  queue_start_slot: 46
+  queue_max: 4

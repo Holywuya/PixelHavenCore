@@ -67,33 +67,37 @@ object CraftingBenchListener {
     }
 
     private fun handleListClick(slot: Int, player: org.bukkit.entity.Player, holder: CraftingBenchMenuHolder, tier: BenchTier) {
-        val previews = CraftingBenchService.getAvailableRecipes(player, tier)
-        if (slot in 0 until 45) {
-            val recipeIndex = holder.page * 45 + slot
-            val preview = previews.getOrNull(recipeIndex) ?: return
-            CraftingBenchMenu.openRecipeDetail(player, tier, holder.page, preview.recipe.id, 1)
+        val allPreviews = CraftingBenchService.getAvailableRecipes(player, tier)
+        val filtered = if (holder.category != null) allPreviews.filter { it.recipe.category == holder.category } else allPreviews
+        val pageSize = CraftingBenchSettings.guiPageSize
+        val recipeStartSlot = CraftingBenchSettings.guiRecipeStartSlot
+        val recipeEndSlot = recipeStartSlot + pageSize
+        if (slot in recipeStartSlot until recipeEndSlot) {
+            val recipeIndex = holder.page * pageSize + (slot - recipeStartSlot)
+            val preview = filtered.getOrNull(recipeIndex) ?: return
+            CraftingBenchMenu.openRecipeDetail(player, tier, holder.category, holder.page, preview.recipe.id, 1)
             return
         }
-        if (slot == 52 && holder.page > 0) {
-            CraftingBenchMenu.open(player, tier, holder.page - 1)
+        if (slot == CraftingBenchSettings.guiPrevPageSlot && holder.page > 0) {
+            CraftingBenchMenu.open(player, tier, holder.category, holder.page - 1)
             return
         }
-        if (slot == 53) {
-            CraftingBenchMenu.open(player, tier, holder.page + 1)
+        if (slot == CraftingBenchSettings.guiNextPageSlot) {
+            CraftingBenchMenu.open(player, tier, holder.category, holder.page + 1)
         }
     }
 
     private fun handleDetailClick(slot: Int, player: org.bukkit.entity.Player, holder: CraftingBenchMenuHolder, tier: BenchTier) {
         val recipeId = holder.recipeId ?: return
         when (slot) {
-            47 -> CraftingBenchMenu.openRecipeDetail(player, tier, holder.page, recipeId, (holder.craftCount - 1).coerceAtLeast(1))
-            49 -> {
+            CraftingBenchMenu.SLOT_DETAIL_MINUS -> CraftingBenchMenu.openRecipeDetail(player, tier, holder.category, holder.page, recipeId, (holder.craftCount - 1).coerceAtLeast(1))
+            CraftingBenchMenu.SLOT_DETAIL_CRAFT -> {
                 val result = CraftingBenchService.submitCraft(player, tier, recipeId, holder.craftCount)
                 player.sendMessage(((if (result.success) "&a" else "&c") + result.message).replace('&', '§'))
-                CraftingBenchMenu.openRecipeDetail(player, tier, holder.page, recipeId, holder.craftCount)
+                CraftingBenchMenu.openRecipeDetail(player, tier, holder.category, holder.page, recipeId, holder.craftCount)
             }
-            50 -> CraftingBenchMenu.openRecipeDetail(player, tier, holder.page, recipeId, holder.craftCount + 1)
-            53 -> CraftingBenchMenu.open(player, tier, holder.page)
+            CraftingBenchMenu.SLOT_DETAIL_PLUS -> CraftingBenchMenu.openRecipeDetail(player, tier, holder.category, holder.page, recipeId, holder.craftCount + 1)
+            CraftingBenchMenu.SLOT_DETAIL_BACK -> CraftingBenchMenu.open(player, tier, holder.category, holder.page)
         }
     }
 

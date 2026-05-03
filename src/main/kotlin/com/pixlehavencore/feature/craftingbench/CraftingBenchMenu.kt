@@ -1,6 +1,7 @@
 package com.pixlehavencore.feature.craftingbench
 
 import com.pixlehavencore.util.ItemUtils
+import com.pixlehavencore.util.TextUtils
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.Material
@@ -8,27 +9,27 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
-import taboolib.module.chat.colored
 import taboolib.platform.util.submit as submitOnEntity
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 object CraftingBenchMenu {
 
-    private const val PAGE_SIZE = 45
-    private const val SLOT_DETAIL_RESULT = 13
-    private const val SLOT_DETAIL_MATERIAL_START = 19
-    private const val SLOT_DETAIL_MINUS = 47
-    private const val SLOT_DETAIL_AMOUNT = 48
-    private const val SLOT_DETAIL_CRAFT = 49
-    private const val SLOT_DETAIL_PLUS = 50
-    private const val SLOT_DETAIL_BACK = 53
+    private const val SLOT_DETAIL_RESULT = 22
+    private const val SLOT_DETAIL_MATERIAL_START = 10
+    internal const val SLOT_DETAIL_MINUS = 31
+    internal const val SLOT_DETAIL_AMOUNT = 32
+    internal const val SLOT_DETAIL_CRAFT = 34
+    internal const val SLOT_DETAIL_PLUS = 33
+    internal const val SLOT_DETAIL_BACK = 53
 
     private val openViews = ConcurrentHashMap<UUID, CraftingBenchMenuHolder>()
 
-    fun open(player: Player, tier: BenchTier, page: Int = 0) {
-        val previews = CraftingBenchService.getAvailableRecipes(player, tier)
-        val maxPage = if (previews.isEmpty()) 0 else (previews.size - 1) / PAGE_SIZE
+    fun open(player: Player, tier: BenchTier, category: String? = null, page: Int = 0) {
+        val allPreviews = CraftingBenchService.getAvailableRecipes(player, tier)
+        val filtered = if (category != null) allPreviews.filter { it.recipe.category == category } else allPreviews
+        val pageSize = CraftingBenchSettings.guiPageSize
+        val maxPage = if (filtered.isEmpty()) 0 else (filtered.size - 1) / pageSize
         val currentPage = page.coerceIn(0, maxPage)
         val holder = CraftingBenchMenuHolder(
             tierId = tier.id,
@@ -36,23 +37,25 @@ object CraftingBenchMenu {
             mode = CraftingBenchMenuMode.LIST,
             recipeId = null,
             craftCount = 1,
+            category = category,
         )
-        val inventory = Bukkit.createInventory(holder, 54, Component.text("&8${tier.displayName} 制作台".colored()))
+        val inventory = Bukkit.createInventory(holder, 54, TextUtils.parse("&8${tier.displayName} 制作台"))
         holder.backingInventory = inventory
         renderInventory(inventory, player, holder, tier)
         player.openInventory(inventory)
         openViews[player.uniqueId] = holder
     }
 
-    fun openRecipeDetail(player: Player, tier: BenchTier, page: Int, recipeId: String, craftCount: Int = 1) {
+    fun openRecipeDetail(player: Player, tier: BenchTier, category: String?, page: Int, recipeId: String, craftCount: Int = 1) {
         val holder = CraftingBenchMenuHolder(
             tierId = tier.id,
             page = page,
             mode = CraftingBenchMenuMode.DETAIL,
             recipeId = recipeId,
             craftCount = craftCount.coerceAtLeast(1),
+            category = category,
         )
-        val inventory = Bukkit.createInventory(holder, 54, Component.text("&8${tier.displayName} 配方详情".colored()))
+        val inventory = Bukkit.createInventory(holder, 54, TextUtils.parse("&8${tier.displayName} 配方详情"))
         holder.backingInventory = inventory
         renderInventory(inventory, player, holder, tier)
         player.openInventory(inventory)
@@ -85,6 +88,39 @@ object CraftingBenchMenu {
         openViews.remove(playerId)
     }
 
+    private fun drawBorder(inventory: Inventory, accentRows: Set<Int>, sideRows: IntRange) {
+        val accentItem = ItemStack(CraftingBenchSettings.guiBorderAccent)
+        val sideItem = ItemStack(CraftingBenchSettings.guiBorderItem)
+        for (slot in 0 until inventory.size) {
+            val row = slot / 9
+            val col = slot % 9
+            when {
+                row in accentRows -> inventory.setItem(slot, accentItem)
+                row in sideRows && (col == 0 || col == 8) -> inventory.setItem(slot, sideItem)
+            }
+        }
+    }
+
+    private fun renderCategoryGrid(inventory: Inventory, selectedCategory: String?, categories: List<String>) {
+        val slots = CraftingBenchSettings.guiCategorySlots
+        if (slots.isEmpty()) return
+        val allSelected = selectedCategory == null
+        inventory.setItem(slots[0], ItemUtils.namedItem(
+            if (allSelected) Material.LIME_STAINED_GLASS_PANE else Material.WHITE_STAINED_GLASS_PANE,
+            if (allSelected) "&a全部" else "&7全部"
+        ))
+        categories.forEachIndexed { index, cat ->
+            val slotIndex = index + 1
+            if (slotIndex < slots.size) {
+                val selected = selectedCategory == cat
+                inventory.setItem(slots[slotIndex], ItemUtils.namedItem(
+                    if (selected) Material.LIME_STAINED_GLASS_PANE else Material.WHITE_STAINED_GLASS_PANE,
+                    if (selected) "&a$cat" else "&7$cat"
+                ))
+            }
+        }
+    }
+
     private fun renderInventory(inventory: Inventory, player: Player, holder: CraftingBenchMenuHolder, tier: BenchTier) {
         inventory.clear()
         when (holder.mode) {
@@ -94,32 +130,43 @@ object CraftingBenchMenu {
     }
 
     private fun renderListInventory(inventory: Inventory, player: Player, holder: CraftingBenchMenuHolder, tier: BenchTier) {
-        val previews = CraftingBenchService.getAvailableRecipes(player, tier)
-        val maxPage = if (previews.isEmpty()) 0 else (previews.size - 1) / PAGE_SIZE
+        val allPreviews = CraftingBenchService.getAvailableRecipes(player, tier)
+        val categories = allPreviews.map { it.recipe.category }.distinct().sorted()
+        val filtered = if (holder.category != null) allPreviews.filter { it.recipe.category == holder.category } else allPreviews
+        val pageSize = CraftingBenchSettings.guiPageSize
+        val maxPage = if (filtered.isEmpty()) 0 else (filtered.size - 1) / pageSize
         val currentPage = holder.page.coerceIn(0, maxPage)
-        val start = currentPage * PAGE_SIZE
-        val end = (start + PAGE_SIZE).coerceAtMost(previews.size)
-        previews.subList(start, end).forEachIndexed { index, preview ->
-            inventory.setItem(index, createRecipeItem(preview))
+
+        drawBorder(inventory, setOf(0, 5), 1..4)
+        renderCategoryGrid(inventory, holder.category, categories)
+
+        val start = currentPage * pageSize
+        val end = (start + pageSize).coerceAtMost(filtered.size)
+        val recipeStartSlot = CraftingBenchSettings.guiRecipeStartSlot
+        filtered.subList(start, end).forEachIndexed { index, preview ->
+            inventory.setItem(recipeStartSlot + index, createRecipeItem(preview))
         }
 
         val queue = CraftingBenchService.getPlayerTasks(player.uniqueId)
-        queue.take(4).forEachIndexed { index, task ->
-            inventory.setItem(45 + index, createQueueItem(task))
+        val queueStart = CraftingBenchSettings.guiQueueStartSlot
+        val queueMax = CraftingBenchSettings.guiQueueMax
+        queue.take(queueMax).forEachIndexed { index, task ->
+            inventory.setItem(queueStart + index, createQueueItem(task))
         }
-        inventory.setItem(49, createInfoItem(player, tier, queue.size))
+        inventory.setItem(CraftingBenchSettings.guiInfoSlot, createInfoItem(player, tier, queue.size))
+
         if (currentPage > 0) {
-            inventory.setItem(52, createNavItem(Material.ARROW, "&e上一页", currentPage - 1))
+            inventory.setItem(CraftingBenchSettings.guiPrevPageSlot, ItemUtils.namedItem(Material.ARROW, "&e上一页"))
         }
         if (currentPage < maxPage) {
-            inventory.setItem(53, createNavItem(Material.ARROW, "&e下一页", currentPage + 1))
+            inventory.setItem(CraftingBenchSettings.guiNextPageSlot, ItemUtils.namedItem(Material.ARROW, "&e下一页"))
         }
     }
 
     private fun renderDetailInventory(inventory: Inventory, player: Player, holder: CraftingBenchMenuHolder, tier: BenchTier) {
         val recipe = holder.recipeId?.let { CraftingBenchService.getRecipe(it) }
         if (recipe == null) {
-            inventory.setItem(SLOT_DETAIL_BACK, createStaticItem(Material.BARRIER, "&c配方不存在", listOf("&7点击返回工作台主页")))
+            inventory.setItem(SLOT_DETAIL_BACK, ItemUtils.staticItem(Material.BARRIER, "&c配方不存在", listOf("&7点击返回工作台主页")))
             return
         }
         val craftCount = holder.craftCount.coerceAtLeast(1)
@@ -127,17 +174,19 @@ object CraftingBenchMenu {
         val enoughMaterials = statuses.all { it.enough }
         val estimatedSeconds = CraftingBenchService.estimateCraftSeconds(player, tier, recipe, craftCount)
 
+        drawBorder(inventory, setOf(0, 3, 5), 1..2)
+
         inventory.setItem(SLOT_DETAIL_RESULT, createRecipeResultItem(recipe, craftCount, estimatedSeconds))
         statuses.forEachIndexed { index, status ->
             if (index >= 7) return@forEachIndexed
             inventory.setItem(SLOT_DETAIL_MATERIAL_START + index, createMaterialItem(status))
         }
-        inventory.setItem(45, createInfoItem(player, tier, CraftingBenchService.getPlayerTasks(player.uniqueId).size))
-        inventory.setItem(SLOT_DETAIL_MINUS, createStaticItem(Material.RED_STAINED_GLASS_PANE, "&c减少数量", listOf("&7每次减少 1")))
-        inventory.setItem(SLOT_DETAIL_AMOUNT, createStaticItem(Material.PAPER, "&e制作数量: &f$craftCount", listOf("&7本次总产出: &f${recipe.results.sumOf { it.amount } * craftCount}")))
+        inventory.setItem(CraftingBenchSettings.guiInfoSlot, createInfoItem(player, tier, CraftingBenchService.getPlayerTasks(player.uniqueId).size))
+        inventory.setItem(SLOT_DETAIL_MINUS, ItemUtils.staticItem(Material.RED_STAINED_GLASS_PANE, "&c减少数量", listOf("&7每次减少 1")))
+        inventory.setItem(SLOT_DETAIL_AMOUNT, ItemUtils.staticItem(Material.PAPER, "&e制作数量: &f$craftCount", listOf("&7本次总产出: &f${recipe.results.sumOf { it.amount } * craftCount}")))
         inventory.setItem(SLOT_DETAIL_CRAFT, createCraftButton(enoughMaterials, craftCount, statuses.filter { it.warehouseWillUse > 0 }))
-        inventory.setItem(SLOT_DETAIL_PLUS, createStaticItem(Material.LIME_STAINED_GLASS_PANE, "&a增加数量", listOf("&7每次增加 1")))
-        inventory.setItem(SLOT_DETAIL_BACK, createStaticItem(Material.ARROW, "&e返回", listOf("&7返回工作台配方列表")))
+        inventory.setItem(SLOT_DETAIL_PLUS, ItemUtils.staticItem(Material.LIME_STAINED_GLASS_PANE, "&a增加数量", listOf("&7每次增加 1")))
+        inventory.setItem(SLOT_DETAIL_BACK, ItemUtils.staticItem(Material.ARROW, "&e返回", listOf("&7返回工作台配方列表")))
     }
 
     private fun createRecipeItem(preview: RecipePreview): ItemStack {
@@ -145,12 +194,14 @@ object CraftingBenchMenu {
         val base = firstResult?.let { ItemUtils.resolveSpec(it.item)?.clone() } ?: ItemStack(Material.CRAFTING_TABLE)
         base.amount = firstResult?.amount?.coerceAtLeast(1) ?: 1
         val meta = base.itemMeta ?: return base
-        meta.displayName(Component.text("&a${preview.recipe.displayName}".colored()))
+        meta.displayName(TextUtils.parse("&a${preview.recipe.displayName}"))
         meta.lore(listOf(
-            Component.text("&7分类: &f${preview.recipe.category}".colored()),
-            Component.text("&7耗时: &f${"%.1f".format(preview.estimatedSeconds)} 秒".colored()),
-            Component.text("&7材料状态: ${(if (preview.enoughMaterials) "&a充足" else "&c不足")}".colored()),
-            Component.text("&7点击查看配方详情".colored()),
+            TextUtils.parse("&8&m─────────────────────"),
+            TextUtils.parse("&7分类: &f${preview.recipe.category}"),
+            TextUtils.parse("&7耗时: &f${"%.1f".format(preview.estimatedSeconds)} 秒"),
+            TextUtils.parse("&7材料状态: ${(if (preview.enoughMaterials) "&a充足" else "&c不足")}"),
+            Component.text(""),
+            TextUtils.parse("&7点击查看详情"),
         ))
         base.itemMeta = meta
         return base
@@ -161,12 +212,13 @@ object CraftingBenchMenu {
         val base = firstResult?.let { ItemUtils.resolveSpec(it.item)?.clone() } ?: ItemStack(Material.CRAFTING_TABLE)
         base.amount = firstResult?.let { (it.amount * craftCount).coerceAtLeast(1) } ?: 1
         val meta = base.itemMeta ?: return base
-        meta.displayName(Component.text("&6${recipe.displayName}".colored()))
+        meta.displayName(TextUtils.parse("&6${recipe.displayName}"))
         meta.lore(listOf(
-            Component.text("&7分类: &f${recipe.category}".colored()),
-            Component.text("&7工作台等级: &f${recipe.requiredBenchTier}".colored()),
-            Component.text("&7制作数量: &f$craftCount".colored()),
-            Component.text("&7耗时: &f${"%.1f".format(estimatedSeconds)} 秒".colored()),
+            TextUtils.parse("&8&m─────────────────────"),
+            TextUtils.parse("&7分类: &f${recipe.category}"),
+            TextUtils.parse("&7工作台等级: &f${recipe.requiredBenchTier}"),
+            TextUtils.parse("&7制作数量: &f$craftCount"),
+            TextUtils.parse("&7耗时: &f${"%.1f".format(estimatedSeconds)} 秒"),
         ))
         base.itemMeta = meta
         return base
@@ -176,13 +228,13 @@ object CraftingBenchMenu {
         val base = ItemUtils.resolveSpec(status.material.item)?.clone() ?: ItemStack(Material.PAPER)
         base.amount = status.requiredAmount.coerceAtLeast(1)
         val meta = base.itemMeta ?: return base
-        meta.displayName(Component.text(((if (status.enough) "&a" else "&c") + status.material.item).colored()))
+        meta.displayName(TextUtils.parse("${if (status.enough) "&a" else "&c"}${status.material.item}"))
         meta.lore(listOf(
-            Component.text("&7需求: &f${status.requiredAmount}".colored()),
-            Component.text("&7背包: &f${status.inventoryAmount}".colored()),
-            Component.text("&7个人仓库: &f${status.warehouseAmount}".colored()),
-            Component.text("&7本次从仓库提取: &f${status.warehouseWillUse}".colored()),
-            Component.text("&7总计: ${(if (status.enough) "&a" else "&c") + status.totalAmount}".colored()),
+            TextUtils.parse("&7需求: &f${status.requiredAmount}"),
+            TextUtils.parse("&7背包: &f${status.inventoryAmount}"),
+            TextUtils.parse("&7个人仓库: &f${status.warehouseAmount}"),
+            TextUtils.parse("&7本次从仓库提取: &f${status.warehouseWillUse}"),
+            TextUtils.parse("&7总计: ${if (status.enough) "&a" else "&c"}${status.totalAmount}"),
         ))
         base.itemMeta = meta
         return base
@@ -194,7 +246,7 @@ object CraftingBenchMenu {
         } else {
             warehouseMaterials.map { status -> "&7仓库提取 &f${status.material.item} x${status.warehouseWillUse}" }
         }
-        return createStaticItem(
+        return ItemUtils.staticItem(
             material = if (canCraft) Material.LIME_STAINED_GLASS_PANE else Material.RED_STAINED_GLASS_PANE,
             title = if (canCraft) "&a开始制作" else "&c材料不足",
             lore = buildList {
@@ -207,11 +259,11 @@ object CraftingBenchMenu {
     private fun createQueueItem(task: CraftingTask): ItemStack {
         return ItemStack(Material.CLOCK).apply {
             itemMeta = itemMeta?.apply {
-                displayName(Component.text("&e队列任务 #${task.taskId}".colored()))
+                displayName(TextUtils.parse("&e队列任务 #${task.taskId}"))
                 lore(listOf(
-                    Component.text("&7配方: &f${task.recipeId}".colored()),
-                    Component.text("&7制作数量: &f${task.craftCount}".colored()),
-                    Component.text("&7剩余: &f${task.remainingTicks / 20.0} 秒".colored())
+                    TextUtils.parse("&7配方: &f${task.recipeId}"),
+                    TextUtils.parse("&7制作数量: &f${task.craftCount}"),
+                    TextUtils.parse("&7剩余: &f${task.remainingTicks / 20.0} 秒"),
                 ))
             }
         }
@@ -221,32 +273,15 @@ object CraftingBenchMenu {
         val queueLimit = CraftingBenchSettings.resolveQueueLimit(player::hasPermission)
         return ItemStack(Material.BOOK).apply {
             itemMeta = itemMeta?.apply {
-                displayName(Component.text("&6${tier.displayName}".colored()))
+                displayName(TextUtils.parse("&6${tier.displayName}"))
                 lore(listOf(
-                    Component.text("&7队列上限: &f${queueLimit}".colored()),
-                    Component.text("&7当前队列: &f$queueSize".colored())
+                    TextUtils.parse("&7队列上限: &f${queueLimit}"),
+                    TextUtils.parse("&7当前队列: &f$queueSize"),
                 ))
             }
         }
     }
 
-    private fun createNavItem(material: Material, title: String, page: Int): ItemStack {
-        return ItemStack(material).apply {
-            itemMeta = itemMeta?.apply {
-                displayName(Component.text(title.colored()))
-                lore(listOf(Component.text("&7目标页: &f$page".colored())))
-            }
-        }
-    }
-
-    private fun createStaticItem(material: Material, title: String, lore: List<String>): ItemStack {
-        return ItemStack(material).apply {
-            itemMeta = itemMeta?.apply {
-                displayName(Component.text(title.colored()))
-                this.lore(lore.map { Component.text(it.colored()) })
-            }
-        }
-    }
 }
 
 enum class CraftingBenchMenuMode {
@@ -260,6 +295,7 @@ class CraftingBenchMenuHolder(
     val mode: CraftingBenchMenuMode,
     val recipeId: String?,
     val craftCount: Int,
+    val category: String? = null,
 ) : InventoryHolder {
     lateinit var backingInventory: Inventory
 

@@ -1,6 +1,8 @@
 package com.pixlehavencore.feature.optimization.entityclearer
 
+import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import com.pixlehavencore.util.TextUtils
+import com.pixlehavencore.util.cancelTaskSafely
 import org.bukkit.Bukkit
 import org.bukkit.Chunk
 import org.bukkit.entity.Entity
@@ -44,8 +46,8 @@ object EntityClearerService {
     }
 
     fun stopTasks() {
-        invokeCancel(schedulerTask)
-        invokeCancel(clearWorkerTask)
+        schedulerTask.cancelTaskSafely()
+        clearWorkerTask.cancelTaskSafely()
         schedulerTask = null
         clearWorkerTask = null
         clearQueue.clear()
@@ -71,7 +73,8 @@ object EntityClearerService {
                 return@submit
             }
             if (remainingSeconds in EntityClearerSettings.countdownSeconds && countdownNotified.add(remainingSeconds)) {
-                val message = EntityClearerSettings.countdownMessage.replace("{seconds}", remainingSeconds.toString())
+                val message = EntityClearerSettings.countdownMessage
+                    .resolvePlaceholders("{seconds}" to remainingSeconds.toString())
                 broadcastActionBar(message)
             }
         }
@@ -93,7 +96,7 @@ object EntityClearerService {
         }
         clearWorkerTask = submit(period = 1L) {
             if (!isEnabled()) {
-                invokeCancel(clearWorkerTask)
+                clearWorkerTask.cancelTaskSafely()
                 clearWorkerTask = null
                 return@submit
             }
@@ -127,9 +130,10 @@ object EntityClearerService {
         if (!cycleFinished.compareAndSet(false, true)) {
             return
         }
-        invokeCancel(clearWorkerTask)
+        clearWorkerTask.cancelTaskSafely()
         clearWorkerTask = null
-        val message = EntityClearerSettings.cycleSummaryMessage.replace("{count}", cycleRemoved.get().toString())
+        val message = EntityClearerSettings.cycleSummaryMessage
+            .resolvePlaceholders("{count}" to cycleRemoved.get().toString())
         broadcastActionBar(message)
         cycleRemoved.set(0)
         scheduleNextCycle()
@@ -165,7 +169,7 @@ object EntityClearerService {
     }
 
     private fun broadcastActionBar(message: String) {
-        val component = TextUtils.component(message)
+        val component = TextUtils.parse(message)
         Bukkit.getOnlinePlayers().forEach { player ->
             player.submitOnEntity {
                 player.sendActionBar(component)
@@ -173,8 +177,4 @@ object EntityClearerService {
         }
     }
 
-    private fun invokeCancel(task: Any?) {
-        if (task == null) return
-        runCatching { task.javaClass.methods.firstOrNull { it.name == "cancel" && it.parameterTypes.isEmpty() }?.invoke(task) }
-    }
 }

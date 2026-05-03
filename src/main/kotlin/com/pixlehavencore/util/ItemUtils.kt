@@ -95,6 +95,23 @@ object ItemUtils {
             ?: fallback
     }
 
+    fun staticItem(material: Material, title: String, lore: List<String> = emptyList()): ItemStack {
+        return ItemStack(material).apply {
+            itemMeta = itemMeta?.apply {
+                displayName(TextUtils.parse(title))
+                this.lore(TextUtils.parseLore(lore))
+            }
+        }
+    }
+
+    fun namedItem(material: Material, title: String): ItemStack {
+        return ItemStack(material).apply {
+            itemMeta = itemMeta?.apply {
+                displayName(TextUtils.parse(title))
+            }
+        }
+    }
+
     fun clamp(item: ItemStack, amount: Int): ItemStack {
         item.amount = clampAmount(item, amount)
         return item

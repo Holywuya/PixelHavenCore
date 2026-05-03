@@ -29,6 +29,28 @@ object CraftingBenchSettings {
     var queueSettings: QueueSettings = QueueSettings(false, true, "drop", 0.7, 3, emptyList())
         private set
 
+    // GUI
+    var guiBorderItem: org.bukkit.Material = org.bukkit.Material.GRAY_STAINED_GLASS_PANE
+        private set
+    var guiBorderAccent: org.bukkit.Material = org.bukkit.Material.BLACK_STAINED_GLASS_PANE
+        private set
+    var guiCategorySlots: List<Int> = listOf(7, 17, 26, 35, 44)
+        private set
+    var guiRecipeStartSlot: Int = 10
+        private set
+    var guiPageSize: Int = 28
+        private set
+    var guiPrevPageSlot: Int = 52
+        private set
+    var guiNextPageSlot: Int = 53
+        private set
+    var guiInfoSlot: Int = 50
+        private set
+    var guiQueueStartSlot: Int = 46
+        private set
+    var guiQueueMax: Int = 4
+        private set
+
     fun init() = reload()
 
     fun reload() {
@@ -47,6 +69,16 @@ object CraftingBenchSettings {
             defaultMaxQueueSize = config.getInt("queue.default_max_queue_size", 3).coerceAtLeast(1),
             permissionLimits = loadQueuePermissionLimits(),
         )
+        guiBorderItem = resolveMaterial(config.getString("gui.border_item"), guiBorderItem)
+        guiBorderAccent = resolveMaterial(config.getString("gui.border_accent"), guiBorderAccent)
+        guiCategorySlots = config.getIntegerList("gui.category_slots").ifEmpty { guiCategorySlots }
+        guiRecipeStartSlot = config.getInt("gui.recipe_start_slot", 10)
+        guiPageSize = config.getInt("gui.page_size", 28).coerceIn(1, 28)
+        guiPrevPageSlot = config.getInt("gui.prev_page_slot", 52)
+        guiNextPageSlot = config.getInt("gui.next_page_slot", 53)
+        guiInfoSlot = config.getInt("gui.info_slot", 50)
+        guiQueueStartSlot = config.getInt("gui.queue_start_slot", 46)
+        guiQueueMax = config.getInt("gui.queue_max", 4).coerceIn(1, 4)
     }
 
     fun getTier(tierId: String): BenchTier? {
@@ -118,6 +150,10 @@ object CraftingBenchSettings {
                 appliesTo = section.getStringList("$key.applies_to").map { it.trim() }.filter { it.isNotBlank() }.toSet(),
             )
         }.filter { it.permission.isNotBlank() && it.appliesTo.isNotEmpty() }
+    }
+
+    private fun resolveMaterial(name: String?, fallback: org.bukkit.Material): org.bukkit.Material {
+        return com.pixlehavencore.util.ItemUtils.matchMaterial(name, fallback) ?: fallback
     }
 
     private fun loadQueuePermissionLimits(): List<QueuePermissionLimit> {

@@ -1,7 +1,9 @@
 package com.pixlehavencore.feature.trade
 
+import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import com.pixlehavencore.util.EconomyUtils
 import com.pixlehavencore.util.InventoryUtils
+import com.pixlehavencore.util.ItemUtils
 import com.pixlehavencore.util.TextUtils
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickEvent
@@ -55,7 +57,7 @@ object TradeService {
             return false
         }
         if (isTrading(sender) || isTrading(target)) {
-            sender.sendMessage(TradeSettings.requestAlreadyTradingMessage.replace("{player}", target.name).colored())
+            sender.sendMessage(TradeSettings.requestAlreadyTradingMessage.resolvePlaceholders("{player}" to target.name).colored())
             return false
         }
         val reverse = requests[sender.uniqueId]
@@ -68,12 +70,12 @@ object TradeService {
         cleanupExpiredRequests(sender, target)
         val existing = requests[target.uniqueId]
         if (existing != null && existing.sender == sender.uniqueId && !existing.isExpired()) {
-            sender.sendMessage(TradeSettings.requestAlreadySentMessage.replace("{player}", target.name).colored())
+            sender.sendMessage(TradeSettings.requestAlreadySentMessage.resolvePlaceholders("{player}" to target.name).colored())
             return false
         }
         requests[target.uniqueId] = TradeRequest(sender.uniqueId, System.currentTimeMillis())
         sendRequestMessage(target, sender)
-        sender.sendMessage(TradeSettings.requestSentMessage.replace("{player}", target.name).colored())
+        sender.sendMessage(TradeSettings.requestSentMessage.resolvePlaceholders("{player}" to target.name).colored())
         return true
     }
 
@@ -112,8 +114,8 @@ object TradeService {
             return false
         }
         requests.remove(target.uniqueId)
-        requester.sendMessage(TradeSettings.requestDeniedSenderMessage.replace("{player}", target.name).colored())
-        target.sendMessage(TradeSettings.requestDeniedReceiverMessage.replace("{player}", requester.name).colored())
+        requester.sendMessage(TradeSettings.requestDeniedSenderMessage.resolvePlaceholders("{player}" to target.name).colored())
+        target.sendMessage(TradeSettings.requestDeniedReceiverMessage.resolvePlaceholders("{player}" to requester.name).colored())
         return true
     }
 
@@ -134,29 +136,29 @@ object TradeService {
     }
 
     private fun sendRequestMessage(target: Player, sender: Player) {
-        target.sendMessage(TradeSettings.requestMessage.replace("{player}", sender.name).colored())
+        target.sendMessage(TradeSettings.requestMessage.resolvePlaceholders("{player}" to sender.name).colored())
         val accept = Component.text(TradeSettings.requestAcceptButtonMessage.colored())
             .clickEvent(ClickEvent.runCommand("/trade accept ${sender.name}"))
-            .hoverEvent(HoverEvent.showText(Component.text(TradeSettings.requestAcceptHoverMessage.replace("{player}", sender.name).colored())))
+            .hoverEvent(HoverEvent.showText(Component.text(TradeSettings.requestAcceptHoverMessage.resolvePlaceholders("{player}" to sender.name).colored())))
 
         val deny = Component.text(" " + TradeSettings.requestDenyButtonMessage.colored())
             .clickEvent(ClickEvent.runCommand("/trade deny ${sender.name}"))
-            .hoverEvent(HoverEvent.showText(Component.text(TradeSettings.requestDenyHoverMessage.replace("{player}", sender.name).colored())))
+            .hoverEvent(HoverEvent.showText(Component.text(TradeSettings.requestDenyHoverMessage.resolvePlaceholders("{player}" to sender.name).colored())))
 
         target.sendMessage(accept.append(deny))
     }
 
     fun openTrade(left: Player, right: Player) {
-        val leftInventory = Bukkit.createInventory(null, 54, TextUtils.component(TradeSettings.title))
-        val rightInventory = Bukkit.createInventory(null, 54, TextUtils.component(TradeSettings.title))
+        val leftInventory = Bukkit.createInventory(null, 54, TextUtils.parse(TradeSettings.title))
+        val rightInventory = Bukkit.createInventory(null, 54, TextUtils.parse(TradeSettings.title))
         val session = TradeSession(left.uniqueId, right.uniqueId, leftInventory, rightInventory)
         sessions[left.uniqueId] = session
         sessions[right.uniqueId] = session
         render(session)
         left.openInventory(leftInventory)
         right.openInventory(rightInventory)
-        left.sendMessage(TradeSettings.tradeStartedMessage.replace("{player}", right.name).colored())
-        right.sendMessage(TradeSettings.tradeStartedMessage.replace("{player}", left.name).colored())
+        left.sendMessage(TradeSettings.tradeStartedMessage.resolvePlaceholders("{player}" to right.name).colored())
+        right.sendMessage(TradeSettings.tradeStartedMessage.resolvePlaceholders("{player}" to left.name).colored())
     }
 
     fun isTradeInventory(player: Player, inventory: Inventory): Boolean {
@@ -276,7 +278,7 @@ object TradeService {
         player.closeInventory()
         player.sendMessage(
             TradeSettings.moneyInputPromptMessage
-                .replace("{current}", formatMoney(session.moneyOffers[player.uniqueId] ?: BigDecimal.ZERO))
+                .resolvePlaceholders("{current}" to formatMoney(session.moneyOffers[player.uniqueId] ?: BigDecimal.ZERO))
                 .colored()
         )
     }
@@ -478,7 +480,7 @@ object TradeService {
         otherMoney: BigDecimal
     ) {
         for (slot in 0 until inventory.size) {
-            inventory.setItem(slot, decorativeItem())
+            inventory.setItem(slot, ItemUtils.namedItem(Material.GRAY_STAINED_GLASS_PANE, "&7 "))
         }
         (leftOfferSlots + rightOfferSlots).forEach { inventory.setItem(it, null) }
         restoreOfferItems(inventory, leftOfferSlots, selfItems)
@@ -497,12 +499,6 @@ object TradeService {
         items.forEachIndexed { index, itemStack ->
             val slot = sortedSlots.getOrNull(index) ?: return@forEachIndexed
             inventory.setItem(slot, itemStack.clone())
-        }
-    }
-
-    private fun decorativeItem(): ItemStack {
-        return ItemStack(Material.GRAY_STAINED_GLASS_PANE).apply {
-            itemMeta = itemMeta?.apply { displayName(Component.text("&7 ".colored())) }
         }
     }
 

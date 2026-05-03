@@ -1,6 +1,7 @@
 package com.pixlehavencore.feature.playerinv
 
 import com.google.gson.reflect.TypeToken
+import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import com.pixlehavencore.util.DatabaseUtils
 import com.pixlehavencore.util.EconomyUtils
 import com.pixlehavencore.util.InventoryUtils
@@ -37,8 +38,8 @@ import java.util.concurrent.ConcurrentHashMap
 object PlayerInvService {
 
     private val itemStackMapListType = object : TypeToken<List<Map<String, String>?>>() {}.type
-    private val lockedSlotKey = NamespacedKey("phcore", "warehouse_locked_slot")
-    private val manageActionKey = NamespacedKey("phcore", "warehouse_manage_action")
+    private val lockedSlotKey = NamespacedKey("phcore", "playerinv_locked_slot")
+    private val manageActionKey = NamespacedKey("phcore", "playerinv_manage_action")
     private var dataSource: HikariDataSource? = null
     private var personalDataHandler: MultipleHandler? = null
     private val openSessions = ConcurrentHashMap<Int, Session>()
@@ -183,7 +184,7 @@ object PlayerInvService {
                 }
                 val opened = openSession(
                     viewer = player,
-                    title = PlayerInvSettings.title.replace("{player}", playerName),
+                    title = PlayerInvSettings.title.resolvePlaceholders("{player}" to playerName),
                     size = adjusted.record.size,
                     items = autoSorted,
                     type = SessionType.PERSONAL,
@@ -253,7 +254,7 @@ object PlayerInvService {
             return
         }
         val ownerId = target.uniqueId
-        val title = PlayerInvSettings.title.replace("{player}", target.name ?: ownerId.toString())
+        val title = PlayerInvSettings.title.resolvePlaceholders("{player}" to (target.name ?: ownerId.toString()))
             submit(async = true) {
                 val personal = loadPersonal(ownerId)
                 val autoSorted = InventoryUtils.compact(personal.items)
@@ -340,7 +341,7 @@ object PlayerInvService {
         return runCatching {
             withConnection { connection ->
                 val shared = findSharedByName(connection, name) ?: return@withConnection SharedOpenResult.NOT_FOUND
-                val isAdmin = viewer.hasPermission(PlayerInvSettings.adminPermission)
+                val isAdmin = viewer.hasPermission("phcore.admin")
                 // 公开仓库跳过成员检查，私有仓库才需要验role
                 val hasAccess = isAdmin || forceAdmin || shared.isPublic ||
                     getSharedRole(connection, shared.id, viewer.uniqueId) != null
@@ -352,7 +353,7 @@ object PlayerInvService {
                 val sorted = InventoryUtils.compact(baseItems)
                 openSession(
                     viewer = viewer,
-                    title = PlayerInvSettings.sharedTitle.replace("{name}", shared.name),
+                    title = PlayerInvSettings.sharedTitle.resolvePlaceholders("{name}" to shared.name),
                     size = shared.size,
                     items = sorted,
                     type = SessionType.SHARED,
@@ -380,7 +381,7 @@ object PlayerInvService {
             return
         }
         val viewerId = viewer.uniqueId
-        val isAdmin = viewer.hasPermission(PlayerInvSettings.adminPermission)
+        val isAdmin = viewer.hasPermission("phcore.admin")
 
         submit(async = true) {
             val prepared = runCatching {
@@ -420,7 +421,7 @@ object PlayerInvService {
                 if (prepared.result == SharedOpenResult.OK && payload != null) {
                     openSession(
                         viewer = viewer,
-                        title = PlayerInvSettings.sharedTitle.replace("{name}", payload.sharedName),
+                        title = PlayerInvSettings.sharedTitle.resolvePlaceholders("{name}" to payload.sharedName),
                         size = payload.size,
                         items = payload.items,
                         type = SessionType.SHARED,
@@ -550,7 +551,7 @@ object PlayerInvService {
         }
         val target = resolveOfflinePlayer(message.trim())
         if (target == null) {
-            player.sendMessage(PlayerInvSettings.chatInputPlayerNotFound.replace("{player}", message.trim()).colored())
+            player.sendMessage(PlayerInvSettings.chatInputPlayerNotFound.resolvePlaceholders("{player}" to message.trim()).colored())
             return true
         }
 
@@ -568,7 +569,7 @@ object PlayerInvService {
                 when (result) {
                     SharedMemberResult.OK -> player.sendMessage(PlayerInvSettings.chatInputDone.colored())
                     SharedMemberResult.NO_ACCESS -> player.sendMessage(PlayerInvSettings.sharedManageNoPermission.colored())
-                    SharedMemberResult.NOT_FOUND -> player.sendMessage(PlayerInvSettings.sharedNotFoundMessage.replace("{name}", sharedName).colored())
+                    SharedMemberResult.NOT_FOUND -> player.sendMessage(PlayerInvSettings.sharedNotFoundMessage.resolvePlaceholders("{name}" to sharedName).colored())
                     SharedMemberResult.CANNOT_REMOVE_OWNER -> player.sendMessage("&c不能移除共享仓库创建者".colored())
                     else -> player.sendMessage("&c操作失败".colored())
                 }
@@ -604,7 +605,7 @@ object PlayerInvService {
                     if (unlocked == UnlockResult.NO_MONEY) {
                         player.sendMessage(
                             PlayerInvSettings.sharedUnlockNeedMoneyMessage
-                                .replace("{cost}", "%.2f".format(PlayerInvSettings.sharedUnlockCost))
+                                .resolvePlaceholders("{cost}" to "%.2f".format(PlayerInvSettings.sharedUnlockCost))
                                 .colored()
                         )
                     }
@@ -667,7 +668,7 @@ object PlayerInvService {
         canSort: Boolean,
         sharedUnlockedSlots: Int
     ): Boolean {
-        val inventory = Bukkit.createInventory(null, size, TextUtils.component(title))
+        val inventory = Bukkit.createInventory(null, size, TextUtils.parse(title))
         inventory.contents = resizeNullableTo(size, items.toList())
         val session = Session(
             viewer = viewer.uniqueId,
@@ -700,9 +701,9 @@ object PlayerInvService {
                         if (!player.isOnline) {
                             return@submitOnRegion
                         }
-                        player.sendMessage((PlayerInvSettings.sharedMembersChatHeader.replace("{name}", sharedName)).colored())
+                        player.sendMessage((PlayerInvSettings.sharedMembersChatHeader.resolvePlaceholders("{name}" to sharedName)).colored())
                         members.forEach {
-                            player.sendMessage(PlayerInvSettings.sharedMembersChatItem.replace("{player}", it.playerName).colored())
+                            player.sendMessage(PlayerInvSettings.sharedMembersChatItem.resolvePlaceholders("{player}" to it.playerName).colored())
                         }
                     }
                 }
@@ -726,13 +727,13 @@ object PlayerInvService {
                             SharedOpenResult.OK -> Unit
                             SharedOpenResult.NOT_FOUND -> player.sendMessage(
                                 PlayerInvSettings.sharedNotFoundMessage
-                                    .replace("{name}", sharedName)
+                                    .resolvePlaceholders("{name}" to sharedName)
                                     .colored()
                             )
 
                             SharedOpenResult.NO_ACCESS -> player.sendMessage(
                                 PlayerInvSettings.sharedNoAccessMessage
-                                    .replace("{name}", sharedName)
+                                    .resolvePlaceholders("{name}" to sharedName)
                                     .colored()
                             )
 
@@ -754,7 +755,7 @@ object PlayerInvService {
                             is SharedSetVisibilityResult.OK -> {
                                 val msg = if (result.isPublic) PlayerInvSettings.sharedSetPublicMessage
                                           else PlayerInvSettings.sharedSetPrivateMessage
-                                player.sendMessage(msg.replace("{name}", sharedName).colored())
+                                player.sendMessage(msg.resolvePlaceholders("{name}" to sharedName).colored())
                                 player.submitOnRegion(delay = 1L) {
                                     openSharedManage(player, owner, sharedId, sharedName)
                                 }
@@ -777,7 +778,7 @@ object PlayerInvService {
     }
 
     private fun openSharedManage(player: Player, owner: UUID, sharedId: UUID?, sharedName: String) {
-        if (owner != player.uniqueId && !player.hasPermission(PlayerInvSettings.adminPermission)) {
+        if (owner != player.uniqueId && !player.hasPermission("phcore.admin")) {
             player.sendMessage(PlayerInvSettings.sharedManageNoPermission.colored())
             return
         }
@@ -794,7 +795,7 @@ object PlayerInvService {
 
             player.submitOnRegion {
                 if (!player.isOnline) return@submitOnRegion
-                val inventory = Bukkit.createInventory(null, 27, TextUtils.component(PlayerInvSettings.sharedManagerTitle.replace("{name}", sharedName)))
+                val inventory = Bukkit.createInventory(null, 27, TextUtils.parse(PlayerInvSettings.sharedManagerTitle.resolvePlaceholders("{name}" to sharedName)))
 
                 // slot 10: 成员按钮，公开时显示公开提示，私有时显示成员预览
                 inventory.setItem(MANAGE_SLOT_MEMBERS, if (isPublic) {
@@ -865,7 +866,7 @@ object PlayerInvService {
     private fun buildMemberPreviewLore(members: List<SharedMemberInfo>): List<String> {
         val preview = members.take(PlayerInvSettings.memberPreviewLimit).joinToString("&7, ") { "&f${it.playerName}" }
         return PlayerInvSettings.sharedMembersLore.map { line ->
-            line.replace("{members}", if (preview.isBlank()) "&7(无成" else preview)
+            line.resolvePlaceholders("{members}" to if (preview.isBlank()) "&7(无成" else preview)
         }
     }
 
@@ -876,8 +877,8 @@ object PlayerInvService {
             null
         } ?: ItemStack(ItemUtils.matchMaterial(materialSpec, Material.STONE) ?: Material.STONE)
         val meta = item.itemMeta ?: return item
-        meta.displayName(TextUtils.component(name))
-        meta.lore(TextUtils.components(lore))
+        meta.displayName(TextUtils.parse(name))
+        meta.lore(TextUtils.parseLore(lore))
         // action null 时不写入 PDC，点击时 getManageAction 返回 null，handleManageClick 直接 return true（无操作）
         if (action != null) {
             meta.persistentDataContainer.set(manageActionKey, PersistentDataType.STRING, action)
@@ -963,7 +964,7 @@ object PlayerInvService {
 
                 player.sendMessage(
                     PlayerInvSettings.sharedUnlockSuccessMessage
-                        .replace("{cost}", "%.2f".format(PlayerInvSettings.sharedUnlockCost))
+                        .resolvePlaceholders("{cost}" to "%.2f".format(PlayerInvSettings.sharedUnlockCost))
                         .colored()
                 )
             }
@@ -1009,9 +1010,9 @@ object PlayerInvService {
     private fun buildLockedSlotItem(highlight: Boolean): ItemStack {
         val item = ItemStack(PlayerInvSettings.sharedLockedMaterial)
         val meta = item.itemMeta ?: return item
-        meta.displayName(TextUtils.component(PlayerInvSettings.sharedLockedName))
-        meta.lore(TextUtils.components(PlayerInvSettings.sharedLockedLore.map {
-            it.replace("{cost}", "%.2f".format(PlayerInvSettings.sharedUnlockCost))
+        meta.displayName(TextUtils.parse(PlayerInvSettings.sharedLockedName))
+        meta.lore(TextUtils.parseLore(PlayerInvSettings.sharedLockedLore.map {
+            it.resolvePlaceholders("{cost}" to "%.2f".format(PlayerInvSettings.sharedUnlockCost))
         }))
         meta.persistentDataContainer.set(lockedSlotKey, PersistentDataType.BYTE, 1)
         if (highlight) {
@@ -1321,7 +1322,7 @@ object PlayerInvService {
     }
 
     private fun canManageShared(connection: Connection, operator: Player, shared: SharedRecord): Boolean {
-        if (operator.hasPermission(PlayerInvSettings.adminPermission)) return true
+        if (operator.hasPermission("phcore.admin")) return true
         return getSharedRole(connection, shared.id, operator.uniqueId) == SharedRole.OWNER
     }
 
@@ -1383,7 +1384,7 @@ object PlayerInvService {
                     ")"
             ).use(PreparedStatement::execute)
 
-            // 旧表迁移：为已存在的 shared_warehouse 表补 is_public 列（静默忽略“列已存在”错误）
+            // 旧表迁移：为已存在的 shared_inv 表补 is_public 列（静默忽略“列已存在”错误）
             runCatching {
                 connection.prepareStatement(
                     if (DatabaseUtils.isMySql)

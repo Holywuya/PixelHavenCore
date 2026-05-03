@@ -1,7 +1,7 @@
 package com.pixlehavencore.feature.craftingbench
 
 import com.pixlehavencore.util.ItemUtils
-import net.kyori.adventure.text.Component
+import com.pixlehavencore.util.TextUtils
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
@@ -65,8 +65,8 @@ object AdminGuiMenu {
                 inv.setItem(index, item)
             }
             // 底部功能区
-            inv.setItem(45, createStaticItem(Material.ARROW, "&e返回", listOf("&7返回配方编辑")))
-            fillBorderRange(inv, 46..53)
+            inv.setItem(45, ItemUtils.staticItem(Material.ARROW, "&e返回", listOf("&7返回配方编辑")))
+            drawAdminBorder(inv, 6)
         }
     }
 
@@ -82,8 +82,8 @@ object AdminGuiMenu {
                 inv.setItem(index, item)
             }
             // 底部功能区
-            inv.setItem(18, createStaticItem(Material.ARROW, "&e返回", listOf("&7返回配方编辑")))
-            fillBorderRange(inv, 19..26)
+            inv.setItem(18, ItemUtils.staticItem(Material.ARROW, "&e返回", listOf("&7返回配方编辑")))
+            drawAdminBorder(inv, 3)
         }
     }
 
@@ -133,21 +133,17 @@ object AdminGuiMenu {
         player.openMenu(inv)
     }
 
-    private fun fillBorder(inv: Inventory, size: Int) {
-        val glass = createStaticItem(Material.GRAY_STAINED_GLASS_PANE, "&7", emptyList())
-        for (i in 0 until size) {
-            if (inv.getItem(i) == null) {
-                inv.setItem(i, glass)
-            }
-        }
-    }
-
-    // 仅填充指定范围的空格子
-    private fun fillBorderRange(inv: Inventory, range: IntRange) {
-        val glass = createStaticItem(Material.GRAY_STAINED_GLASS_PANE, "&7", emptyList())
-        for (i in range) {
-            if (inv.getItem(i) == null) {
-                inv.setItem(i, glass)
+    private fun drawAdminBorder(inv: Inventory, rows: Int) {
+        val accentItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE)
+        val sideItem = ItemStack(Material.GRAY_STAINED_GLASS_PANE)
+        val size = rows * 9
+        for (slot in 0 until size) {
+            if (inv.getItem(slot) != null) continue
+            val row = slot / 9
+            val col = slot % 9
+            when {
+                row == 0 || row == rows - 1 -> inv.setItem(slot, accentItem)
+                col == 0 || col == 8 -> inv.setItem(slot, sideItem)
             }
         }
     }
@@ -166,28 +162,28 @@ object AdminGuiMenu {
                 "&7右键: &e复制",
                 "&7Shift+右键: &c删除",
             )
-            inv.setItem(i - start, createStaticItem(Material.PAPER, "&a$display", lore))
+            inv.setItem(i - start, ItemUtils.staticItem(Material.PAPER, "&a$display", lore))
         }
         if (page > 0) {
-            inv.setItem(45, createStaticItem(Material.ARROW, "&e上一页", emptyList()))
+            inv.setItem(45, ItemUtils.staticItem(Material.ARROW, "&e上一页", emptyList()))
         }
-        inv.setItem(48, createStaticItem(Material.LIME_STAINED_GLASS_PANE, "&a新建配方", listOf("&7点击创建新配方")))
+        inv.setItem(48, ItemUtils.staticItem(Material.LIME_STAINED_GLASS_PANE, "&a新建配方", listOf("&7点击创建新配方")))
         if (page < maxPage) {
-            inv.setItem(53, createStaticItem(Material.ARROW, "&e下一页", emptyList()))
+            inv.setItem(53, ItemUtils.staticItem(Material.ARROW, "&e下一页", emptyList()))
         }
-        fillBorder(inv, 54)
+        drawAdminBorder(inv, 6)
     }
 
     private fun renderRecipeEditor(inv: Inventory, session: RecipeEditSession) {
-        inv.setItem(0, createStaticItem(Material.PAPER, "&eID: &f${session.id}", listOf("&7点击修改")))
-        inv.setItem(1, createStaticItem(Material.NAME_TAG, "&e名称: &f${session.displayName}", listOf("&7点击修改")))
-        inv.setItem(2, createStaticItem(Material.BOOK, "&e分类: &f${session.category}", listOf("&7点击修改")))
-        inv.setItem(3, createStaticItem(Material.ANVIL, "&e所需等级: &f${session.requiredBenchTier}", listOf("&7点击修改")))
-        inv.setItem(4, createStaticItem(Material.CHEST, "&e材料列表 &f(${session.materials.size}个)", listOf("&7点击编辑材料")))
-        inv.setItem(5, createStaticItem(Material.DIAMOND, "&e奖励物品 &f(${session.results.size}个)", listOf("&7点击编辑奖励物品")))
-        inv.setItem(6, createStaticItem(Material.CLOCK, "&e制作时间: &f${session.craftTimeSeconds}s", listOf("&7点击修改")))
-        inv.setItem(7, createStaticItem(Material.EXPERIENCE_BOTTLE, "&e经验: &f${session.experience}", listOf("&7点击修改")))
-        inv.setItem(8, createStaticItem(
+        inv.setItem(0, ItemUtils.staticItem(Material.PAPER, "&eID: &f${session.id}", listOf("&7点击修改")))
+        inv.setItem(1, ItemUtils.staticItem(Material.NAME_TAG, "&e名称: &f${session.displayName}", listOf("&7点击修改")))
+        inv.setItem(2, ItemUtils.staticItem(Material.BOOK, "&e分类: &f${session.category}", listOf("&7点击修改")))
+        inv.setItem(3, ItemUtils.staticItem(Material.ANVIL, "&e所需等级: &f${session.requiredBenchTier}", listOf("&7点击修改")))
+        inv.setItem(4, ItemUtils.staticItem(Material.CHEST, "&e材料列表 &f(${session.materials.size}个)", listOf("&7点击编辑材料")))
+        inv.setItem(5, ItemUtils.staticItem(Material.DIAMOND, "&e奖励物品 &f(${session.results.size}个)", listOf("&7点击编辑奖励物品")))
+        inv.setItem(6, ItemUtils.staticItem(Material.CLOCK, "&e制作时间: &f${session.craftTimeSeconds}s", listOf("&7点击修改")))
+        inv.setItem(7, ItemUtils.staticItem(Material.EXPERIENCE_BOTTLE, "&e经验: &f${session.experience}", listOf("&7点击修改")))
+        inv.setItem(8, ItemUtils.staticItem(
             if (session.unlockPermission.isBlank()) Material.RED_STAINED_GLASS_PANE else Material.LIME_STAINED_GLASS_PANE,
             "&e解锁权限: ${if (session.unlockPermission.isBlank()) "&c关闭" else "&a开启"}",
             listOf(
@@ -197,27 +193,19 @@ object AdminGuiMenu {
                 "&7开启后权限默认为: &fcraft.recipe.${session.id.ifBlank { "<配方ID>" }}"
             )
         ))
-        inv.setItem(27, createStaticItem(Material.ARROW, "&e返回", emptyList()))
-        inv.setItem(35, createStaticItem(Material.RED_STAINED_GLASS_PANE, "&c删除", listOf("&7删除此配方")))
-        fillBorder(inv, 36)
+        inv.setItem(27, ItemUtils.staticItem(Material.ARROW, "&e返回", emptyList()))
+        inv.setItem(35, ItemUtils.staticItem(Material.RED_STAINED_GLASS_PANE, "&c删除", listOf("&7删除此配方")))
+        drawAdminBorder(inv, 4)
     }
 
     private fun renderDeleteConfirm(inv: Inventory, target: DeleteTarget) {
         val name = when (target) {
             is DeleteTarget.Recipe -> "配方 '${target.recipeId}'"
         }
-        inv.setItem(13, createStaticItem(Material.BARRIER, "&c确定删除 $name？", listOf("&7此操作不可撤销")))
-        inv.setItem(23, createStaticItem(Material.RED_STAINED_GLASS_PANE, "&c确认删除", emptyList()))
-        inv.setItem(26, createStaticItem(Material.GRAY_STAINED_GLASS_PANE, "&7取消", emptyList()))
-        fillBorder(inv, 27)
+        inv.setItem(13, ItemUtils.staticItem(Material.BARRIER, "&c确定删除 $name？", listOf("&7此操作不可撤销")))
+        inv.setItem(23, ItemUtils.staticItem(Material.RED_STAINED_GLASS_PANE, "&c确认删除", emptyList()))
+        inv.setItem(26, ItemUtils.staticItem(Material.GRAY_STAINED_GLASS_PANE, "&7取消", emptyList()))
+        drawAdminBorder(inv, 3)
     }
 
-    fun createStaticItem(material: Material, title: String, lore: List<String>): ItemStack {
-        return ItemStack(material).apply {
-            itemMeta = itemMeta?.apply {
-                displayName(Component.text(title.colored()))
-                this.lore(lore.map { Component.text(it.colored()) })
-            }
-        }
-    }
 }

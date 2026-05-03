@@ -1,5 +1,6 @@
 package com.pixlehavencore.feature.security
 
+import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import com.pixlehavencore.util.TextUtils
 import org.bukkit.Bukkit
 import org.bukkit.OfflinePlayer
@@ -32,7 +33,7 @@ object SecurityService {
     fun openInventory(viewer: Player, target: OfflinePlayer): Boolean {
         if (!SecuritySettings.enabled) return false
         val online = target.player ?: return false
-        val title = TextUtils.component(SecuritySettings.invTitle.replace("{player}", target.name ?: target.uniqueId.toString()))
+        val title = TextUtils.parse(SecuritySettings.invTitle.resolvePlaceholders("{player}" to (target.name ?: target.uniqueId.toString())))
         // 先在目标玩家所在线程抓取背包快照，再切到查看者线程开窗，避免跨线程直读 inventory。
         online.submitOnEntity {
             val contents = online.inventory.contents.copyOf(54)
@@ -52,7 +53,7 @@ object SecurityService {
     fun openEnderChest(viewer: Player, target: OfflinePlayer): Boolean {
         if (!SecuritySettings.enabled) return false
         val online = target.player ?: return false
-        val title = TextUtils.component(SecuritySettings.ecTitle.replace("{player}", target.name ?: target.uniqueId.toString()))
+        val title = TextUtils.parse(SecuritySettings.ecTitle.resolvePlaceholders("{player}" to (target.name ?: target.uniqueId.toString())))
         // 同样先在目标线程读取末影箱，再回到查看者线程打开界面。
         online.submitOnEntity {
             val contents = online.enderChest.contents.copyOf(27)
