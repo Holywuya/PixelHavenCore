@@ -1,6 +1,8 @@
 package com.pixlehavencore.feature.economy
 
 import com.pixlehavencore.util.DatabaseUtils
+import com.pixlehavencore.util.PerKeyLock
+import com.pixlehavencore.util.cancelTaskSafely
 import taboolib.common.platform.function.submitAsync
 import taboolib.common.platform.function.warning
 import taboolib.expansion.MultipleHandler
@@ -12,6 +14,17 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 object EconomyStorageService {
 
+    fun interface BalanceChangeListener {
+        fun onBalanceChange(accountId: UUID, delta: BigDecimal, exempt: Boolean)
+    }
+
+    @Volatile
+    private var balanceChangeListener: BalanceChangeListener? = null
+
+    fun setBalanceChangeListener(listener: BalanceChangeListener?) {
+        balanceChangeListener = listener
+    }
+
     private const val TABLE_NAME = "economy_accounts"
     private const val KEY_BALANCES = "balances"
     private const val KEY_LAST_SEEN_AT = "last_seen_at"
@@ -20,7 +33,7 @@ object EconomyStorageService {
     private val dirtyAccounts = ConcurrentHashMap.newKeySet<UUID>()
     private val balances = ConcurrentHashMap<UUID, ConcurrentHashMap<String, BigDecimal>>()
     private val lastSeenAt = ConcurrentHashMap<UUID, Long>()
-    private val accountLocks = ConcurrentHashMap<UUID, Any>()
+    private val accountLocks = PerKeyLock<UUID>()
 
     @Volatile
     private var handler: MultipleHandler? = null
@@ -75,7 +88,7 @@ object EconomyStorageService {
 
     fun has(accountId: UUID, currency: String, amount: BigDecimal): Boolean {
         if (amount.signum() <= 0) return true
-        synchronized(lockFor(accountId)) {
+        synchronized(accountLocks[accountId]) {
             return getBalance(accountId, currency) >= amount
         }
     }
@@ -84,39 +97,63 @@ object EconomyStorageService {
         return rawDeposit(accountId, currency, amount)
     }
 
-    fun rawDeposit(accountId: UUID, currency: String, amount: BigDecimal): BigDecimal {
-        synchronized(lockFor(accountId)) {
+    fun rawDeposit(accountId: UUID, currency: String, amount: BigDecimal, exempt: Boolean = false): BigDecimal {
+        val result: BigDecimal
+        var notifyDelta = BigDecimal.ZERO
+        var shouldNotify = false
+        synchronized(accountLocks[accountId]) {
             val resolved = EconomySettings.resolveCurrency(currency)
             val map = balances.computeIfAbsent(accountId) { ConcurrentHashMap() }
             val normalizedAmount = normalizeAmount(amount)
+            val before = map[resolved] ?: BigDecimal.ZERO
             val raw = map.merge(resolved, normalizedAmount) { old, new -> old.add(new) } ?: normalizedAmount
             val balance = correctAmount(accountId, resolved, raw)
             map[resolved] = balance
             dirtyAccounts += accountId
-            return balance
+            result = balance
+            if (!exempt && resolved == EconomySettings.defaultCurrency && balanceChangeListener != null) {
+                notifyDelta = balance.subtract(before)
+                shouldNotify = notifyDelta != BigDecimal.ZERO
+            }
         }
+        if (shouldNotify) {
+            balanceChangeListener?.onBalanceChange(accountId, notifyDelta, false)
+        }
+        return result
     }
 
     fun withdraw(accountId: UUID, currency: String, amount: BigDecimal): BigDecimal {
         return rawWithdraw(accountId, currency, amount)
     }
 
-    fun rawWithdraw(accountId: UUID, currency: String, amount: BigDecimal): BigDecimal {
-        synchronized(lockFor(accountId)) {
+    fun rawWithdraw(accountId: UUID, currency: String, amount: BigDecimal, exempt: Boolean = false): BigDecimal {
+        val result: BigDecimal
+        var notifyDelta = BigDecimal.ZERO
+        var shouldNotify = false
+        synchronized(accountLocks[accountId]) {
             val resolved = EconomySettings.resolveCurrency(currency)
             val map = balances.computeIfAbsent(accountId) { ConcurrentHashMap() }
             val normalizedAmount = normalizeAmount(amount)
-            val updated = map[resolved]?.subtract(normalizedAmount) ?: BigDecimal.ZERO.subtract(normalizedAmount)
+            val before = map[resolved] ?: BigDecimal.ZERO
+            val updated = before.subtract(normalizedAmount)
             val raw = if (updated.signum() <= 0) BigDecimal.ZERO else updated
             val balance = correctAmount(accountId, resolved, raw)
             map[resolved] = balance
             dirtyAccounts += accountId
-            return balance
+            result = balance
+            if (!exempt && resolved == EconomySettings.defaultCurrency && balanceChangeListener != null) {
+                notifyDelta = balance.subtract(before)
+                shouldNotify = notifyDelta != BigDecimal.ZERO
+            }
         }
+        if (shouldNotify) {
+            balanceChangeListener?.onBalanceChange(accountId, notifyDelta, false)
+        }
+        return result
     }
 
     fun rawSetBalance(accountId: UUID, currency: String, amount: BigDecimal): BigDecimal {
-        synchronized(lockFor(accountId)) {
+        synchronized(accountLocks[accountId]) {
             val resolved = EconomySettings.resolveCurrency(currency)
             val normalized = normalizeAmount(amount)
             val balance = correctAmount(accountId, resolved, normalized)
@@ -135,7 +172,7 @@ object EconomyStorageService {
         if (shuttingDown.get()) {
             return
         }
-        invokeCancel(flushTask)
+        flushTask.cancelTaskSafely()
         flushTask = submitAsync(period = EconomySettings.autoSaveTicks) {
             flushAll()
         }
@@ -199,15 +236,6 @@ object EconomyStorageService {
         }
     }
 
-    private fun invokeCancel(task: Any?) {
-        if (task == null) return
-        runCatching { task.javaClass.methods.firstOrNull { it.name == "cancel" && it.parameterTypes.isEmpty() }?.invoke(task) }
-    }
-
-    private fun lockFor(accountId: UUID): Any {
-        return accountLocks.computeIfAbsent(accountId) { Any() }
-    }
-
     private fun reloadInternal() {
         synchronized(stateLock) {
             if (shuttingDown.get()) {
@@ -231,16 +259,18 @@ object EconomyStorageService {
 
     private fun shutdownInternal() {
         synchronized(stateLock) {
-            invokeCancel(flushTask)
+            flushTask.cancelTaskSafely()
             flushTask = null
             if (handler != null) {
                 flushAll()
             }
+            DatabaseUtils.closeMultipleHandler(handler)
             handler = null
             balances.clear()
             lastSeenAt.clear()
             dirtyAccounts.clear()
             accountLocks.clear()
+            balanceChangeListener = null
             ready = false
         }
     }

@@ -38,6 +38,9 @@ object CentralBankSettings {
     var exemptAccountIds: Set<String> = emptySet()
         private set
 
+    var maxNegativeReserve: Long = -1L
+        private set
+
     fun init() = reload()
 
     fun reload() {
@@ -59,6 +62,7 @@ object CentralBankSettings {
             .map { it.trim().lowercase() }
             .filter { it.isNotBlank() }
             .toSet()
+        maxNegativeReserve = config.getLong("max-negative-reserve", -1L)
         inactivityWeights = config.getMapList("inactivity-weights")
             .mapNotNull { map ->
                 val days = (map["days"] as? Int)?.coerceAtLeast(1) ?: return@mapNotNull null

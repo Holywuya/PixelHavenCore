@@ -41,3 +41,8 @@ inactivity-weights:
     weight: 0.3
   - days: 60
     weight: 0.1
+
+# C 账户最大负余额阈值。
+# 当补偿导致 C 账户余额低于此值时暂停补偿并记录警告。
+# 设为 -1 表示无限制。
+max-negative-reserve: "-1"

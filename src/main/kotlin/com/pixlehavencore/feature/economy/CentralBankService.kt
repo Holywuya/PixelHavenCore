@@ -90,6 +90,7 @@ object CentralBankService {
         persistState(force = true)
         DatabaseUtils.closeMultipleHandler(handler)
         handler = null
+        EconomyStorageService.setBalanceChangeListener(null)
         ready = false
     }
 
@@ -239,6 +240,9 @@ object CentralBankService {
         scheduleFlush()
         scheduleMaintenance()
         ready = true
+        EconomyStorageService.setBalanceChangeListener { accountId, delta, _ ->
+            compensateBalanceChange(accountId, delta)
+        }
         info("[经济系统] 央行账本已启用，默认货币=${EconomySettings.defaultCurrency}")
     }
 
@@ -358,6 +362,28 @@ object CentralBankService {
         }
         if (recovered > BigDecimal.ZERO) {
             EconomyStorageService.rawDeposit(CENTRAL_BANK_RESERVE_C_ACCOUNT_ID, EconomySettings.defaultCurrency, recovered)
+        }
+    }
+
+    fun compensateBalanceChange(accountId: UUID, delta: BigDecimal) {
+        if (!ready || !isManagedCurrency(EconomySettings.defaultCurrency)) return
+        if (isCentralBankAccount(accountId) || isExemptAccount(accountId)) return
+        val compensation = delta.negate()
+        if (compensation == BigDecimal.ZERO) return
+        synchronized(stateLock) {
+            if (CentralBankSettings.maxNegativeReserve >= 0L) {
+                val currentReserve = getReserveBalance()
+                if (compensation.signum() > 0 && currentReserve.subtract(compensation) < CentralBankSettings.maxNegativeReserve.toBigDecimal()) {
+                    warning("[经济系统] C 账户负余额已达阈值，暂停补偿: reserve=$currentReserve, compensation=$compensation")
+                    return
+                }
+            }
+            if (compensation.signum() > 0) {
+                EconomyStorageService.rawDeposit(CENTRAL_BANK_RESERVE_C_ACCOUNT_ID, EconomySettings.defaultCurrency, compensation, exempt = true)
+            } else {
+                EconomyStorageService.rawWithdraw(CENTRAL_BANK_RESERVE_C_ACCOUNT_ID, EconomySettings.defaultCurrency, compensation.abs(), exempt = true)
+            }
+            dirty.set(true)
         }
     }
 
