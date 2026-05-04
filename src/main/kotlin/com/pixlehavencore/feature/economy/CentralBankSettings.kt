@@ -9,6 +9,11 @@ object CentralBankSettings {
     @Config("feature/economy/central-bank.yml")
     private lateinit var config: Configuration
 
+    data class InactivityWeight(val days: Int, val weight: BigDecimal)
+
+    var inactivityWeights: List<InactivityWeight> = emptyList()
+        private set
+
     var enabled: Boolean = true
         private set
 
@@ -54,5 +59,22 @@ object CentralBankSettings {
             .map { it.trim().lowercase() }
             .filter { it.isNotBlank() }
             .toSet()
+        inactivityWeights = config.getMapList("inactivity-weights")
+            .mapNotNull { map ->
+                val days = (map["days"] as? Int)?.coerceAtLeast(1) ?: return@mapNotNull null
+                val w = (map["weight"] as? Number)
+                    ?.let { BigDecimal(it.toString()) }
+                    ?.coerceIn(BigDecimal.ZERO, BigDecimal.ONE)
+                    ?: return@mapNotNull null
+                InactivityWeight(days, w)
+            }
+            .sortedByDescending { it.days }
+            .ifEmpty {
+                listOf(
+                    InactivityWeight(14, BigDecimal("0.7")),
+                    InactivityWeight(30, BigDecimal("0.3")),
+                    InactivityWeight(60, BigDecimal("0.1")),
+                )
+            }
     }
 }
