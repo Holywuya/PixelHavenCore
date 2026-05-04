@@ -20,7 +20,12 @@ player-trade:
   # 统一结税时，实际税额仍优先按 tax-brackets 匹配结果计算。
   default-tax-rate: 0.02
 
-# 阶梯税率，按“玩家当前收益池总额”匹配最高档。
+# 是否使用边际（累进）税率。
+# true  — 收入按阶梯分档计税（如 5000 = 1000×0% + 4000×3%）。
+# false — 收入全额按最高匹配档计税（如 5000 全按 6%）。
+use-marginal-rate: true
+
+# 阶梯税率，按”玩家当前收益池总额”匹配最高档。
 tax-brackets:
   tier1:
     min: 0

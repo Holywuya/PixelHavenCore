@@ -275,12 +275,28 @@ object TaxService {
 
     private fun previewTax(amount: BigDecimal, rateOverride: Double? = null): TaxResult {
         val normalizedAmount = normalizeAmount(amount)
-        val rate = rateOverride ?: TaxSettings.resolveRate(normalizedAmount)
-        val tax = normalizeAmount(normalizedAmount.multiply(rate.toBigDecimal()))
-        if (tax <= BigDecimal.ZERO) {
-            return TaxResult(amount = normalizedAmount, tax = BigDecimal.ZERO, rate = rate, success = true, reason = "NO_TAX")
+        if (rateOverride != null) {
+            val tax = normalizeAmount(normalizedAmount.multiply(rateOverride.toBigDecimal()))
+            return if (tax <= BigDecimal.ZERO) {
+                TaxResult(amount = normalizedAmount, tax = BigDecimal.ZERO, rate = rateOverride, success = true, reason = "NO_TAX")
+            } else {
+                TaxResult(amount = normalizedAmount, tax = tax, rate = rateOverride, success = true, reason = "OK")
+            }
         }
-        return TaxResult(amount = normalizedAmount, tax = tax, rate = rate, success = true, reason = "OK")
+        val tax = if (TaxSettings.useMarginalRate) {
+            TaxSettings.computeMarginalTax(normalizedAmount)
+        } else {
+            val rate = TaxSettings.resolveRate(normalizedAmount)
+            normalizeAmount(normalizedAmount.multiply(rate.toBigDecimal()))
+        }
+        val effectiveRate = if (normalizedAmount > BigDecimal.ZERO) {
+            tax.toDouble() / normalizedAmount.toDouble()
+        } else 0.0
+        return if (tax <= BigDecimal.ZERO) {
+            TaxResult(amount = normalizedAmount, tax = BigDecimal.ZERO, rate = effectiveRate, success = true, reason = "NO_TAX")
+        } else {
+            TaxResult(amount = normalizedAmount, tax = tax, rate = effectiveRate, success = true, reason = "OK")
+        }
     }
 
     private fun calculateDue(income: BigDecimal, debt: BigDecimal): BigDecimal {

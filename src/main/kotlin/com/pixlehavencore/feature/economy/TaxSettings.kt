@@ -3,6 +3,7 @@ package com.pixlehavencore.feature.economy
 import taboolib.module.configuration.Config
 import taboolib.module.configuration.Configuration
 import java.math.BigDecimal
+import java.math.RoundingMode
 
 object TaxSettings {
 
@@ -48,6 +49,9 @@ object TaxSettings {
     var brackets: List<TaxBracket> = emptyList()
         private set
 
+    var useMarginalRate: Boolean = true
+        private set
+
     fun init() {
         reload()
     }
@@ -68,6 +72,7 @@ object TaxSettings {
         settlementBroadcastMessage = config.getString("settlement.broadcast.message")
             ?: "&6[税收] 本期税款统一结算完成，累计税额: &f{amount}"
         brackets = loadBrackets()
+        useMarginalRate = config.getBoolean("use-marginal-rate", true)
     }
 
     fun resolveRate(amount: BigDecimal): Double {
@@ -75,6 +80,24 @@ object TaxSettings {
             return 0.0
         }
         return brackets.firstOrNull { amount >= it.min }?.rate ?: 0.0
+    }
+
+    fun computeMarginalTax(amount: BigDecimal): BigDecimal {
+        if (amount <= BigDecimal.ZERO || brackets.isEmpty()) return BigDecimal.ZERO
+        val sorted = brackets.sortedBy { it.min }
+        var totalTax = BigDecimal.ZERO
+        for (i in sorted.indices) {
+            val floor = sorted[i].min
+            val ceiling = if (i + 1 < sorted.size) sorted[i + 1].min else null
+            if (amount <= floor) break
+            val taxable = if (ceiling != null) {
+                amount.coerceAtMost(ceiling).subtract(floor)
+            } else {
+                amount.subtract(floor)
+            }.coerceAtLeast(BigDecimal.ZERO)
+            totalTax = totalTax.add(taxable.multiply(BigDecimal.valueOf(sorted[i].rate)))
+        }
+        return totalTax.setScale(0, RoundingMode.HALF_UP).coerceAtLeast(BigDecimal.ZERO)
     }
 
     private fun loadBrackets(): List<TaxBracket> {
