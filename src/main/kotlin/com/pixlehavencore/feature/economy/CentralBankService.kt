@@ -316,13 +316,13 @@ object CentralBankService {
             if (getReserveBalance() <= BigDecimal.ZERO && maxSupply <= BigDecimal.ZERO && theoreticalSupply > currentTotalSupply) {
                 val bootstrap = theoreticalSupply.subtract(currentTotalSupply)
                 if (bootstrap > BigDecimal.ZERO) {
-                    EconomyStorageService.rawDeposit(CENTRAL_BANK_RESERVE_C_ACCOUNT_ID, currency, bootstrap)
+                    EconomyStorageService.rawDeposit(CENTRAL_BANK_RESERVE_C_ACCOUNT_ID, currency, bootstrap, exempt = true)
                 }
                 maxSupply = theoreticalSupply
             } else if (theoreticalSupply > currentTotalSupply) {
                 val expansion = theoreticalSupply.subtract(currentTotalSupply)
                 if (expansion > BigDecimal.ZERO) {
-                    EconomyStorageService.rawDeposit(CENTRAL_BANK_RESERVE_C_ACCOUNT_ID, currency, expansion)
+                    EconomyStorageService.rawDeposit(CENTRAL_BANK_RESERVE_C_ACCOUNT_ID, currency, expansion, exempt = true)
                 }
                 maxSupply = maxSupply.coerceAtLeast(theoreticalSupply)
             } else {
