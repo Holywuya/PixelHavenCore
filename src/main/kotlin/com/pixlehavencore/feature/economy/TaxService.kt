@@ -1,8 +1,11 @@
 package com.pixlehavencore.feature.economy
 
+import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import com.pixlehavencore.util.DatabaseUtils
 import com.pixlehavencore.util.EconomyUtils
+import com.pixlehavencore.util.PerKeyLock
 import com.pixlehavencore.util.broadcastColored
+import com.pixlehavencore.util.cancelTaskSafely
 import taboolib.common.platform.function.submitAsync
 import taboolib.common.platform.function.warning
 import taboolib.expansion.MultipleHandler
@@ -28,7 +31,7 @@ object TaxService {
     private val incomePools = ConcurrentHashMap<UUID, BigDecimal>()
     private val taxDebts = ConcurrentHashMap<UUID, BigDecimal>()
     private val dirtyAccounts = ConcurrentHashMap.newKeySet<UUID>()
-    private val accountLocks = ConcurrentHashMap<UUID, Any>()
+    private val accountLocks = PerKeyLock<UUID>()
 
     private val totalIncome = java.util.concurrent.atomic.AtomicReference(BigDecimal.ZERO)
     private val totalDueTax = java.util.concurrent.atomic.AtomicReference(BigDecimal.ZERO)
@@ -206,7 +209,7 @@ object TaxService {
         var outstandingDebt = BigDecimal.ZERO
 
         accountIds.forEach { accountId ->
-            synchronized(lockFor(accountId)) {
+            synchronized(accountLocks[accountId]) {
                 val currentIncome = currentIncomeOf(accountId)
                 val currentDebt = currentDebtOf(accountId)
                 if (currentIncome <= BigDecimal.ZERO && currentDebt <= BigDecimal.ZERO) {
@@ -254,7 +257,7 @@ object TaxService {
             return
         }
         ensureStorageInitialized()
-        synchronized(lockFor(accountId)) {
+        synchronized(accountLocks[accountId]) {
             updateAccountStateLocked(
                 accountId = accountId,
                 income = currentIncomeOf(accountId).add(normalizedAmount),
@@ -306,8 +309,8 @@ object TaxService {
             if (!EconomyStorageService.has(accountId, EconomySettings.defaultCurrency, collected)) {
                 BigDecimal.ZERO
             } else {
-                EconomyStorageService.rawWithdraw(accountId, EconomySettings.defaultCurrency, collected)
-                EconomyStorageService.rawDeposit(CentralBankService.CENTRAL_BANK_RESERVE_C_ACCOUNT_ID, EconomySettings.defaultCurrency, collected)
+                EconomyStorageService.rawWithdraw(accountId, EconomySettings.defaultCurrency, collected, exempt = true)
+                EconomyStorageService.rawDeposit(CentralBankService.CENTRAL_BANK_EXECUTOR_D_ACCOUNT_ID, EconomySettings.defaultCurrency, collected, exempt = true)
                 collected
             }
         }
@@ -372,8 +375,10 @@ object TaxService {
             }
             if (result.settled > BigDecimal.ZERO && TaxSettings.settlementBroadcast) {
                 val message = TaxSettings.settlementBroadcastMessage
-                    .replace("{amount}", EconomySettings.formatAmount(result.settled, EconomySettings.defaultCurrency))
-                    .replace("{outstanding}", EconomySettings.formatAmount(result.outstandingDebt, EconomySettings.defaultCurrency))
+                    .resolvePlaceholders(
+                        "{amount}" to EconomySettings.formatAmount(result.settled, EconomySettings.defaultCurrency),
+                        "{outstanding}" to EconomySettings.formatAmount(result.outstandingDebt, EconomySettings.defaultCurrency)
+                    )
                 broadcastColored(message)
             }
         }
@@ -389,12 +394,12 @@ object TaxService {
     }
 
     private fun stopScheduler() {
-        cancelTask(schedulerTask)
+        schedulerTask.cancelTaskSafely()
         schedulerTask = null
     }
 
     private fun stopPersistenceTask(flushAsync: Boolean) {
-        cancelTask(persistTask)
+        persistTask.cancelTaskSafely()
         persistTask = null
         if (flushAsync) {
             persistAccountsAsync(force = true, allowInit = true)
@@ -458,7 +463,7 @@ object TaxService {
         }
 
         (loadedIncome.keys + loadedDebt.keys).forEach { accountId ->
-            synchronized(lockFor(accountId)) {
+            synchronized(accountLocks[accountId]) {
                 updateAccountStateLocked(
                     accountId = accountId,
                     income = currentIncomeOf(accountId).add(loadedIncome[accountId] ?: BigDecimal.ZERO),
@@ -532,6 +537,7 @@ object TaxService {
     }
 
     private fun closeStorage() {
+        DatabaseUtils.closeMultipleHandler(handler)
         handler = null
         storageReady = false
         storageInitInProgress = false
@@ -569,20 +575,6 @@ object TaxService {
         return value.setScale(0, RoundingMode.HALF_UP).coerceAtLeast(BigDecimal.ZERO)
     }
 
-    private fun lockFor(accountId: UUID): Any {
-        return accountLocks.computeIfAbsent(accountId) { Any() }
-    }
-
-    private fun cancelTask(task: Any?) {
-        if (task == null) {
-            return
-        }
-        runCatching {
-            task.javaClass.methods.firstOrNull {
-                it.name == "cancel" && it.parameterTypes.isEmpty()
-            }?.invoke(task)
-        }
-    }
 
     private fun currentSettlementMarker(now: LocalDateTime): Long {
         val todayTarget = now.toLocalDate().atTime(TaxSettings.settlementHour, TaxSettings.settlementMinute)

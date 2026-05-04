@@ -157,13 +157,17 @@ object CentralBankService {
             return EconomyStorageService.getBalance(accountId, EconomySettings.defaultCurrency)
         }
         synchronized(stateLock) {
-            val reserve = getReserveBalance()
-            if (reserve < amount) {
-                return null
+            val executorBal = getExecutorBalance()
+            if (executorBal < amount) {
+                val replenish = amount.subtract(executorBal).coerceAtMost(getReserveBalance())
+                if (executorBal.add(replenish) < amount) {
+                    return null
+                }
+                EconomyStorageService.rawWithdraw(CENTRAL_BANK_RESERVE_C_ACCOUNT_ID, EconomySettings.defaultCurrency, replenish, exempt = true)
+                EconomyStorageService.rawDeposit(CENTRAL_BANK_EXECUTOR_D_ACCOUNT_ID, EconomySettings.defaultCurrency, replenish, exempt = true)
             }
-            val balance = EconomyStorageService.rawDeposit(accountId, EconomySettings.defaultCurrency, amount)
-            EconomyStorageService.rawWithdraw(CENTRAL_BANK_RESERVE_C_ACCOUNT_ID, EconomySettings.defaultCurrency, amount)
-            syncExecutorBalanceLocked()
+            EconomyStorageService.rawWithdraw(CENTRAL_BANK_EXECUTOR_D_ACCOUNT_ID, EconomySettings.defaultCurrency, amount, exempt = true)
+            val balance = EconomyStorageService.rawDeposit(accountId, EconomySettings.defaultCurrency, amount, exempt = true)
             dirty.set(true)
             return balance
         }
@@ -177,9 +181,8 @@ object CentralBankService {
             if (!EconomyStorageService.has(accountId, EconomySettings.defaultCurrency, amount)) {
                 return null
             }
-            val balance = EconomyStorageService.rawWithdraw(accountId, EconomySettings.defaultCurrency, amount)
-            EconomyStorageService.rawDeposit(CENTRAL_BANK_RESERVE_C_ACCOUNT_ID, EconomySettings.defaultCurrency, amount)
-            syncExecutorBalanceLocked()
+            val balance = EconomyStorageService.rawWithdraw(accountId, EconomySettings.defaultCurrency, amount, exempt = true)
+            EconomyStorageService.rawDeposit(CENTRAL_BANK_EXECUTOR_D_ACCOUNT_ID, EconomySettings.defaultCurrency, amount, exempt = true)
             dirty.set(true)
             return balance
         }
@@ -189,9 +192,8 @@ object CentralBankService {
         synchronized(stateLock) {
             val normalized = amount.coerceAtLeast(BigDecimal.ZERO)
             if (normalized > BigDecimal.ZERO) {
-                EconomyStorageService.rawDeposit(CENTRAL_BANK_RESERVE_C_ACCOUNT_ID, EconomySettings.defaultCurrency, normalized)
+                EconomyStorageService.rawDeposit(CENTRAL_BANK_RESERVE_C_ACCOUNT_ID, EconomySettings.defaultCurrency, normalized, exempt = true)
                 maxSupply = maxSupply.add(normalized)
-                syncExecutorBalanceLocked()
                 dirty.set(true)
             }
             return getReserveBalance()
@@ -206,10 +208,9 @@ object CentralBankService {
                 return null
             }
             if (normalized > BigDecimal.ZERO) {
-                EconomyStorageService.rawWithdraw(CENTRAL_BANK_RESERVE_C_ACCOUNT_ID, EconomySettings.defaultCurrency, normalized)
+                EconomyStorageService.rawWithdraw(CENTRAL_BANK_RESERVE_C_ACCOUNT_ID, EconomySettings.defaultCurrency, normalized, exempt = true)
                 val currentSupply = totalPlayerBalance.add(getReserveBalance())
                 maxSupply = maxSupply.subtract(normalized).coerceAtLeast(currentSupply)
-                syncExecutorBalanceLocked()
                 dirty.set(true)
             }
             return getReserveBalance()
@@ -248,7 +249,6 @@ object CentralBankService {
 
     private fun ensureReserveAccounts() {
         synchronized(stateLock) {
-            syncExecutorBalanceLocked()
             dirty.set(true)
         }
     }
@@ -335,7 +335,6 @@ object CentralBankService {
                 lastDormantRecoveryAt = now
             }
 
-            syncExecutorBalanceLocked()
             lastSyncAt = now
             dirty.set(true)
         }
@@ -357,11 +356,11 @@ object CentralBankService {
             if (amount <= BigDecimal.ZERO || !EconomyStorageService.has(accountId, EconomySettings.defaultCurrency, amount)) {
                 return@forEach
             }
-            EconomyStorageService.rawWithdraw(accountId, EconomySettings.defaultCurrency, amount)
+            EconomyStorageService.rawWithdraw(accountId, EconomySettings.defaultCurrency, amount, exempt = true)
             recovered = recovered.add(amount)
         }
         if (recovered > BigDecimal.ZERO) {
-            EconomyStorageService.rawDeposit(CENTRAL_BANK_RESERVE_C_ACCOUNT_ID, EconomySettings.defaultCurrency, recovered)
+            EconomyStorageService.rawDeposit(CENTRAL_BANK_EXECUTOR_D_ACCOUNT_ID, EconomySettings.defaultCurrency, recovered, exempt = true)
         }
     }
 
@@ -393,11 +392,6 @@ object CentralBankService {
             if (inactiveDays >= entry.days) return entry.weight
         }
         return BigDecimal.ONE
-    }
-
-    private fun syncExecutorBalanceLocked() {
-        val reserve = getReserveBalance()
-        EconomyStorageService.rawSetBalance(CENTRAL_BANK_EXECUTOR_D_ACCOUNT_ID, EconomySettings.defaultCurrency, reserve)
     }
 
     private fun loadState() {
