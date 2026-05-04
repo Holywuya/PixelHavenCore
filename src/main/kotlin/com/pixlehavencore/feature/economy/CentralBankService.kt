@@ -1,6 +1,7 @@
 package com.pixlehavencore.feature.economy
 
 import com.pixlehavencore.util.DatabaseUtils
+import com.pixlehavencore.util.cancelTaskSafely
 import taboolib.common.platform.function.info
 import taboolib.common.platform.function.submit
 import taboolib.common.platform.function.warning
@@ -31,6 +32,7 @@ object CentralBankService {
     private const val KEY_LAST_SYNC_AT = "last_sync_at"
 
     private const val WEEK_MILLIS = 7L * 24L * 60L * 60L * 1000L
+    private const val DAY_MILLIS = 24L * 60L * 60L * 1000L
 
     private val stateLock = Any()
     private val dirty = AtomicBoolean(false)
@@ -81,11 +83,12 @@ object CentralBankService {
     }
 
     fun stop() {
-        invokeCancel(maintenanceTask)
-        invokeCancel(flushTask)
+        maintenanceTask.cancelTaskSafely()
+        flushTask.cancelTaskSafely()
         maintenanceTask = null
         flushTask = null
         persistState(force = true)
+        DatabaseUtils.closeMultipleHandler(handler)
         handler = null
         ready = false
     }
@@ -259,7 +262,7 @@ object CentralBankService {
     }
 
     private fun scheduleFlush() {
-        invokeCancel(flushTask)
+        flushTask.cancelTaskSafely()
         flushTask = submit(async = true, period = EconomySettings.autoSaveTicks) {
             persistState(force = false)
         }
@@ -271,13 +274,13 @@ object CentralBankService {
         val lastSeenSnapshot = EconomyStorageService.snapshotLastSeenAt(rawBalances.keys)
 
         val now = System.currentTimeMillis()
-        val activeThreshold = now - Duration.ofDays(CentralBankSettings.activeThresholdDays.toLong()).toMillis()
         val dormantThreshold = now - Duration.ofDays(CentralBankSettings.dormantThresholdDays.toLong()).toMillis()
 
         // 单次遍历计算所有统计值（优化：避免多次 filter + fold）
         var totalBalance = BigDecimal.ZERO
         var activeBalance = BigDecimal.ZERO
         var activeCount = 0
+        var weightedCount = BigDecimal.ZERO
         val eligibleBalances = linkedMapOf<UUID, BigDecimal>()
 
         for ((accountId, balance) in rawBalances) {
@@ -285,16 +288,19 @@ object CentralBankService {
             eligibleBalances[accountId] = balance
             totalBalance = totalBalance.add(balance)
             val seenAt = lastSeenSnapshot[accountId] ?: 0L
-            if (seenAt >= activeThreshold) {
+            val inactiveDays = if (seenAt > 0L) ((now - seenAt) / DAY_MILLIS).toInt() else Int.MAX_VALUE
+            val weight = resolveInactivityWeight(inactiveDays)
+            if (weight >= BigDecimal.ONE) {
                 activeCount++
                 activeBalance = activeBalance.add(balance)
             }
+            weightedCount = weightedCount.add(weight)
         }
 
-        val expectedActive = activeCount.coerceAtLeast(1)
+        val expectedActive = weightedCount.coerceAtLeast(BigDecimal.ONE)
         val theoreticalSupply = CentralBankSettings.expectedBalance
             .multiply(CentralBankSettings.bufferMultiplier)
-            .multiply(expectedActive.toBigDecimal())
+            .multiply(expectedActive)
             .setScale(0, RoundingMode.HALF_UP)
 
         synchronized(stateLock) {
@@ -355,6 +361,14 @@ object CentralBankService {
         }
     }
 
+    private fun resolveInactivityWeight(inactiveDays: Int): BigDecimal {
+        if (inactiveDays < CentralBankSettings.activeThresholdDays) return BigDecimal.ONE
+        for (entry in CentralBankSettings.inactivityWeights) {
+            if (inactiveDays >= entry.days) return entry.weight
+        }
+        return BigDecimal.ONE
+    }
+
     private fun syncExecutorBalanceLocked() {
         val reserve = getReserveBalance()
         EconomyStorageService.rawSetBalance(CENTRAL_BANK_EXECUTOR_D_ACCOUNT_ID, EconomySettings.defaultCurrency, reserve)
@@ -397,14 +411,4 @@ object CentralBankService {
         }
     }
 
-    private fun invokeCancel(task: Any?) {
-        if (task == null) {
-            return
-        }
-        runCatching {
-            task.javaClass.methods.firstOrNull { method ->
-                method.name == "cancel" && method.parameterTypes.isEmpty()
-            }?.invoke(task)
-        }
-    }
 }
