@@ -194,14 +194,14 @@ object CraftingBenchMenu {
         val base = firstResult?.let { ItemUtils.resolveSpec(it.item)?.clone() } ?: ItemStack(Material.CRAFTING_TABLE)
         base.amount = firstResult?.amount?.coerceAtLeast(1) ?: 1
         val meta = base.itemMeta ?: return base
-        meta.displayName(TextUtils.parse("&a${preview.recipe.displayName}"))
+        meta.displayName(TextUtils.parseItem("&a${preview.recipe.displayName}"))
         meta.lore(listOf(
-            TextUtils.parse("&8&m─────────────────────"),
-            TextUtils.parse("&7分类: &f${preview.recipe.category}"),
-            TextUtils.parse("&7耗时: &f${"%.1f".format(preview.estimatedSeconds)} 秒"),
-            TextUtils.parse("&7材料状态: ${(if (preview.enoughMaterials) "&a充足" else "&c不足")}"),
+            TextUtils.parseItem("&8&m─────────────────────"),
+            TextUtils.parseItem("&7分类: &f${preview.recipe.category}"),
+            TextUtils.parseItem("&7耗时: &f${"%.1f".format(preview.estimatedSeconds)} 秒"),
+            TextUtils.parseItem("&7材料状态: ${(if (preview.enoughMaterials) "&a充足" else "&c不足")}"),
             Component.text(""),
-            TextUtils.parse("&7点击查看详情"),
+            TextUtils.parseItem("&7点击查看详情"),
         ))
         base.itemMeta = meta
         return base
@@ -212,13 +212,13 @@ object CraftingBenchMenu {
         val base = firstResult?.let { ItemUtils.resolveSpec(it.item)?.clone() } ?: ItemStack(Material.CRAFTING_TABLE)
         base.amount = firstResult?.let { (it.amount * craftCount).coerceAtLeast(1) } ?: 1
         val meta = base.itemMeta ?: return base
-        meta.displayName(TextUtils.parse("&6${recipe.displayName}"))
+        meta.displayName(TextUtils.parseItem("&6${recipe.displayName}"))
         meta.lore(listOf(
-            TextUtils.parse("&8&m─────────────────────"),
-            TextUtils.parse("&7分类: &f${recipe.category}"),
-            TextUtils.parse("&7工作台等级: &f${recipe.requiredBenchTier}"),
-            TextUtils.parse("&7制作数量: &f$craftCount"),
-            TextUtils.parse("&7耗时: &f${"%.1f".format(estimatedSeconds)} 秒"),
+            TextUtils.parseItem("&8&m─────────────────────"),
+            TextUtils.parseItem("&7分类: &f${recipe.category}"),
+            TextUtils.parseItem("&7工作台等级: &f${recipe.requiredBenchTier}"),
+            TextUtils.parseItem("&7制作数量: &f$craftCount"),
+            TextUtils.parseItem("&7耗时: &f${"%.1f".format(estimatedSeconds)} 秒"),
         ))
         base.itemMeta = meta
         return base
@@ -228,13 +228,13 @@ object CraftingBenchMenu {
         val base = ItemUtils.resolveSpec(status.material.item)?.clone() ?: ItemStack(Material.PAPER)
         base.amount = status.requiredAmount.coerceAtLeast(1)
         val meta = base.itemMeta ?: return base
-        meta.displayName(TextUtils.parse("${if (status.enough) "&a" else "&c"}${status.material.item}"))
+        meta.displayName(TextUtils.parseItem("${if (status.enough) "&a" else "&c"}${status.material.item}"))
         meta.lore(listOf(
-            TextUtils.parse("&7需求: &f${status.requiredAmount}"),
-            TextUtils.parse("&7背包: &f${status.inventoryAmount}"),
-            TextUtils.parse("&7个人仓库: &f${status.warehouseAmount}"),
-            TextUtils.parse("&7本次从仓库提取: &f${status.warehouseWillUse}"),
-            TextUtils.parse("&7总计: ${if (status.enough) "&a" else "&c"}${status.totalAmount}"),
+            TextUtils.parseItem("&7需求: &f${status.requiredAmount}"),
+            TextUtils.parseItem("&7背包: &f${status.inventoryAmount}"),
+            TextUtils.parseItem("&7个人仓库: &f${status.warehouseAmount}"),
+            TextUtils.parseItem("&7本次从仓库提取: &f${status.warehouseWillUse}"),
+            TextUtils.parseItem("&7总计: ${if (status.enough) "&a" else "&c"}${status.totalAmount}"),
         ))
         base.itemMeta = meta
         return base
@@ -259,11 +259,11 @@ object CraftingBenchMenu {
     private fun createQueueItem(task: CraftingTask): ItemStack {
         return ItemStack(Material.CLOCK).apply {
             itemMeta = itemMeta?.apply {
-                displayName(TextUtils.parse("&e队列任务 #${task.taskId}"))
+                displayName(TextUtils.parseItem("&e队列任务 #${task.taskId}"))
                 lore(listOf(
-                    TextUtils.parse("&7配方: &f${task.recipeId}"),
-                    TextUtils.parse("&7制作数量: &f${task.craftCount}"),
-                    TextUtils.parse("&7剩余: &f${task.remainingTicks / 20.0} 秒"),
+                    TextUtils.parseItem("&7配方: &f${task.recipeId}"),
+                    TextUtils.parseItem("&7制作数量: &f${task.craftCount}"),
+                    TextUtils.parseItem("&7剩余: &f${task.remainingTicks / 20.0} 秒"),
                 ))
             }
         }
@@ -273,10 +273,10 @@ object CraftingBenchMenu {
         val queueLimit = CraftingBenchSettings.resolveQueueLimit(player::hasPermission)
         return ItemStack(Material.BOOK).apply {
             itemMeta = itemMeta?.apply {
-                displayName(TextUtils.parse("&6${tier.displayName}"))
+                displayName(TextUtils.parseItem("&6${tier.displayName}"))
                 lore(listOf(
-                    TextUtils.parse("&7队列上限: &f${queueLimit}"),
-                    TextUtils.parse("&7当前队列: &f$queueSize"),
+                    TextUtils.parseItem("&7队列上限: &f${queueLimit}"),
+                    TextUtils.parseItem("&7当前队列: &f$queueSize"),
                 ))
             }
         }

@@ -4,6 +4,7 @@ import net.momirealms.craftengine.bukkit.api.event.CustomBlockBreakEvent
 import net.momirealms.craftengine.bukkit.api.event.CustomBlockInteractEvent
 import net.momirealms.craftengine.bukkit.api.event.FurnitureBreakEvent
 import net.momirealms.craftengine.bukkit.api.event.FurnitureInteractEvent
+import com.pixlehavencore.util.TextUtils
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
 import org.bukkit.event.player.PlayerJoinEvent
@@ -53,12 +54,10 @@ object CraftingBenchListener {
             AdminGuiListener.onInventoryClick(event)
             return
         }
-        val holder = event.inventory.holder as? CraftingBenchMenuHolder ?: return
+        val holder = event.view.topInventory.holder as? CraftingBenchMenuHolder ?: return
         val player = event.whoClicked as? org.bukkit.entity.Player ?: return
-        if (event.clickedInventory == null || event.clickedInventory != event.view.topInventory) {
-            return
-        }
         event.isCancelled = true
+        if (event.clickedInventory != event.view.topInventory) return
         val tier = CraftingBenchSettings.getTier(holder.tierId) ?: return
         when (holder.mode) {
             CraftingBenchMenuMode.LIST -> handleListClick(event.rawSlot, player, holder, tier)
@@ -93,7 +92,7 @@ object CraftingBenchListener {
             CraftingBenchMenu.SLOT_DETAIL_MINUS -> CraftingBenchMenu.openRecipeDetail(player, tier, holder.category, holder.page, recipeId, (holder.craftCount - 1).coerceAtLeast(1))
             CraftingBenchMenu.SLOT_DETAIL_CRAFT -> {
                 val result = CraftingBenchService.submitCraft(player, tier, recipeId, holder.craftCount)
-                player.sendMessage(((if (result.success) "&a" else "&c") + result.message).replace('&', '§'))
+                player.sendMessage(TextUtils.parse((if (result.success) "&a" else "&c") + result.message))
                 CraftingBenchMenu.openRecipeDetail(player, tier, holder.category, holder.page, recipeId, holder.craftCount)
             }
             CraftingBenchMenu.SLOT_DETAIL_PLUS -> CraftingBenchMenu.openRecipeDetail(player, tier, holder.category, holder.page, recipeId, holder.craftCount + 1)
