@@ -31,3 +31,13 @@ sync-interval-minutes: 30
 # 豁免账户列表。
 # 这些 UUID 不参与中心银行统计、活跃 M0 与税务治理。
 exempt-account-ids: []
+
+# 不活跃玩家阶梯权重。
+# 不活跃天数越高，计入货币供给计算的权重越低。
+inactivity-weights:
+  - days: 14
+    weight: 0.7
+  - days: 30
+    weight: 0.3
+  - days: 60
+    weight: 0.1
