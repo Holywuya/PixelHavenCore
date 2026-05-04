@@ -11,6 +11,14 @@ object CentralBankSettings {
 
     data class InactivityWeight(val days: Int, val weight: BigDecimal)
 
+    enum class SupplyMode { FIXED, MANAGED }
+
+    var supplyMode: SupplyMode = SupplyMode.MANAGED
+        private set
+
+    var allowAutoContraction: Boolean = true
+        private set
+
     var inactivityWeights: List<InactivityWeight> = emptyList()
         private set
 
@@ -63,6 +71,10 @@ object CentralBankSettings {
             .filter { it.isNotBlank() }
             .toSet()
         maxNegativeReserve = config.getLong("max-negative-reserve", -1L)
+        supplyMode = runCatching {
+            SupplyMode.valueOf(config.getString("supply-mode", "MANAGED")!!.uppercase())
+        }.getOrDefault(SupplyMode.MANAGED)
+        allowAutoContraction = config.getBoolean("allow-auto-contraction", true)
         inactivityWeights = config.getMapList("inactivity-weights")
             .mapNotNull { map ->
                 val days = (map["days"] as? Int)?.coerceAtLeast(1) ?: return@mapNotNull null

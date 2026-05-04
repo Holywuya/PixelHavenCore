@@ -46,3 +46,12 @@ inactivity-weights:
 # 当补偿导致 C 账户余额低于此值时暂停补偿并记录警告。
 # 设为 -1 表示无限制。
 max-negative-reserve: "-1"
+
+# 货币供给模式。
+# FIXED   — C 账户余额为硬上限，不自动扩缩。
+# MANAGED — 根据理论供给自动扩缩。
+supply-mode: MANAGED
+
+# MANAGED 模式下是否允许自动缩容。
+# 设为 false 则供给只能扩张（旧行为）。
+allow-auto-contraction: true

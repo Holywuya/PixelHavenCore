@@ -313,20 +313,34 @@ object CentralBankService {
             totalPlayerBalance = totalBalance
 
             val currentTotalSupply = totalBalance.add(getReserveBalance())
-            if (getReserveBalance() <= BigDecimal.ZERO && maxSupply <= BigDecimal.ZERO && theoreticalSupply > currentTotalSupply) {
-                val bootstrap = theoreticalSupply.subtract(currentTotalSupply)
-                if (bootstrap > BigDecimal.ZERO) {
-                    EconomyStorageService.rawDeposit(CENTRAL_BANK_RESERVE_C_ACCOUNT_ID, currency, bootstrap, exempt = true)
+            when (CentralBankSettings.supplyMode) {
+                CentralBankSettings.SupplyMode.FIXED -> {
+                    maxSupply = maxSupply.coerceAtLeast(currentTotalSupply)
                 }
-                maxSupply = theoreticalSupply
-            } else if (theoreticalSupply > currentTotalSupply) {
-                val expansion = theoreticalSupply.subtract(currentTotalSupply)
-                if (expansion > BigDecimal.ZERO) {
-                    EconomyStorageService.rawDeposit(CENTRAL_BANK_RESERVE_C_ACCOUNT_ID, currency, expansion, exempt = true)
+                CentralBankSettings.SupplyMode.MANAGED -> {
+                    if (getReserveBalance() <= BigDecimal.ZERO && maxSupply <= BigDecimal.ZERO && theoreticalSupply > currentTotalSupply) {
+                        val bootstrap = theoreticalSupply.subtract(currentTotalSupply)
+                        if (bootstrap > BigDecimal.ZERO) {
+                            EconomyStorageService.rawDeposit(CENTRAL_BANK_RESERVE_C_ACCOUNT_ID, currency, bootstrap, exempt = true)
+                        }
+                        maxSupply = theoreticalSupply
+                    } else if (theoreticalSupply > currentTotalSupply) {
+                        val expansion = theoreticalSupply.subtract(currentTotalSupply)
+                        if (expansion > BigDecimal.ZERO) {
+                            EconomyStorageService.rawDeposit(CENTRAL_BANK_RESERVE_C_ACCOUNT_ID, currency, expansion, exempt = true)
+                        }
+                        maxSupply = maxSupply.coerceAtLeast(theoreticalSupply)
+                    } else if (CentralBankSettings.allowAutoContraction && theoreticalSupply < currentTotalSupply) {
+                        val contraction = currentTotalSupply.subtract(theoreticalSupply)
+                        val actualContraction = contraction.coerceAtMost(getReserveBalance())
+                        if (actualContraction > BigDecimal.ZERO) {
+                            EconomyStorageService.rawWithdraw(CENTRAL_BANK_RESERVE_C_ACCOUNT_ID, currency, actualContraction, exempt = true)
+                        }
+                        maxSupply = theoreticalSupply.coerceAtLeast(currentTotalSupply.subtract(actualContraction))
+                    } else {
+                        maxSupply = maxSupply.coerceAtLeast(currentTotalSupply)
+                    }
                 }
-                maxSupply = maxSupply.coerceAtLeast(theoreticalSupply)
-            } else {
-                maxSupply = maxSupply.coerceAtLeast(currentTotalSupply)
             }
 
             val shouldRecoverDormant = lastDormantRecoveryAt <= 0L || now - lastDormantRecoveryAt >= WEEK_MILLIS
