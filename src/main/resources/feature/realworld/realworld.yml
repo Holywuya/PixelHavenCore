@@ -10,11 +10,20 @@ weather:
   decision-interval-seconds: 300
   persistence-chance: 0.6
   extreme:
-    # 预留给后续天气切换预警；当前版本未接线。
+    # 命中 BLIZZARD / SANDSTORM / ACID_RAIN 时，先进入预警倒计时；<= 0 则直接切换。
     warning-seconds: 30
     grace-period-seconds: 10
     damage-interval-seconds: 3
     base-damage-hearts: 2.0
+  visibility:
+    # 视觉效果使用短持续药水并自动续期，避免主动清除其他系统来源效果。
+    effect-duration-seconds: 3
+    fog:
+      blindness-amplifier: 0
+    blizzard:
+      blindness-amplifier: 1
+    sandstorm:
+      blindness-amplifier: 2
 
 temperature:
   comfort-min: 15
@@ -23,6 +32,12 @@ temperature:
   altitude-drop-per-block: 0.5
   scan-interval-seconds: 5
   max-change-per-tick: 0.5
+  shelter:
+    # 室内/保温遮蔽仍使用偏宽松判定；以下开关主要影响天气暴露判定。
+    # 天气遮蔽默认接受完整实体顶、半砖顶、楼梯顶；玻璃/树叶由下列开关决定。
+    glass-counts-as-shelter: false
+    leaves-count-as-shelter: false
+    horizontal-radius: 1
   armor-bonus:
     leather: 5
     netherite: 10
@@ -47,8 +62,10 @@ thirst:
   water-sources:
     water-bottle: 30.0
     right-click-source: 20.0
+    drinker: 40.0
     rain-per-minute: 2.0
     sea-water: 10.0
+  drinker-cooldown-seconds: 2
   water-quality:
     river-nausea-chance: 0.1
     sea-water-nausea-chance: 1.0

@@ -40,7 +40,7 @@ object RealWorldCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
             if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
 
-            val globalState = RealWorldService.getGlobalState()
+            val globalState = RealWorldService.getGlobalStateSnapshot()
             if (globalState == null) {
                 sender.msg("&e真实世界全局状态尚未初始化。")
                 return@execute
@@ -52,6 +52,10 @@ object RealWorldCommand {
             sender.msg("&6=== 真实世界环境状态 ===")
             sender.msg("&7季节: &f${globalState.season.displayName} &7(进度 &f${formatDecimal(globalState.seasonProgress * 100)}%&7)")
             sender.msg("&7天气: &f${globalState.weather.displayName} &7(强度 &f${formatDecimal(globalState.weatherIntensity)}&7)")
+            val pendingWeather = globalState.pendingWeather
+            if (pendingWeather != null && globalState.warningRemainingSeconds > 0.0) {
+                sender.msg("&7预警: &f${pendingWeather.displayName} &7将在 &f${kotlin.math.ceil(globalState.warningRemainingSeconds).toInt()} &7秒后到来")
+            }
             sender.msg("&7在线玩家: &f${onlinePlayers.size} &7人")
             sender.msg("&7已缓存状态: &f${cachedStates.size} &7人")
             if (cachedStates.isEmpty()) {
@@ -90,6 +94,7 @@ object RealWorldCommand {
                 sender.msg("&7体温: &f${formatDecimal(state.temperature)}°C &7(${state.temperaturePhase.name})")
                 sender.msg("&7口渴: &f${formatDecimal(state.hydration)}/100 &7(${state.thirstPhase.name})")
                 sender.msg("&7遮蔽: &f${if (state.isSheltered) "是" else "否"}")
+                sender.msg("&7天气遮蔽: &f${if (state.isWeatherSheltered) "是" else "否"}")
                 sender.msg("&7热源: &f${formatHeatSource(state.nearHeatSource)}")
             }
         }

@@ -8,10 +8,11 @@ object RealWorldPlaceholders : PlaceholderExpansion {
     override val identifier: String = "phcorerw"
 
     override fun onPlaceholderRequest(player: Player?, args: String): String {
+        val globalState = RealWorldService.getGlobalStateSnapshot()
         return when (args.lowercase()) {
-            "season" -> RealWorldService.getGlobalState()?.season?.displayName ?: ""
-            "weather" -> RealWorldService.getGlobalState()?.weather?.displayName ?: ""
-            "season_progress" -> RealWorldService.getGlobalState()?.let { global ->
+            "season" -> globalState?.season?.displayName ?: ""
+            "weather" -> globalState?.weather?.displayName ?: ""
+            "season_progress" -> globalState?.let { global ->
                 "%.1f%%".format(global.seasonProgress.coerceIn(0.0, 1.0) * 100)
             } ?: ""
             "temperature" -> player?.let { p ->

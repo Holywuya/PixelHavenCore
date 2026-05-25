@@ -1,6 +1,7 @@
 package com.pixlehavencore.feature.realworld
 
 import kotlin.math.cos
+import org.bukkit.Bukkit
 import taboolib.common.platform.function.info
 
 object SeasonEngine {
@@ -17,7 +18,16 @@ object SeasonEngine {
 
         while (global.seasonProgress >= 1.0) {
             global.seasonProgress -= 1.0
-            global.season = getNextSeason(global.season)
+            val previousSeason = global.season
+            global.season = getNextSeason(previousSeason)
+            val normalizedSeasonProgress = global.seasonProgress.coerceIn(0.0, 1.0)
+            Bukkit.getPluginManager().callEvent(
+                RealWorldSeasonChangedEvent(
+                    previousSeason = previousSeason,
+                    season = global.season,
+                    seasonProgress = normalizedSeasonProgress,
+                ),
+            )
             info("[RealWorld] 季节切换为: ${global.season.displayName}")
         }
 

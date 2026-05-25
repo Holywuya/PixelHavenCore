@@ -9,6 +9,11 @@ import org.bukkit.potion.PotionEffectType
 
 object ThirstEngine {
 
+    enum class NaturalWaterSourceType {
+        FRESH_WATER,
+        SEA_WATER,
+    }
+
     fun compute(
         player: Player,
         state: PlayerEnvState,
@@ -43,7 +48,7 @@ object ThirstEngine {
 
         var hydration = (state.hydration - consumption).coerceIn(0.0, 100.0)
 
-        if (isRaining(player) && isExposedToRain(player) && !isInWater(player)) {
+        if (supportsRainHydration(global) && isExposedToRain(player) && !isInWater(player)) {
             val rainRestore = settings.rainRestorePerMinute / 60.0 * intervalSeconds
             hydration = (hydration + rainRestore).coerceIn(0.0, 100.0)
         }
@@ -53,24 +58,62 @@ object ThirstEngine {
     }
 
     fun onWaterBottleConsume(state: PlayerEnvState) {
-        state.hydration = (state.hydration + RealWorldSettings.waterBottleRestore).coerceIn(0.0, 100.0)
-        state.thirstPhase = classifyThirst(state.hydration)
+        restoreHydration(state, RealWorldSettings.waterBottleRestore)
     }
 
-    fun onRightClickWaterSource(player: Player, state: PlayerEnvState, block: Block) {
+    fun isNaturalWaterSource(block: Block): Boolean {
+        return resolveNaturalWaterSourceType(block) != null
+    }
+
+    fun onRightClickNaturalWaterSource(player: Player, state: PlayerEnvState, block: Block): Boolean {
+        val sourceType = resolveNaturalWaterSourceType(block) ?: return false
+        val settings = RealWorldSettings
+        val restore = when (sourceType) {
+            NaturalWaterSourceType.FRESH_WATER -> settings.waterSourceRestore
+            NaturalWaterSourceType.SEA_WATER -> settings.seaWaterRestore
+        }
+        val nauseaChance = when (sourceType) {
+            NaturalWaterSourceType.FRESH_WATER -> settings.riverNauseaChance
+            NaturalWaterSourceType.SEA_WATER -> settings.seaWaterNauseaChance
+        }
+
+        val changed = restoreHydration(state, restore)
+        if (!changed) {
+            return false
+        }
+        maybeApplyNaturalWaterSideEffects(player, sourceType, nauseaChance)
+        return true
+    }
+
+    fun isDrinker(block: Block): Boolean {
+        return block.type == Material.WATER_CAULDRON
+    }
+
+    fun onRightClickDrinker(state: PlayerEnvState, block: Block): Boolean {
+        if (!isDrinker(block)) {
+            return false
+        }
+        return restoreHydration(state, RealWorldSettings.drinkerRestore)
+    }
+
+    private fun resolveNaturalWaterSourceType(block: Block): NaturalWaterSourceType? {
         if (block.type != Material.WATER) {
-            return
+            return null
         }
 
         val biomeName = block.biome.toString().lowercase()
-        val isSeaWater = biomeName.contains("ocean")
-        val settings = RealWorldSettings
-        val restore = if (isSeaWater) settings.seaWaterRestore else settings.waterSourceRestore
-        val nauseaChance = if (isSeaWater) settings.seaWaterNauseaChance else settings.riverNauseaChance
+        return if (biomeName.contains("ocean")) {
+            NaturalWaterSourceType.SEA_WATER
+        } else {
+            NaturalWaterSourceType.FRESH_WATER
+        }
+    }
 
-        state.hydration = (state.hydration + restore).coerceIn(0.0, 100.0)
-        state.thirstPhase = classifyThirst(state.hydration)
-
+    private fun maybeApplyNaturalWaterSideEffects(
+        player: Player,
+        sourceType: NaturalWaterSourceType,
+        nauseaChance: Double,
+    ) {
         if (ThreadLocalRandom.current().nextDouble() >= nauseaChance) {
             return
         }
@@ -78,11 +121,18 @@ object ThirstEngine {
         PotionEffectType.NAUSEA?.let { effectType ->
             player.addPotionEffect(PotionEffect(effectType, 20 * 30, 0, false, false, false))
         }
-        if (isSeaWater) {
+        if (sourceType == NaturalWaterSourceType.SEA_WATER) {
             PotionEffectType.HUNGER?.let { effectType ->
                 player.addPotionEffect(PotionEffect(effectType, 20 * 30, 0, false, false, false))
             }
         }
+    }
+
+    private fun restoreHydration(state: PlayerEnvState, amount: Double): Boolean {
+        val previousHydration = state.hydration
+        state.hydration = (state.hydration + amount).coerceIn(0.0, 100.0)
+        state.thirstPhase = classifyThirst(state.hydration)
+        return state.hydration > previousHydration
     }
 
     private fun computeTemperatureDeviation(temperature: Double): Double {
@@ -110,17 +160,8 @@ object ThirstEngine {
         return location.blockY >= highestBlockY
     }
 
-    private fun isRaining(player: Player): Boolean {
-        val location = player.location
-        val world = location.world ?: return false
-        if (!world.hasStorm()) {
-            return false
-        }
-
-        val biomeName = location.block.biome.toString().lowercase()
-        return !biomeName.contains("snow") &&
-            !biomeName.contains("ice") &&
-            !biomeName.contains("frozen")
+    private fun supportsRainHydration(global: GlobalEnvState): Boolean {
+        return global.weather == WeatherType.RAIN || global.weather == WeatherType.THUNDER
     }
 
     fun classifyThirst(hydration: Double): ThirstPhase {

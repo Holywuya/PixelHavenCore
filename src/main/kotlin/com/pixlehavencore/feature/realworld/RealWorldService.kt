@@ -34,6 +34,7 @@ object RealWorldService {
     private val globalStateLock = Any()
     private val lifecycleGeneration = AtomicLong(0L)
     private val pendingQuitAt = ConcurrentHashMap<UUID, Long>()
+    private val drinkerCooldownUntil = ConcurrentHashMap<UUID, Long>()
 
     private var tickTask: Any? = null
     private var autoSaveTask: Any? = null
@@ -48,6 +49,7 @@ object RealWorldService {
         lifecycleGeneration.incrementAndGet()
         shuttingDown = false
         pendingQuitAt.clear()
+        drinkerCooldownUntil.clear()
         RealWorldStorage.init()
         synchronized(globalStateLock) {
             globalState = RealWorldStorage.loadGlobal()
@@ -68,6 +70,7 @@ object RealWorldService {
         lifecycleGeneration.incrementAndGet()
         shuttingDown = false
         pendingQuitAt.clear()
+        drinkerCooldownUntil.clear()
         RealWorldStorage.reload()
         synchronized(globalStateLock) {
             globalState = RealWorldStorage.loadGlobal()
@@ -86,6 +89,7 @@ object RealWorldService {
         shuttingDown = true
         lifecycleGeneration.incrementAndGet()
         pendingQuitAt.clear()
+        drinkerCooldownUntil.clear()
         stopTasks()
         saveOnlinePlayers()
         val globalSnapshot = synchronized(globalStateLock) {
@@ -101,7 +105,7 @@ object RealWorldService {
         }
     }
 
-    fun getGlobalState(): GlobalEnvState? {
+    internal fun getGlobalStateSnapshot(): GlobalEnvState? {
         if (!RealWorldSettings.enabled) {
             return null
         }
@@ -110,14 +114,68 @@ object RealWorldService {
         }
     }
 
+    /**
+     * 返回当前天气类型，只暴露不可变枚举值，不向外暴露内部全局状态对象。
+     */
+    fun getCurrentWeatherType(): WeatherType? {
+        if (!RealWorldSettings.enabled) {
+            return null
+        }
+        return synchronized(globalStateLock) {
+            globalState?.weather
+        }
+    }
+
+    /**
+     * 返回当前是否处于极端天气；模块未启用或状态未就绪时返回 null。
+     */
+    fun isExtremeWeatherActive(): Boolean? {
+        return getCurrentWeatherType()?.isExtreme
+    }
+
+    /**
+     * 返回当前季节，只暴露不可变枚举值，不向外暴露内部全局状态对象。
+     */
+    fun getSeason(): Season? {
+        if (!RealWorldSettings.enabled) {
+            return null
+        }
+        return synchronized(globalStateLock) {
+            globalState?.season
+        }
+    }
+
+    /**
+     * 返回最近一次实体线程更新后的天气遮蔽缓存结果。
+     *
+     * 这里不直接读取玩家当前位置或方块状态，而是读取 `PlayerEnvState` 快照，
+     * 避免外部模块在错误线程上访问 Bukkit/Folia 实体与区块数据。
+     */
+    fun isPlayerWeatherSheltered(player: Player): Boolean? {
+        if (!RealWorldSettings.enabled) {
+            return null
+        }
+        return RealWorldStorage.getPlayerSnapshot(player.uniqueId)?.isWeatherSheltered
+    }
+
     fun forceSeason(season: Season) {
         if (!RealWorldSettings.enabled) {
             return
         }
         synchronized(globalStateLock) {
             val state = globalState ?: return
+            val previousSeason = state.season
             state.season = season
             state.seasonProgress = 0.0
+            if (previousSeason != season) {
+                Bukkit.getPluginManager().callEvent(
+                    RealWorldSeasonChangedEvent(
+                        previousSeason = previousSeason,
+                        season = season,
+                        seasonProgress = 0.0,
+                    ),
+                )
+            }
             RealWorldStorage.markGlobalDirty(state)
         }
     }
@@ -154,6 +212,7 @@ object RealWorldService {
         val generation = lifecycleGeneration.get()
         val quitMark = System.currentTimeMillis()
         pendingQuitAt[uuid] = quitMark
+        drinkerCooldownUntil.remove(uuid)
         SurvivalHud.onPlayerQuit(player)
         submitAsync {
             if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
@@ -197,7 +256,7 @@ object RealWorldService {
         }
     }
 
-    @SubscribeEvent(ignoreCancelled = true)
+    @SubscribeEvent(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onPlayerInteract(event: PlayerInteractEvent) {
         if (!RealWorldSettings.enabled) {
             return
@@ -210,7 +269,7 @@ object RealWorldService {
         }
 
         val block = event.clickedBlock ?: return
-        if (block.type != Material.WATER) {
+        if (!ThirstEngine.isDrinker(block) && !ThirstEngine.isNaturalWaterSource(block)) {
             return
         }
 
@@ -221,11 +280,40 @@ object RealWorldService {
             if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
                 return@submitOnEntity
             }
-            RealWorldStorage.withPlayerState(uuid) { state ->
-                ThirstEngine.onRightClickWaterSource(player, state, block)
+            val changed = RealWorldStorage.withPlayerState(uuid) { state ->
+                when {
+                    ThirstEngine.isDrinker(block) -> handleDrinkerInteract(uuid, state, block)
+                    else -> ThirstEngine.onRightClickNaturalWaterSource(player, state, block)
+                }
             } ?: return@submitOnEntity
+            if (!changed) {
+                return@submitOnEntity
+            }
             RealWorldStorage.markPlayerDirty(uuid)
         }
+    }
+
+    private fun handleDrinkerInteract(uuid: UUID, state: PlayerEnvState, block: org.bukkit.block.Block): Boolean {
+        if (!ThirstEngine.isDrinker(block)) {
+            return false
+        }
+
+        val now = System.currentTimeMillis()
+        val cooldownUntil = drinkerCooldownUntil[uuid] ?: 0L
+        if (now < cooldownUntil) {
+            return false
+        }
+
+        val changed = ThirstEngine.onRightClickDrinker(state, block)
+        if (!changed) {
+            return false
+        }
+
+        val cooldownMillis = RealWorldSettings.drinkerCooldownSeconds.coerceAtLeast(0) * 1000L
+        if (cooldownMillis > 0L) {
+            drinkerCooldownUntil[uuid] = now + cooldownMillis
+        }
+        return true
     }
 
     private fun startTickTask() {
@@ -255,7 +343,7 @@ object RealWorldService {
                     RealWorldStorage.withPlayerState(player.uniqueId) { playerState ->
                         TemperatureEngine.compute(player, playerState, globalSnapshot, tickSeconds)
                         ThirstEngine.compute(player, playerState, globalSnapshot, tickSeconds)
-                        SurvivalEffectApplier.apply(player, playerState, tickSeconds)
+                        SurvivalEffectApplier.apply(player, playerState, globalSnapshot, tickSeconds)
                         playerState.hudRefreshTimer -= tickSeconds.coerceAtLeast(0).toDouble()
                         if (playerState.hudRefreshTimer <= 0.0) {
                             SurvivalHud.renderCurrentThread(player, playerState, globalSnapshot)

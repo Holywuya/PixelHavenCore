@@ -31,6 +31,14 @@ object RealWorldSettings {
         private set
     var extremeBaseDamageHearts: Double = 2.0
         private set
+    var visibilityEffectDurationSeconds: Int = 3
+        private set
+    var fogBlindnessAmplifier: Int = 0
+        private set
+    var blizzardBlindnessAmplifier: Int = 0
+        private set
+    var sandstormBlindnessAmplifier: Int = 1
+        private set
 
     var comfortMin: Double = 15.0
         private set
@@ -44,6 +52,14 @@ object RealWorldSettings {
         private set
     var maxChangePerTick: Double = 0.5
         private set
+    var shelterGlassCountsAsShelter: Boolean = false
+        private set
+    var shelterLeavesCountAsShelter: Boolean = false
+        private set
+    var shelterHorizontalRadius: Int = 1
+        private set
+
+    private const val MAX_SHELTER_HORIZONTAL_RADIUS = 2
     var armorBonusLeather: Double = 5.0
         private set
     var armorBonusNetherite: Double = 10.0
@@ -84,9 +100,13 @@ object RealWorldSettings {
         private set
     var waterSourceRestore: Double = 20.0
         private set
+    var drinkerRestore: Double = 40.0
+        private set
     var rainRestorePerMinute: Double = 2.0
         private set
     var seaWaterRestore: Double = 10.0
+        private set
+    var drinkerCooldownSeconds: Int = 2
         private set
     var seaWaterNauseaChance: Double = 1.0
         private set
@@ -128,6 +148,10 @@ object RealWorldSettings {
         extremeGracePeriodSeconds = config.getInt("weather.extreme.grace-period-seconds", 10).coerceAtLeast(0)
         extremeDamageIntervalSeconds = config.getInt("weather.extreme.damage-interval-seconds", 3).coerceAtLeast(1)
         extremeBaseDamageHearts = config.getDouble("weather.extreme.base-damage-hearts", 2.0).coerceAtLeast(0.0)
+        visibilityEffectDurationSeconds = config.getInt("weather.visibility.effect-duration-seconds", 3).coerceAtLeast(1)
+        fogBlindnessAmplifier = config.getInt("weather.visibility.fog.blindness-amplifier", 0).coerceAtLeast(0)
+        blizzardBlindnessAmplifier = config.getInt("weather.visibility.blizzard.blindness-amplifier", 1).coerceAtLeast(0)
+        sandstormBlindnessAmplifier = config.getInt("weather.visibility.sandstorm.blindness-amplifier", 2).coerceAtLeast(0)
 
         comfortMin = config.getDouble("temperature.comfort-min", 15.0)
         comfortMax = config.getDouble("temperature.comfort-max", 36.0)
@@ -135,6 +159,10 @@ object RealWorldSettings {
         altitudeDropPerBlock = config.getDouble("temperature.altitude-drop-per-block", 0.5).coerceAtLeast(0.0)
         heatSourceScanIntervalSeconds = config.getInt("temperature.scan-interval-seconds", 5).coerceAtLeast(1)
         maxChangePerTick = config.getDouble("temperature.max-change-per-tick", 0.5).coerceAtLeast(0.0)
+        shelterGlassCountsAsShelter = config.getBoolean("temperature.shelter.glass-counts-as-shelter", false)
+        shelterLeavesCountAsShelter = config.getBoolean("temperature.shelter.leaves-count-as-shelter", false)
+        shelterHorizontalRadius = config.getInt("temperature.shelter.horizontal-radius", 1)
+            .coerceIn(0, MAX_SHELTER_HORIZONTAL_RADIUS)
         armorBonusLeather = config.getDouble("temperature.armor-bonus.leather", 5.0)
         armorBonusNetherite = config.getDouble("temperature.armor-bonus.netherite", 10.0)
 
@@ -157,8 +185,10 @@ object RealWorldSettings {
 
         waterBottleRestore = config.getDouble("thirst.water-sources.water-bottle", 30.0).coerceAtLeast(0.0)
         waterSourceRestore = config.getDouble("thirst.water-sources.right-click-source", 20.0).coerceAtLeast(0.0)
+        drinkerRestore = config.getDouble("thirst.water-sources.drinker", 40.0).coerceAtLeast(0.0)
         rainRestorePerMinute = config.getDouble("thirst.water-sources.rain-per-minute", 2.0).coerceAtLeast(0.0)
         seaWaterRestore = config.getDouble("thirst.water-sources.sea-water", 10.0).coerceAtLeast(0.0)
+        drinkerCooldownSeconds = config.getInt("thirst.drinker-cooldown-seconds", 2).coerceAtLeast(0)
         seaWaterNauseaChance = config.getDouble("thirst.water-quality.sea-water-nausea-chance", 1.0).coerceIn(0.0, 1.0)
         riverNauseaChance = config.getDouble("thirst.water-quality.river-nausea-chance", 0.1).coerceIn(0.0, 1.0)
 

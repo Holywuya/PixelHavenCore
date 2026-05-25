@@ -70,6 +70,9 @@ enum class WeatherType(
     FOG("雾", -2.0, 0.7, true, false),
     ACID_RAIN("酸雨", -4.0, 0.3, false, true);
 
+    val isExtreme: Boolean
+        get() = this == BLIZZARD || this == SANDSTORM || this == ACID_RAIN
+
     companion object {
         fun fromName(name: String): WeatherType? =
             entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
@@ -117,12 +120,16 @@ data class PlayerEnvState(
     var temperature: Double = 20.0,
     var hydration: Double = 100.0,
     var isSheltered: Boolean = false,
+    var isWeatherSheltered: Boolean = false,
     var nearHeatSource: HeatSource? = null,
     var biomeTemperature: Double = 20.0,
     var temperaturePhase: TemperaturePhase = TemperaturePhase.COMFORTABLE,
     var thirstPhase: ThirstPhase = ThirstPhase.FULL,
     var graceTimer: Double = 0.0,
     var damageTimer: Double = 0.0,
+    var weatherExposureSource: WeatherType? = null,
+    var weatherExposureGraceTimer: Double = 0.0,
+    var weatherExposureDamageTimer: Double = 0.0,
     var heatSourceScanTimer: Double = 0.0,
     var hudRefreshTimer: Double = 0.0,
 )
@@ -132,6 +139,9 @@ data class GlobalEnvState(
     var seasonProgress: Double = 0.0,
     var weather: WeatherType = WeatherType.CLEAR,
     var weatherIntensity: Double = 0.5,
+    var pendingWeather: WeatherType? = null,
+    var pendingWeatherIntensity: Double = 0.0,
+    var warningRemainingSeconds: Double = 0.0,
     var dayPhase: DayPhase = DayPhase.DAY,
     var weatherDecisionTimer: Double = 0.0,
 )
