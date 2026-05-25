@@ -2,7 +2,7 @@ package com.pixlehavencore.feature.deathdrop
 
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission
-import org.bukkit.Bukkit
+import com.pixlehavencore.util.resolveOfflinePlayer
 import org.bukkit.OfflinePlayer
 import taboolib.common.platform.ProxyCommandSender
 import taboolib.common.platform.command.CommandBody
@@ -28,7 +28,7 @@ object DeathDropCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.deathdrop.admin")) return@execute
+            if (!sender.requirePermission("phcore.admin")) return@execute
             DeathDropSettings.init()
             DeathDropUsageStorage.init()
             sender.msg("&a死亡掉落配置已重载。")
@@ -41,7 +41,7 @@ object DeathDropCommand {
             suggestPlayers()
             dynamic(comment = "count") {
                 execute<ProxyCommandSender> { sender, context, argument ->
-                    if (!sender.requirePermission("phcore.deathdrop.admin")) return@execute
+                    if (!sender.requirePermission("phcore.admin")) return@execute
                     val targetName = context.getOrNull("player") ?: return@execute
                     val target = resolveOfflinePlayer(targetName) ?: run {
                         sender.msg("&c未找到玩家: $targetName")
@@ -65,7 +65,7 @@ object DeathDropCommand {
             suggestPlayers()
             dynamic(comment = "count") {
                 execute<ProxyCommandSender> { sender, context, argument ->
-                    if (!sender.requirePermission("phcore.deathdrop.admin")) return@execute
+                    if (!sender.requirePermission("phcore.admin")) return@execute
                     val targetName = context.getOrNull("player") ?: return@execute
                     val target = resolveOfflinePlayer(targetName) ?: run {
                         sender.msg("&c未找到玩家: $targetName")
@@ -85,13 +85,4 @@ object DeathDropCommand {
         }
     }
 
-    private fun resolveOfflinePlayer(name: String): OfflinePlayer? {
-        val online = Bukkit.getPlayerExact(name)
-        if (online != null) return online
-        val cached = Bukkit.getOfflinePlayerIfCached(name)
-        if (cached != null && (cached.name != null || cached.hasPlayedBefore())) {
-            return cached
-        }
-        return runCatching { Bukkit.getOfflinePlayer(name) }.getOrNull()
-    }
 }

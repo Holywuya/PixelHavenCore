@@ -25,7 +25,7 @@ object EntityClearerCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.entityclearer.admin")) return@execute
+            if (!sender.requirePermission("phcore.admin")) return@execute
             EntityClearerService.reload()
             sender.msg("&a实体清理配置已重载。")
         }

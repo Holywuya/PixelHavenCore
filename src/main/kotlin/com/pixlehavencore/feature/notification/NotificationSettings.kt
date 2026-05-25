@@ -31,9 +31,6 @@ object NotificationSettings {
     var adminNotificationsEnabled = true
         private set
 
-    var adminNotificationPermission = "phcore.notification.admin"
-        private set
-
     var adminNoPermissionMessage = "&c你没有权限发送服务器通知！"
         private set
 
@@ -125,7 +122,6 @@ object NotificationSettings {
             )
         }
         adminNotificationsEnabled = config.getBoolean("adminNotifications.enabled", true)
-        adminNotificationPermission = config.getString("adminNotifications.permission") ?: "phcore.notification.admin"
         adminNoPermissionMessage = config.getString("adminNotifications.noPermissionMessage") ?: "&c你没有权限发送服务器通知！"
         adminNotificationFormat = config.getString("adminNotifications.format") ?: "&c[管理员通知] &f{message}"
         adminNotificationScope = config.getString("adminNotifications.scope") ?: "ALL"

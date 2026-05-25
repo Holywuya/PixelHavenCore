@@ -1,5 +1,6 @@
 package com.pixlehavencore.feature.vanish
 
+import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import com.pixlehavencore.util.broadcastToPermission
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
@@ -217,7 +218,7 @@ object VanishService {
     private fun notifyAdmins(player: Player, vanishOn: Boolean) {
         if (!VanishSettings.enabled) return
         val template = if (vanishOn) VanishSettings.msgAdminNotifyOn else VanishSettings.msgAdminNotifyOff
-        val message = template.replace("{player}", player.name)
+        val message = template.resolvePlaceholders("{player}" to player.name)
         broadcastToPermission(message, "phcore.vanish.notify", exclude = player.uniqueId)
     }
 

@@ -23,7 +23,7 @@ object SpawnReducerCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.spawnreducer.admin")) return@execute
+            if (!sender.requirePermission("phcore.admin")) return@execute
             SpawnReducerService.reload()
             sender.msg("&a自然生成削减配置已重载。")
         }

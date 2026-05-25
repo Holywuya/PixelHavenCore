@@ -79,23 +79,22 @@ object TaxSettings {
         if (amount <= BigDecimal.ZERO) {
             return 0.0
         }
-        return brackets.firstOrNull { amount >= it.min }?.rate ?: 0.0
+        return brackets.lastOrNull { amount >= it.min }?.rate ?: 0.0
     }
 
     fun computeMarginalTax(amount: BigDecimal): BigDecimal {
         if (amount <= BigDecimal.ZERO || brackets.isEmpty()) return BigDecimal.ZERO
-        val sorted = brackets.sortedBy { it.min }
         var totalTax = BigDecimal.ZERO
-        for (i in sorted.indices) {
-            val floor = sorted[i].min
-            val ceiling = if (i + 1 < sorted.size) sorted[i + 1].min else null
-            if (amount <= floor) break
+        for (i in brackets.indices) {
+            val floor = brackets[i].min
+            val ceiling = if (i + 1 < brackets.size) brackets[i + 1].min else null
+            if (amount <= floor) break // 升序排列，后续税档 floor 更大，无需继续
             val taxable = if (ceiling != null) {
                 amount.coerceAtMost(ceiling).subtract(floor)
             } else {
                 amount.subtract(floor)
             }.coerceAtLeast(BigDecimal.ZERO)
-            totalTax = totalTax.add(taxable.multiply(BigDecimal.valueOf(sorted[i].rate)))
+            totalTax = totalTax.add(taxable.multiply(BigDecimal.valueOf(brackets[i].rate)))
         }
         return totalTax.setScale(0, RoundingMode.HALF_UP).coerceAtLeast(BigDecimal.ZERO)
     }
@@ -108,7 +107,7 @@ object TaxSettings {
                 min = node.getDouble("min", 0.0).coerceAtLeast(0.0).toBigDecimal(),
                 rate = node.getDouble("rate", 0.0).coerceAtLeast(0.0)
             )
-        }.sortedByDescending { it.min }
+        }.sortedBy { it.min }
     }
 
     data class TaxBracket(

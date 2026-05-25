@@ -1,5 +1,6 @@
 package com.pixlehavencore.feature.playtime
 
+import com.pixlehavencore.util.cancelTaskSafely
 import org.bukkit.entity.Player
 import taboolib.common.platform.function.info
 import taboolib.common.platform.function.submit
@@ -83,9 +84,9 @@ object PlaytimeService {
     }
 
     private fun cancelResetTasks() {
-        invokeCancel(dailyResetTask)
-        invokeCancel(weeklyResetTask)
-        invokeCancel(monthlyResetTask)
+        dailyResetTask.cancelTaskSafely()
+        weeklyResetTask.cancelTaskSafely()
+        monthlyResetTask.cancelTaskSafely()
         dailyResetTask = null
         weeklyResetTask = null
         monthlyResetTask = null
@@ -156,8 +157,4 @@ object PlaytimeService {
         return Duration.between(now, next).toMillis()
     }
 
-    private fun invokeCancel(task: Any?) {
-        if (task == null) return
-        runCatching { task.javaClass.methods.firstOrNull { it.name == "cancel" && it.parameterTypes.isEmpty() }?.invoke(task) }
-    }
 }

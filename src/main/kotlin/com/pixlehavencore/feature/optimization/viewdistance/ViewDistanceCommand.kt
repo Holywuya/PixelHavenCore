@@ -27,7 +27,7 @@ object ViewDistanceCommand {
     @CommandBody
     val get = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.viewdistance.admin")) return@execute
+            if (!sender.requirePermission("phcore.admin")) return@execute
             val player = sender.requirePlayer() ?: return@execute
             val distance = ViewDistanceService.resolvePlayerDistance(player)
             sender.msg("&a当前视距为 $distance。")
@@ -38,7 +38,7 @@ object ViewDistanceCommand {
     val set = subCommand {
         dynamic(comment = "distance") {
             execute<ProxyCommandSender> { sender, _, argument ->
-                if (!sender.requirePermission("phcore.viewdistance.admin")) return@execute
+                if (!sender.requirePermission("phcore.admin")) return@execute
                 val value = argument.toIntOrNull()
                 if (value == null) {
                     sender.msg("&c无效的视距参数。")
@@ -54,7 +54,7 @@ object ViewDistanceCommand {
     @CommandBody
     val reset = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.viewdistance.admin")) return@execute
+            if (!sender.requirePermission("phcore.admin")) return@execute
             val player = sender.requirePlayer() ?: return@execute
             ViewDistanceService.clearPlayerDistance(player)
             val target = ViewDistanceService.resolvePlayerDistance(player)
@@ -65,7 +65,7 @@ object ViewDistanceCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.viewdistance.admin")) return@execute
+            if (!sender.requirePermission("phcore.admin")) return@execute
             ViewDistanceService.reload()
             sender.msg("&a视距控制配置已重载。")
         }

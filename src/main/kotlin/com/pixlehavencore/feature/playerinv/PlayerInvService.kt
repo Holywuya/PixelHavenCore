@@ -440,11 +440,9 @@ object PlayerInvService {
         if (!isReady()) {
             return false
         }
-        submit(async = true) {
-            val finalSize = normalizeSize(size)
-            val current = loadPersonal(target.uniqueId)
-            savePersonal(target.uniqueId, finalSize, current.items.toList())
-        }
+        val finalSize = normalizeSize(size)
+        val current = loadPersonal(target.uniqueId)
+        savePersonal(target.uniqueId, finalSize, current.items.toList())
         return true
     }
 
@@ -873,8 +871,8 @@ object PlayerInvService {
             null
         } ?: ItemStack(ItemUtils.matchMaterial(materialSpec, Material.STONE) ?: Material.STONE)
         val meta = item.itemMeta ?: return item
-        meta.displayName(TextUtils.parse(name))
-        meta.lore(TextUtils.parseLore(lore))
+        meta.displayName(TextUtils.parseItem(name))
+        meta.lore(TextUtils.parseItemLore(lore))
         // action null 时不写入 PDC，点击时 getManageAction 返回 null，handleManageClick 直接 return true（无操作）
         if (action != null) {
             meta.persistentDataContainer.set(manageActionKey, PersistentDataType.STRING, action)
@@ -890,6 +888,7 @@ object PlayerInvService {
 
     private fun tryUnlockSharedSlot(player: Player, session: Session, clickedSlot: Int): UnlockResult {
         if (session.type != SessionType.SHARED) return UnlockResult.NOT_SHARED
+        if (session.sharedUnlockedSlots < 0) return UnlockResult.PENDING // 上一次解锁仍在处理中
         val hasManageEntry = session.owner == session.viewer && session.inventory.size > SHARED_MANAGE_ENTRY_SLOT
         val effectiveNext = if (hasManageEntry && session.sharedUnlockedSlots == SHARED_MANAGE_ENTRY_SLOT) {
             SHARED_MANAGE_ENTRY_SLOT + 1
@@ -1005,8 +1004,8 @@ object PlayerInvService {
     private fun buildLockedSlotItem(highlight: Boolean): ItemStack {
         val item = ItemStack(PlayerInvSettings.sharedLockedMaterial)
         val meta = item.itemMeta ?: return item
-        meta.displayName(TextUtils.parse(PlayerInvSettings.sharedLockedName))
-        meta.lore(TextUtils.parseLore(PlayerInvSettings.sharedLockedLore.map {
+        meta.displayName(TextUtils.parseItem(PlayerInvSettings.sharedLockedName))
+        meta.lore(TextUtils.parseItemLore(PlayerInvSettings.sharedLockedLore.map {
             it.resolvePlaceholders("{cost}" to "%.2f".format(PlayerInvSettings.sharedUnlockCost))
         }))
         meta.persistentDataContainer.set(lockedSlotKey, PersistentDataType.BYTE, 1)
@@ -1225,15 +1224,8 @@ object PlayerInvService {
         }.getOrDefault(SharedMemberResult.FAILED)
     }
 
-    private fun resolveOfflinePlayer(name: String): OfflinePlayer? {
-        val online = Bukkit.getPlayerExact(name)
-        if (online != null) return online
-        val cached = Bukkit.getOfflinePlayerIfCached(name)
-        if (cached != null && (cached.name != null || cached.hasPlayedBefore())) {
-            return cached
-        }
-        return runCatching { Bukkit.getOfflinePlayer(name) }.getOrNull()
-    }
+    private fun resolveOfflinePlayer(name: String): OfflinePlayer? =
+        com.pixlehavencore.util.resolveOfflinePlayer(name)
 
     private fun ensureOwnerRecord(connection: Connection, owner: UUID): OwnerRecord {
         queryOwnerRecord(connection, owner)?.let { return it }
@@ -1441,6 +1433,7 @@ object PlayerInvService {
     }
 
     private fun closeStorage() {
+        DatabaseUtils.closeMultipleHandler(personalDataHandler)
         personalDataHandler = null
         dataSource?.close()
         dataSource = null

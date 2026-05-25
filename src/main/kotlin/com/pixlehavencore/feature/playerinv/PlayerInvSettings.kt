@@ -7,7 +7,7 @@ import taboolib.module.configuration.Configuration
 
 object PlayerInvSettings {
 
-    @Config("feature/warehouse.yml")
+    @Config("feature/playerinv.yml")
     private lateinit var config: Configuration
 
     var enabled: Boolean = true
@@ -40,20 +40,16 @@ object PlayerInvSettings {
     var sharedTitle: String = "&8共享仓库 - {name}"
         private set
 
-    var databaseTable: String = "player_warehouse"
+    var databaseTable: String = "player_inv"
         private set
 
-    var sharedTable: String = "shared_warehouse"
+    var sharedTable: String = "shared_inv"
         private set
 
-    var sharedMemberTable: String = "shared_warehouse_member"
+    var sharedMemberTable: String = "shared_inv_member"
         private set
 
-    var usePermission: String = "phcore.PlayerInv.use"
-        private set
 
-    var adminPermission: String = "phcore.PlayerInv.admin"
-        private set
 
     var commandAliasShared: String = "wh"
         private set
@@ -64,7 +60,7 @@ object PlayerInvSettings {
     var noPermissionMessage: String = "&c你没有权限使用仓库"
         private set
 
-    var playerNotFoundMessage: String = "&c未找到玩 {player}"
+    var playerNotFoundMessage: String = "&c未找到玩家 {player}"
         private set
 
     var openSelfMessage: String = ""
@@ -85,13 +81,13 @@ object PlayerInvSettings {
     var sharedCreatedMessage: String = "&a共享仓库 &f{name} &a创建成功"
         private set
 
-    var sharedExistsMessage: String = "&c共享仓库名称已存 {name}"
+    var sharedExistsMessage: String = "&c共享仓库名称已存在 {name}"
         private set
 
-    var sharedNotFoundMessage: String = "&c共享仓库不存 {name}"
+    var sharedNotFoundMessage: String = "&c共享仓库不存在 {name}"
         private set
 
-    var sharedNoAccessMessage: String = "&c你没有权限访问共享仓 {name}"
+    var sharedNoAccessMessage: String = "&c你没有权限访问共享仓库 {name}"
         private set
 
     var sharedMemberAddedMessage: String = "&a已添加成员 &f{player} &a到共享仓库 &f{name}&a"
@@ -115,10 +111,10 @@ object PlayerInvSettings {
     var sharedUnlockNeedMoneyMessage: String = "&c解锁失败，余额不足。需 &f{cost}"
         private set
 
-    var sharedUnlockSuccessMessage: String = "&a已解锁共享仓库格子，消&f{cost}"
+    var sharedUnlockSuccessMessage: String = "&a已解锁共享仓库格子，消耗 &f{cost}"
         private set
 
-    var sharedLockedName: String = "&c未解锁格"
+    var sharedLockedName: String = "&c未解锁格子"
         private set
 
     var sharedLockedLore: List<String> = listOf("&7解锁费用: &f{cost}", "&e左键点击解锁")
@@ -187,7 +183,7 @@ object PlayerInvSettings {
     var sharedToggleToPublicLore: List<String> = listOf("&7点击将此仓库设为公开", "&7所有人均可访问")
         private set
 
-    var sharedToggleToPrivateName: String = "&c切换为私"
+    var sharedToggleToPrivateName: String = "&c切换为私有"
         private set
 
     var sharedToggleToPrivateLore: List<String> = listOf("&7点击将此仓库设为私有", "&7仅成员可访问")
@@ -211,7 +207,7 @@ object PlayerInvSettings {
     var chatInputDone: String = "&a操作完成"
         private set
 
-    var chatInputPlayerNotFound: String = "&c未找到玩 {player}"
+    var chatInputPlayerNotFound: String = "&c未找到玩家 {player}"
         private set
 
     var sharedManageNoPermission: String = "&c只有共享仓库创建者可以管理"
@@ -263,17 +259,15 @@ object PlayerInvSettings {
         title = config.getString("title") ?: "&8随身仓库 - {player}"
         sharedTitle = config.getString("sharedTitle") ?: "&8共享仓库 - {name}"
 
-        databaseTable = sanitizeTableName(config.getString("database.table") ?: "player_warehouse")
-        sharedTable = sanitizeTableName(config.getString("database.sharedTable") ?: "shared_warehouse")
-        sharedMemberTable = sanitizeTableName(config.getString("database.sharedMemberTable") ?: "shared_warehouse_member")
+        databaseTable = sanitizeTableName(config.getString("database.table") ?: "player_inv")
+        sharedTable = sanitizeTableName(config.getString("database.sharedTable") ?: "shared_inv")
+        sharedMemberTable = sanitizeTableName(config.getString("database.sharedMemberTable") ?: "shared_inv_member")
 
-        usePermission = config.getString("permissions.use") ?: "phcore.PlayerInv.use"
-        adminPermission = config.getString("permissions.admin") ?: "phcore.PlayerInv.admin"
-        commandAliasShared = config.getString("commands.sharedAlias")?.trim()?.ifBlank { "wh" } ?: "wh"
+        commandAliasShared = config.getString("commands.sharedAlias")?.trim()?.ifBlank { "pi" } ?: "pi"
 
         disabledMessage = config.getString("messages.disabled") ?: "&c仓库模块当前已禁用"
         noPermissionMessage = config.getString("messages.noPermission") ?: "&c你没有权限使用仓库"
-        playerNotFoundMessage = config.getString("messages.playerNotFound") ?: "&c未找到玩 {player}"
+        playerNotFoundMessage = config.getString("messages.playerNotFound") ?: "&c未找到玩家 {player}"
         openSelfMessage = config.getString("messages.openSelf") ?: ""
         openOtherMessage = config.getString("messages.openOther") ?: "&a已打开玩家 &f{player} &a的仓库"
         saveFailedMessage = config.getString("messages.saveFailed") ?: "&c仓库保存失败，请稍后重试"
@@ -281,9 +275,9 @@ object PlayerInvSettings {
 
         sharedCreateNoQuotaMessage = config.getString("messages.sharedCreateNoQuota") ?: "&c你没有共享仓库创建次数"
         sharedCreatedMessage = config.getString("messages.sharedCreated") ?: "&a共享仓库 &f{name} &a创建成功"
-        sharedExistsMessage = config.getString("messages.sharedExists") ?: "&c共享仓库名称已存 {name}"
-        sharedNotFoundMessage = config.getString("messages.sharedNotFound") ?: "&c共享仓库不存 {name}"
-        sharedNoAccessMessage = config.getString("messages.sharedNoAccess") ?: "&c你没有权限访问共享仓 {name}"
+        sharedExistsMessage = config.getString("messages.sharedExists") ?: "&c共享仓库名称已存在 {name}"
+        sharedNotFoundMessage = config.getString("messages.sharedNotFound") ?: "&c共享仓库不存在 {name}"
+        sharedNoAccessMessage = config.getString("messages.sharedNoAccess") ?: "&c你没有权限访问共享仓库 {name}"
         sharedMemberAddedMessage = config.getString("messages.sharedMemberAdded") ?: "&a已添加成员 &f{player} &a到共享仓库 &f{name}&a"
         sharedMemberRemovedMessage = config.getString("messages.sharedMemberRemoved") ?: "&a已从共享仓库 &f{name} &a移除成员 &f{player}&a"
         sharedUpgradeMessage = config.getString("messages.sharedUpgrade") ?: "&a共享仓库 &f{name} &a已升级到 &f{size} &a格"
@@ -291,8 +285,8 @@ object PlayerInvSettings {
         sortDoneMessage = config.getString("messages.sortDone") ?: "&a仓库已整理"
         sharedSortNotOwnerMessage = config.getString("messages.sharedSortNotOwner") ?: "&c只有共享仓库创建者可以整理"
         sharedUnlockNeedMoneyMessage = config.getString("messages.sharedUnlockNeedMoney") ?: "&c解锁失败，余额不足。需 &f{cost}"
-        sharedUnlockSuccessMessage = config.getString("messages.sharedUnlockSuccess") ?: "&a已解锁共享仓库格子，消&f{cost}"
-        sharedLockedName = config.getString("messages.sharedLockedName") ?: "&c未解锁格"
+        sharedUnlockSuccessMessage = config.getString("messages.sharedUnlockSuccess") ?: "&a已解锁共享仓库格子，消耗 &f{cost}"
+        sharedLockedName = config.getString("messages.sharedLockedName") ?: "&c未解锁格子"
         sharedLockedLore = config.getStringList("messages.sharedLockedLore").ifEmpty { listOf("&7解锁费用: &f{cost}", "&e左键点击解锁") }
 
         sharedManagerTitle = config.getString("shared.manage.title") ?: "&8共享仓库管理 - {name}"
@@ -322,7 +316,7 @@ object PlayerInvSettings {
         sharedToggleToPublicLore = config.getStringList("shared.manage.items.toggleVisibility.toPublicLore").ifEmpty {
             listOf("&7点击将此仓库设为公开", "&7所有人均可访问")
         }
-        sharedToggleToPrivateName = config.getString("shared.manage.items.toggleVisibility.toPrivateName") ?: "&c切换为私"
+        sharedToggleToPrivateName = config.getString("shared.manage.items.toggleVisibility.toPrivateName") ?: "&c切换为私有"
         sharedToggleToPrivateLore = config.getStringList("shared.manage.items.toggleVisibility.toPrivateLore").ifEmpty {
             listOf("&7点击将此仓库设为私有", "&7仅成员可访问")
         }
@@ -333,7 +327,7 @@ object PlayerInvSettings {
         chatInputRemovePrompt = config.getString("messages.chatInputRemovePrompt") ?: "&e请输入要移除的玩家ID，输入 &fcancel &e取消"
         chatInputCancelled = config.getString("messages.chatInputCancelled") ?: "&e已取消输入"
         chatInputDone = config.getString("messages.chatInputDone") ?: "&a操作完成"
-        chatInputPlayerNotFound = config.getString("messages.chatInputPlayerNotFound") ?: "&c未找到玩 {player}"
+        chatInputPlayerNotFound = config.getString("messages.chatInputPlayerNotFound") ?: "&c未找到玩家 {player}"
         sharedManageNoPermission = config.getString("messages.sharedManageNoPermission") ?: "&c只有共享仓库创建者可以管理"
         sharedSetPublicMessage = config.getString("messages.sharedSetPublic") ?: "&a共享仓库 &f{name} &a已设置为公开"
         sharedSetPrivateMessage = config.getString("messages.sharedSetPrivate") ?: "&a共享仓库 &f{name} &a已设置为私有"
@@ -350,7 +344,7 @@ object PlayerInvSettings {
 
     private fun sanitizeTableName(raw: String): String {
         val cleaned = raw.trim().replace(Regex("[^A-Za-z0-9_]"), "")
-        return cleaned.ifBlank { "player_warehouse" }
+        return cleaned.ifBlank { "player_inv" }
     }
 
     data class RowPermissionRule(

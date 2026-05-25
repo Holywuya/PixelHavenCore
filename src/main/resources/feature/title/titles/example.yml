@@ -1,0 +1,66 @@
+titles:
+  vip_bronze:
+    display_name: "<gradient:gray:#CD7F32>青铜会员</gradient>"
+    description:
+      - "&7青铜会员专属称号"
+      - "&7有效期: 30天"
+    icon: "GOLD_INGOT"
+    category: "vip"
+    rarity: "common"
+    permission: ""
+    craftengine_display: null
+
+  vip_gold:
+    display_name: "<gradient:yellow:gold><bold>黄金会员</bold></gradient>"
+    description:
+      - "&6黄金会员专属称号"
+      - "&7尊贵的身份象征"
+    icon: "DIAMOND"
+    category: "vip"
+    rarity: "rare"
+    permission: ""
+    craftengine_display: null
+
+  combat_king:
+    display_name: "<gradient:red:gold><bold>战斗之王</bold></gradient>"
+    description:
+      - "&6竞技场赛季第一名奖励"
+      - "&7拥有此称号者乃真正的强者"
+    icon: "DIAMOND_SWORD"
+    category: "combat"
+    rarity: "legendary"
+    permission: ""
+    craftengine_display: null
+
+  rainbow_star:
+    display_name: "<rainbow>彩虹之星</rainbow>"
+    description:
+      - "&7特殊活动限定称号"
+      - "&7拥有彩虹般绚烂的光芒"
+    icon: "NETHER_STAR"
+    category: "event"
+    rarity: "epic"
+    permission: ""
+    craftengine_display: null
+
+  new_player:
+    display_name: "<green>新手冒险家</green>"
+    description:
+      - "&7欢迎来到服务器！"
+      - "&7祝你旅途愉快"
+    icon: "WOODEN_SWORD"
+    category: "special"
+    rarity: "common"
+    permission: ""
+    craftengine_display: null
+
+  donor:
+    display_name: "<light_purple><italic>爱心捐赠者</italic></light_purple>"
+    description:
+      - "&d感谢你的支持与贡献"
+      - "&7此称号仅限捐赠者"
+    icon: "HEART_OF_THE_SEA"
+    category: "special"
+    rarity: "rare"
+    permission: "title.donor"
+    craftengine_display: null

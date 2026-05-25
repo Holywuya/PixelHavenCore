@@ -1,0 +1,50 @@
+version: 1
+
+# =============================================================================
+# 飞行模块配置 (Flight Module)
+# 每日限时飞行，支持权限分组和世界限制
+# =============================================================================
+
+# 功能开关
+enabled: true
+
+# 生效世界列表（留空 = 所有世界生效）
+enabled-worlds:
+   - sky-overworld
+   - sky-nether
+
+# 每日重置时间（HH:mm 格式，24 小时制）
+daily-reset-time: "00:00"
+
+# 显示设置
+display:
+  # 显示模式: actionbar / none
+  mode: "actionbar"
+
+# 权限分组（按优先级从高到低排列，第一个匹配的生效）
+# permission: 留空表示默认分组（无需权限）
+# daily-seconds: 每日飞行时间（秒）
+groups:
+  vip:
+    permission: "phcore.flight.vip"
+    daily-seconds: 3600
+  default:
+    permission: ""
+    daily-seconds: 1800
+
+# 消息配置（支持 & 颜色码和 MiniMessage 标签）
+messages:
+  module-disabled: "&c飞行模块当前已禁用。"
+  flight-on: "&a飞行已开启。"
+  flight-off: "&e飞行已关闭。"
+  no-time: "&c飞行时间已用尽，将在每日重置后恢复。"
+  actionbar: "&b飞行剩余: &f{time}"
+  check-result: "&7玩家 &f{player} &7剩余飞行时间: &b{time} &7(每日: &f{daily}&7秒, 额外: &f{bonus}&7秒)"
+  player-not-found: "&c找不到在线玩家 &7{player}&c。"
+  invalid-time: "&c无效时间格式。支持: 30m, 1h, 1h30m, 3600"
+  admin-set: "&a已设置 &f{player} &a飞行时间为 &b{time}&a。"
+  admin-add: "&a已为 &f{player} &a增加 &b{time}&a。"
+  admin-reset: "&a已重置 &f{player} &a飞行时间。"
+  reload-success: "&a飞行模块已重载。"
+  time-expired: "&c飞行时间已用尽！"
+  daily-reset: "&a每日飞行时间已重置。"

@@ -3,8 +3,11 @@ package com.pixlehavencore
 import com.pixlehavencore.config.ConfigAlignService
 import com.pixlehavencore.config.ConfigMigrationService
 import com.pixlehavencore.feature.base.BaseCommandSettings
-import com.pixlehavencore.feature.chat.SimpleChatService
 import com.pixlehavencore.feature.craftingbench.CraftingBenchService
+import com.pixlehavencore.feature.durability.DurabilityService
+import com.pixlehavencore.feature.durability.DurabilitySettings
+import com.pixlehavencore.feature.flight.FlightService
+import com.pixlehavencore.feature.flight.FlightSettings
 import com.pixlehavencore.feature.deathdrop.DeathDropSettings
 import com.pixlehavencore.feature.deathdrop.DeathDropUsageStorage
 import com.pixlehavencore.feature.economy.EconomySettings
@@ -14,21 +17,17 @@ import com.pixlehavencore.feature.economy.TaxPlaceholders
 import com.pixlehavencore.feature.grindstone.GrindstoneRepairSettings
 import com.pixlehavencore.feature.keycommand.KeyCommandSettings
 import com.pixlehavencore.feature.keycommand.KeyCommandService
-import com.pixlehavencore.feature.mobdrop.MobDropSettings
 import com.pixlehavencore.feature.notification.NotificationService
 import com.pixlehavencore.feature.notification.NotificationSettings
 import com.pixlehavencore.feature.playerinv.PlayerInvService
 import com.pixlehavencore.feature.playerinv.PlayerInvSettings
-import com.pixlehavencore.feature.spawners.SpawnerService
+import com.pixlehavencore.feature.mmhealthbar.MMHealthBarService
 import com.pixlehavencore.feature.security.SecurityService
 import com.pixlehavencore.feature.security.SecuritySettings
 import com.pixlehavencore.feature.trade.TradeService
 import com.pixlehavencore.feature.vanish.VanishService
 import com.pixlehavencore.feature.vanish.VanishSettings
 import com.pixlehavencore.feature.veinminer.VeinminerHook
-import com.pixlehavencore.feature.world.WorldService
-import com.pixlehavencore.feature.world.WorldSettings
-import com.pixlehavencore.feature.world.WorldCommand
 import com.pixlehavencore.feature.veinminer.VeinminerLimitService
 import com.pixlehavencore.feature.veinminer.VeinminerSettings
 import com.pixlehavencore.feature.optimization.entityclearer.EntityClearerService
@@ -39,6 +38,13 @@ import com.pixlehavencore.feature.playtime.PlaytimeSettings
 import com.pixlehavencore.feature.playtime.PlaytimeStorage
 import com.pixlehavencore.feature.playtime.PlaytimeService
 import com.pixlehavencore.feature.playtime.PlaytimePlaceholders
+import com.pixlehavencore.feature.realworld.RealWorldPlaceholders
+import com.pixlehavencore.feature.realworld.RealWorldService
+import com.pixlehavencore.feature.realworld.RealWorldSettings
+import com.pixlehavencore.feature.title.TitleSettings
+import com.pixlehavencore.feature.title.TitleStorage
+import com.pixlehavencore.feature.title.TitleService
+import com.pixlehavencore.feature.title.TitlePlaceholders
 import com.pixlehavencore.util.BaikirutoItemsUtil
 import com.pixlehavencore.util.CraftEngineItemsUtil
 import com.pixlehavencore.util.EconomyUtils
@@ -55,7 +61,6 @@ object PixleHavenCore : Plugin() {
         VeinminerLimitService.init()
         VeinminerHook.init()
         GrindstoneRepairSettings.init()
-        SimpleChatService.init()
         CraftingBenchService.init()
         NotificationService.init()
         ViewDistanceService.init()
@@ -71,15 +76,22 @@ object PixleHavenCore : Plugin() {
         EconomyPlaceholders
         EconomyProvider.init()
         TaxPlaceholders
-        MobDropSettings.init()
         BaseCommandSettings.init()
         SecurityService.init()
-        SpawnerService.init()
-        WorldService.init()
+        MMHealthBarService.init()
         PlaytimeSettings.init()
         PlaytimeStorage.init()
         PlaytimeService.init()
         PlaytimePlaceholders
+        TitleSettings.init()
+        TitleStorage.init()
+        TitleService.init()
+        TitlePlaceholders
+        DurabilitySettings.init()
+        DurabilityService.init()
+        FlightService.init()
+        RealWorldService.init()
+        RealWorldPlaceholders
         logModulesStatus()
         info("Successfully running PixleHavenCore!")
     }
@@ -101,8 +113,10 @@ object PixleHavenCore : Plugin() {
             "Playtime" to PlaytimeSettings.enabled,
             "Crafting Bench" to CraftingBenchService.isEnabled(),
             "Security" to SecuritySettings.enabled,
-            "Spawner" to SpawnerService.isEnabled(),
-            "World" to WorldService.isEnabled(),
+            "MM HealthBar" to MMHealthBarService.isEnabled(),
+            "Title" to TitleSettings.enabled,
+            "Flight" to FlightSettings.enabled,
+            "RealWorld" to RealWorldSettings.enabled,
         ))
         logEnabledGroup("优化模块", listOf(
             "View Distance Controller" to ViewDistanceSettings.enabled,
@@ -113,6 +127,7 @@ object PixleHavenCore : Plugin() {
             "Baikiruto" to BaikirutoItemsUtil.isAvailable(),
             "CraftEngine" to CraftEngineItemsUtil.isAvailable(),
             "Vault Economy" to EconomyUtils.isAvailable(),
+            "Durability Display" to DurabilityService.isAvailable(),
         ))
         info("=== 启动完成 ===")
     }
@@ -134,12 +149,15 @@ object PixleHavenCore : Plugin() {
         DeathDropUsageStorage.close()
         PlayerInvService.close()
         SecurityService.stop()
-        SpawnerService.stop()
+        MMHealthBarService.stop()
         CraftingBenchService.stop()
-        WorldService.stop()
         EconomyProvider.stop()
-        SimpleChatService.shutdown()
         PlaytimeService.stop()
         PlaytimeStorage.stop()
+        TitleService.stop()
+        TitleStorage.stop()
+        DurabilityService.stop()
+        FlightService.stop()
+        RealWorldService.stop()
     }
 }

@@ -85,10 +85,9 @@ object TitleMenu {
         // Title slot click
         val previews = TitleService.getTitlePreviews(player, holder.category)
         val start = holder.page * TitleSettings.pageSize
-        val titleIndex = slot - TitleSettings.titleStartSlot + start
-        if (titleIndex in previews.indices && slot >= TitleSettings.titleStartSlot
-            && slot < TitleSettings.titleStartSlot + TitleSettings.pageSize
-        ) {
+        val gridIndex = slotToTitleIndex(slot)
+        val titleIndex = gridIndex + start
+        if (gridIndex >= 0 && titleIndex in previews.indices) {
             val preview = previews[titleIndex]
             if (preview.entry == null || preview.isExpired) return true
             if (preview.isActive) {
@@ -104,6 +103,33 @@ object TitleMenu {
     }
 
     // ── 辅助方法 ──────────────────────────────────────────────────────
+
+    /**
+     * 将称号列表中的 index 转换为 GUI inventory 的 slot 编号，
+     * 自动跳过分类列（column 8）。
+     */
+    private fun titleIndexToSlot(index: Int): Int {
+        val baseRow = TitleSettings.titleStartSlot / 9
+        val baseCol = TitleSettings.titleStartSlot % 9
+        val cols = 9 - baseCol
+        val row = baseRow + index / cols
+        val col = baseCol + index % cols
+        return row * 9 + col
+    }
+
+    /**
+     * 将 GUI inventory 的 slot 编号反向转换为称号列表中的 index，
+     * 自动跳过分类列（column 8）。返回 -1 表示该 slot 不在称号网格内。
+     */
+    private fun slotToTitleIndex(slot: Int): Int {
+        val baseRow = TitleSettings.titleStartSlot / 9
+        val baseCol = TitleSettings.titleStartSlot % 9
+        val cols = 9 - baseCol
+        val clickRow = slot / 9
+        val clickCol = slot % 9
+        if (clickRow < baseRow || clickCol < baseCol || clickCol >= baseCol + cols) return -1
+        return (clickRow - baseRow) * cols + (clickCol - baseCol)
+    }
 
     private fun drawBorder(inventory: Inventory, accentRows: Set<Int>, sideRows: IntRange) {
         val accentItem = ItemStack(TitleSettings.borderAccent)
@@ -175,8 +201,8 @@ object TitleMenu {
         val start = holder.page * TitleSettings.pageSize
         val end = (start + TitleSettings.pageSize).coerceAtMost(previews.size)
         previews.subList(start, end).forEachIndexed { index, preview ->
-            val slot = TitleSettings.titleStartSlot + index
-            if (slot < totalSize) {
+            val slot = titleIndexToSlot(index)
+            if (slot in 0 until totalSize) {
                 inventory.setItem(slot, createTitleItem(player, preview))
             }
         }
@@ -265,15 +291,15 @@ object TitleMenu {
         val activeTitle = state?.activeTitleId?.let { TitleSettings.getTitle(it) }
         return ItemStack(Material.BOOK).apply {
             itemMeta = itemMeta?.apply {
-                displayName(TextUtils.parse(TitleSettings.msgGuiTitleSystem))
+                displayName(TextUtils.parseItem(TitleSettings.msgGuiTitleSystem))
                 lore(listOf(
                     Component.textOfChildren(
-                        TextUtils.parse("&7当前称号: "),
-                        if (activeTitle != null) TextUtils.parse(activeTitle.displayName) else TextUtils.parse(TitleSettings.msgNoTitleActive)
+                        TextUtils.parseItem("&7当前称号: "),
+                        if (activeTitle != null) TextUtils.parseItem(activeTitle.displayName) else TextUtils.parseItem(TitleSettings.msgNoTitleActive)
                     ),
-                    TextUtils.parse(TitleSettings.msgGuiOwned.resolvePlaceholders("{count}" to ownedCount.toString())),
-                    TextUtils.parse(TitleSettings.msgGuiTotal.resolvePlaceholders("{count}" to totalTitles.toString())),
-                    TextUtils.parse(TitleSettings.msgGuiPageInfo
+                    TextUtils.parseItem(TitleSettings.msgGuiOwned.resolvePlaceholders("{count}" to ownedCount.toString())),
+                    TextUtils.parseItem(TitleSettings.msgGuiTotal.resolvePlaceholders("{count}" to totalTitles.toString())),
+                    TextUtils.parseItem(TitleSettings.msgGuiPageInfo
                         .resolvePlaceholders("{current}" to (currentPage + 1).toString(), "{total}" to (maxPage + 1).toString())),
                 ))
             }

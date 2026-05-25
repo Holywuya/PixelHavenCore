@@ -48,6 +48,7 @@ object DeathDropUsageStorage {
 
     fun close() {
         shuttingDown.set(true)
+        DatabaseUtils.closeMultipleHandler(handler)
         handler = null
         cache.clear()
     }
@@ -122,6 +123,7 @@ object DeathDropUsageStorage {
             return
         }
         submitAsync {
+            if (shuttingDown.get()) return@submitAsync
             runCatching {
                 saveRecordSync(currentHandler, player, dateKey, record)
             }.onFailure { ex ->

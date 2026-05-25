@@ -1,6 +1,8 @@
 package com.pixlehavencore.feature.playtime
 
 import com.pixlehavencore.util.DatabaseUtils
+import com.pixlehavencore.util.PerKeyLock
+import com.pixlehavencore.util.cancelTaskSafely
 import taboolib.common.platform.function.info
 import taboolib.common.platform.function.submit
 import taboolib.common.platform.function.submitAsync
@@ -43,7 +45,7 @@ object PlaytimeStorage {
     private val dataCache = ConcurrentHashMap<UUID, PlaytimeData>()
     private val sessionCache = ConcurrentHashMap<UUID, Long>()
     private val dirtyPlayers = ConcurrentHashMap.newKeySet<UUID>()
-    private val dataLocks = ConcurrentHashMap<UUID, Any>()
+    private val dataLocks = PerKeyLock<UUID>()
 
     @Volatile
     private var handler: MultipleHandler? = null
@@ -77,7 +79,7 @@ object PlaytimeStorage {
     }
 
     fun startSession(playerUuid: UUID, playerName: String, loginTime: Long) {
-        synchronized(lockFor(playerUuid)) {
+        synchronized(dataLocks[playerUuid]) {
             val existing = dataCache[playerUuid]
             val updated = (existing ?: PlaytimeData(
                 playerUuid = playerUuid,
@@ -101,7 +103,7 @@ object PlaytimeStorage {
     }
 
     fun endSession(playerUuid: UUID, logoutTime: Long) {
-        synchronized(lockFor(playerUuid)) {
+        synchronized(dataLocks[playerUuid]) {
             val start = sessionCache.remove(playerUuid) ?: return
             val sessionSeconds = ((logoutTime - start) / 1000).coerceAtLeast(0L)
             val existing = dataCache[playerUuid] ?: return
@@ -135,7 +137,7 @@ object PlaytimeStorage {
         submitAsync {
             val keys = dataCache.keys.toList()
             keys.forEach { uuid ->
-                synchronized(lockFor(uuid)) {
+                synchronized(dataLocks[uuid]) {
                     val existing = dataCache[uuid] ?: return@forEach
                     dataCache[uuid] = existing.copy(todaySeconds = 0L, updatedAt = System.currentTimeMillis())
                     dirtyPlayers += uuid
@@ -149,7 +151,7 @@ object PlaytimeStorage {
         submitAsync {
             val keys = dataCache.keys.toList()
             keys.forEach { uuid ->
-                synchronized(lockFor(uuid)) {
+                synchronized(dataLocks[uuid]) {
                     val existing = dataCache[uuid] ?: return@forEach
                     dataCache[uuid] = existing.copy(weekSeconds = 0L, updatedAt = System.currentTimeMillis())
                     dirtyPlayers += uuid
@@ -163,7 +165,7 @@ object PlaytimeStorage {
         submitAsync {
             val keys = dataCache.keys.toList()
             keys.forEach { uuid ->
-                synchronized(lockFor(uuid)) {
+                synchronized(dataLocks[uuid]) {
                     val existing = dataCache[uuid] ?: return@forEach
                     dataCache[uuid] = existing.copy(monthSeconds = 0L, updatedAt = System.currentTimeMillis())
                     dirtyPlayers += uuid
@@ -215,9 +217,11 @@ object PlaytimeStorage {
             val currentHandler = handler
             if (currentHandler != null) {
                 toRemove.forEach { uuid ->
-                    dataCache.remove(uuid)
-                    sessionCache.remove(uuid)
-                    dirtyPlayers.remove(uuid)
+                    synchronized(dataLocks[uuid]) {
+                        dataCache.remove(uuid)
+                        sessionCache.remove(uuid)
+                        dirtyPlayers.remove(uuid)
+                    }
                     dataLocks.remove(uuid)
                     runCatching {
                         val user = uuid.toString()
@@ -255,25 +259,29 @@ object PlaytimeStorage {
             val lastLogin = (currentHandler.database[user, KEY_LAST_LOGIN] as? String)?.toLongOrNull() ?: 0L
             val lastLogout = (currentHandler.database[user, KEY_LAST_LOGOUT] as? String)?.toLongOrNull() ?: 0L
             val name = (currentHandler.database[user, KEY_PLAYER_NAME] as? String)?.takeIf { it.isNotBlank() } ?: playerName
-            dataCache[playerUuid] = PlaytimeData(
-                playerUuid = playerUuid,
-                playerName = name,
-                totalSeconds = total,
-                todaySeconds = today,
-                weekSeconds = week,
-                monthSeconds = month,
-                lastLoginTime = lastLogin,
-                lastLogoutTime = lastLogout,
-                updatedAt = System.currentTimeMillis()
-            )
+            synchronized(dataLocks[playerUuid]) {
+                dataCache[playerUuid] = PlaytimeData(
+                    playerUuid = playerUuid,
+                    playerName = name,
+                    totalSeconds = total,
+                    todaySeconds = today,
+                    weekSeconds = week,
+                    monthSeconds = month,
+                    lastLoginTime = lastLogin,
+                    lastLogoutTime = lastLogout,
+                    updatedAt = System.currentTimeMillis()
+                )
+            }
         }.onFailure { ex ->
             warning("[在线时长] 加载玩家 $playerName 数据失败: ${ex.message}")
-            dataCache[playerUuid] = PlaytimeData(
-                playerUuid = playerUuid,
-                playerName = playerName,
-                totalSeconds = 0L, todaySeconds = 0L, weekSeconds = 0L, monthSeconds = 0L,
-                lastLoginTime = 0L, lastLogoutTime = 0L, updatedAt = System.currentTimeMillis()
-            )
+            synchronized(dataLocks[playerUuid]) {
+                dataCache[playerUuid] = PlaytimeData(
+                    playerUuid = playerUuid,
+                    playerName = playerName,
+                    totalSeconds = 0L, todaySeconds = 0L, weekSeconds = 0L, monthSeconds = 0L,
+                    lastLoginTime = 0L, lastLogoutTime = 0L, updatedAt = System.currentTimeMillis()
+                )
+            }
         }
     }
 
@@ -292,25 +300,26 @@ object PlaytimeStorage {
     private fun loadAll() {
         val currentHandler = handler ?: return
         runCatching {
-            val rows = currentHandler.database.getListByKey(KEY_TOTAL)
-            rows.forEach { (user, _) ->
+            val totalMap = currentHandler.database.getListByKey(KEY_TOTAL)
+            val todayMap = currentHandler.database.getListByKey(KEY_TODAY)
+            val weekMap = currentHandler.database.getListByKey(KEY_WEEK)
+            val monthMap = currentHandler.database.getListByKey(KEY_MONTH)
+            val loginMap = currentHandler.database.getListByKey(KEY_LAST_LOGIN)
+            val logoutMap = currentHandler.database.getListByKey(KEY_LAST_LOGOUT)
+            val nameMap = currentHandler.database.getListByKey(KEY_PLAYER_NAME)
+            val allUsers = totalMap.keys + todayMap.keys + weekMap.keys +
+                monthMap.keys + loginMap.keys + logoutMap.keys + nameMap.keys
+            allUsers.forEach { user ->
                 val uuid = runCatching { UUID.fromString(user) }.getOrNull() ?: return@forEach
-                val total = (currentHandler.database[user, KEY_TOTAL] as? String)?.toLongOrNull() ?: 0L
-                val today = (currentHandler.database[user, KEY_TODAY] as? String)?.toLongOrNull() ?: 0L
-                val week = (currentHandler.database[user, KEY_WEEK] as? String)?.toLongOrNull() ?: 0L
-                val month = (currentHandler.database[user, KEY_MONTH] as? String)?.toLongOrNull() ?: 0L
-                val lastLogin = (currentHandler.database[user, KEY_LAST_LOGIN] as? String)?.toLongOrNull() ?: 0L
-                val lastLogout = (currentHandler.database[user, KEY_LAST_LOGOUT] as? String)?.toLongOrNull() ?: 0L
-                val playerName = (currentHandler.database[user, KEY_PLAYER_NAME] as? String)?.takeIf { it.isNotBlank() } ?: user.takeLast(8)
                 dataCache[uuid] = PlaytimeData(
                     playerUuid = uuid,
-                    playerName = playerName,
-                    totalSeconds = total,
-                    todaySeconds = today,
-                    weekSeconds = week,
-                    monthSeconds = month,
-                    lastLoginTime = lastLogin,
-                    lastLogoutTime = lastLogout,
+                    playerName = (nameMap[user] as? String)?.takeIf { it.isNotBlank() } ?: user.takeLast(8),
+                    totalSeconds = (totalMap[user] as? String)?.toLongOrNull() ?: 0L,
+                    todaySeconds = (todayMap[user] as? String)?.toLongOrNull() ?: 0L,
+                    weekSeconds = (weekMap[user] as? String)?.toLongOrNull() ?: 0L,
+                    monthSeconds = (monthMap[user] as? String)?.toLongOrNull() ?: 0L,
+                    lastLoginTime = (loginMap[user] as? String)?.toLongOrNull() ?: 0L,
+                    lastLogoutTime = (logoutMap[user] as? String)?.toLongOrNull() ?: 0L,
                     updatedAt = System.currentTimeMillis()
                 )
             }
@@ -327,7 +336,7 @@ object PlaytimeStorage {
         val now = System.currentTimeMillis()
         ids.forEach { uuid ->
             val sessionStart = sessionCache[uuid] ?: return@forEach
-            synchronized(lockFor(uuid)) {
+            synchronized(dataLocks[uuid]) {
                 val delta = ((now - sessionStart) / 1000).coerceAtLeast(0L)
                 if (delta > 0) {
                     val existing = dataCache[uuid] ?: return@forEach
@@ -367,7 +376,7 @@ object PlaytimeStorage {
     }
 
     private fun scheduleFlush() {
-        invokeCancel(flushTask)
+        flushTask.cancelTaskSafely()
         flushTask = submitAsync(period = PlaytimeSettings.autoSaveTicks) {
             accumulateAndFlushAll()
         }
@@ -391,11 +400,12 @@ object PlaytimeStorage {
 
     private fun shutdownInternal() {
         synchronized(stateLock) {
-            invokeCancel(flushTask)
+            flushTask.cancelTaskSafely()
             flushTask = null
             if (handler != null) {
                 flushAll()
             }
+            DatabaseUtils.closeMultipleHandler(handler)
             handler = null
             dataCache.clear()
             sessionCache.clear()
@@ -405,10 +415,4 @@ object PlaytimeStorage {
         }
     }
 
-    private fun invokeCancel(task: Any?) {
-        if (task == null) return
-        runCatching { task.javaClass.methods.firstOrNull { it.name == "cancel" && it.parameterTypes.isEmpty() }?.invoke(task) }
-    }
-
-    private fun lockFor(playerUuid: UUID): Any = dataLocks.computeIfAbsent(playerUuid) { Any() }
 }

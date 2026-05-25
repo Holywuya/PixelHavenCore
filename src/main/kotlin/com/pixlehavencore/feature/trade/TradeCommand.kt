@@ -1,6 +1,7 @@
 package com.pixlehavencore.feature.trade
 
 import com.pixlehavencore.util.msg
+import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.requirePlayer
 import org.bukkit.Bukkit
 import taboolib.common.platform.ProxyCommandSender
@@ -71,6 +72,7 @@ object TradeCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
+            if (!sender.requirePermission("phcore.admin")) return@execute
             TradeService.reload()
             sender.msg("&a交易模块配置已重载。")
         }

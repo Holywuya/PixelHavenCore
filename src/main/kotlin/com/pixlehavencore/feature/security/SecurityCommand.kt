@@ -3,7 +3,7 @@ package com.pixlehavencore.feature.security
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.requirePlayer
-import org.bukkit.Bukkit
+import com.pixlehavencore.util.resolveOfflinePlayer
 import org.bukkit.OfflinePlayer
 import org.bukkit.entity.Player
 import taboolib.common.platform.ProxyCommandSender
@@ -21,7 +21,7 @@ object SecurityCommand {
         dynamic(comment = "player") {
             suggestPlayers()
             execute<ProxyCommandSender> { sender, _, argument ->
-                if (!sender.requirePermission(SecuritySettings.adminPermission)) return@execute
+                if (!sender.requirePermission("phcore.admin")) return@execute
                 val viewer = sender.requirePlayer()?.cast<Player>() ?: return@execute
                 val targetName = argument.toString().trim()
                 val target = resolveOfflinePlayer(targetName) ?: run {
@@ -40,7 +40,7 @@ object SecurityCommand {
         dynamic(comment = "player") {
             suggestPlayers()
             execute<ProxyCommandSender> { sender, _, argument ->
-                if (!sender.requirePermission(SecuritySettings.adminPermission)) return@execute
+                if (!sender.requirePermission("phcore.admin")) return@execute
                 val viewer = sender.requirePlayer()?.cast<Player>() ?: return@execute
                 val targetName = argument.toString().trim()
                 val target = resolveOfflinePlayer(targetName) ?: run {
@@ -57,16 +57,10 @@ object SecurityCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission(SecuritySettings.adminPermission)) return@execute
+            if (!sender.requirePermission("phcore.admin")) return@execute
             SecurityService.reload()
             sender.msg("&a安全模块配置已重载。")
         }
     }
 
-    private fun resolveOfflinePlayer(name: String): OfflinePlayer? {
-        val online = Bukkit.getPlayerExact(name)
-        if (online != null) return online
-        val cached = Bukkit.getOfflinePlayerIfCached(name)
-        return if (cached != null && (cached.name != null || cached.hasPlayedBefore())) cached else null
-    }
 }

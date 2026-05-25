@@ -11,9 +11,6 @@ object SecuritySettings {
     var enabled: Boolean = true
         private set
 
-    var adminPermission: String = "phcore.security.admin"
-        private set
-
     var invTitle: String = "&8查看背包 - {player}"
         private set
 
@@ -25,7 +22,6 @@ object SecuritySettings {
     fun reload() {
         config.reload()
         enabled = config.getBoolean("enabled", true)
-        adminPermission = config.getString("adminPermission") ?: "phcore.security.admin"
         invTitle = config.getString("titles.inventory") ?: "&8查看背包 - {player}"
         ecTitle = config.getString("titles.enderChest") ?: "&8查看末影箱 - {player}"
     }

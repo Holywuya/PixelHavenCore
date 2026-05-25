@@ -1,5 +1,6 @@
 package com.pixlehavencore.feature.vanish
 
+import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.requirePlayer
@@ -62,7 +63,7 @@ object VanishListCommand {
                 sender.msg("&c隐身模块当前已禁用。")
                 return@execute
             }
-            if (!sender.requirePermission("phcore.vanish.admin")) return@execute
+            if (!sender.requirePermission("phcore.admin")) return@execute
             val vanished = VanishService.getNormalVanishedPlayers()
             if (vanished.isEmpty()) {
                 sender.msg(VanishSettings.msgNoVanishedPlayers)
@@ -93,7 +94,7 @@ object VanishShowCommand {
                 sender.msg("&c隐身模块当前已禁用。")
                 return@execute
             }
-            if (!sender.requirePermission("phcore.vanish.admin")) return@execute
+            if (!sender.requirePermission("phcore.admin")) return@execute
             val player = sender.requirePlayer() ?: return@execute
             val observer = player.cast<Player>()
             val arg = argument.toString().trim()
@@ -115,13 +116,13 @@ object VanishShowCommand {
 
             val target = Bukkit.getPlayer(arg)
             if (target == null) {
-                player.msg(VanishSettings.msgPlayerNotFound.replace("{player}", arg))
+                player.msg(VanishSettings.msgPlayerNotFound.resolvePlaceholders("{player}" to arg))
                 return@execute
             }
 
             when (VanishService.showPlayerTo(observer, target)) {
                 VanishService.ShowResult.OK -> {
-                    player.msg(VanishSettings.msgShowPlayer.replace("{player}", target.name))
+                    player.msg(VanishSettings.msgShowPlayer.resolvePlaceholders("{player}" to target.name))
                 }
                 VanishService.ShowResult.NOT_VANISHED -> {
                     player.msg("&7${target.name} 当前没有隐身。")

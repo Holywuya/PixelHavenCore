@@ -2,6 +2,7 @@ package com.pixlehavencore.feature.craftingbench
 
 import com.pixlehavencore.feature.playerinv.PlayerInvService
 import com.pixlehavencore.util.ItemUtils
+import com.pixlehavencore.util.cancelTaskSafely
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -59,9 +60,9 @@ object CraftingBenchService {
     }
 
     fun stop() {
-        cancelTask(tickTask)
-        cancelTask(flushTask)
-        cancelTask(menuRefreshTask)
+        tickTask.cancelTaskSafely()
+        flushTask.cancelTaskSafely()
+        menuRefreshTask.cancelTaskSafely()
         tickTask = null
         flushTask = null
         menuRefreshTask = null
@@ -489,12 +490,6 @@ object CraftingBenchService {
         }
     }
 
-    private fun cancelTask(task: Any?) {
-        if (task == null) return
-        runCatching {
-            task.javaClass.methods.firstOrNull { it.name == "cancel" && it.parameterTypes.isEmpty() }?.invoke(task)
-        }
-    }
 }
 
 data class SubmitResult(

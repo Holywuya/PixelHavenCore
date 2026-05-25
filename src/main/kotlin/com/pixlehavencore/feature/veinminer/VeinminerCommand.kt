@@ -33,7 +33,7 @@ object VeinminerCommand {
     @CommandBody
     val toggle = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.veinminer.admin")) return@execute
+            if (!sender.requirePermission("phcore.admin")) return@execute
             val newState = !VeinminerSettings.enabled
             VeinminerSettings.toggle(newState)
             if (newState) {
@@ -52,7 +52,7 @@ object VeinminerCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.veinminer.admin")) return@execute
+            if (!sender.requirePermission("phcore.admin")) return@execute
             VeinminerSettings.init()
             sender.msg("&a连锁挖掘配置已重载。")
         }
@@ -107,7 +107,7 @@ object VeinminerCommand {
     }
 
     private fun handleRemainingMutation(sender: ProxyCommandSender, targetName: String?, amountText: String, mutation: Mutation) {
-        if (!sender.requirePermission("phcore.veinminer.admin")) return
+        if (!sender.requirePermission("phcore.admin")) return
         val cleanTarget = targetName?.trim().orEmpty()
         if (cleanTarget.isBlank()) {
             sender.msg("&c请输入目标玩家。")

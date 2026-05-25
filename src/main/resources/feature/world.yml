@@ -9,11 +9,6 @@ worlds:
   loadMissing: false
   allowUnlistedTeleport: false
 
-permissions:
-  admin: phcore.world.admin
-  teleportSelf: phcore.world.teleport.self
-  teleportOther: phcore.world.teleport.other
-
 messages:
   reloadSuccess: "&a世界模块配置已重载。"
   worldMissing: "&c世界未加载或未配置：&f{world}"

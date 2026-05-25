@@ -1,5 +1,6 @@
 package com.pixlehavencore.feature.keycommand
 
+import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.InventoryType
 import taboolib.platform.util.submit as submitOnEntity
@@ -45,7 +46,7 @@ object KeyCommandService {
 
         player.submitOnEntity(delay = 1L) {
             val formatted = command
-                .replace("{player}", player.name)
+                .resolvePlaceholders("{player}" to player.name)
                 .removePrefix("/")
                 .trim()
             if (formatted.isNotBlank()) {

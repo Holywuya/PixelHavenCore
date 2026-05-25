@@ -3,6 +3,8 @@ package com.pixlehavencore.util
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import taboolib.common.platform.ProxyCommandSender
 import taboolib.common.platform.ProxyPlayer
+import org.bukkit.Bukkit
+import org.bukkit.OfflinePlayer
 import org.bukkit.command.CommandSender
 
 private val PERMISSION_ALIASES = mapOf(
@@ -63,4 +65,12 @@ fun ProxyCommandSender.requirePermission(
     if (hasPermissionOrAdmin(permission)) return true
     msg(errorMsg)
     return false
+}
+
+fun resolveOfflinePlayer(name: String): OfflinePlayer? {
+    val online = Bukkit.getPlayerExact(name)
+    if (online != null) return online
+    val cached = Bukkit.getOfflinePlayerIfCached(name)
+    if (cached != null && (cached.name != null || cached.hasPlayedBefore())) return cached
+    return runCatching { Bukkit.getOfflinePlayer(name) }.getOrNull()
 }

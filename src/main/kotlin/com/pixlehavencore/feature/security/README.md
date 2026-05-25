@@ -33,9 +33,6 @@
 - `enabled`
   - 模块总开关
 
-- `adminPermission`
-  - 管理权限节点
-
 - `titles.*`
   - 查看界面标题模板
 

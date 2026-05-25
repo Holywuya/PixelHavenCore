@@ -2,28 +2,27 @@ package com.pixlehavencore
 
 import org.bukkit.Bukkit
 import com.pixlehavencore.feature.base.BaseCommandSettings
-import com.pixlehavencore.feature.chat.SimpleChatService
 import com.pixlehavencore.feature.craftingbench.CraftingBenchService
 import com.pixlehavencore.feature.deathdrop.DeathDropSettings
 import com.pixlehavencore.feature.deathdrop.DeathDropUsageStorage
+import com.pixlehavencore.feature.flight.FlightService
 import com.pixlehavencore.feature.economy.EconomyProvider
 import com.pixlehavencore.feature.grindstone.GrindstoneRepairSettings
 import com.pixlehavencore.feature.keycommand.KeyCommandService
-import com.pixlehavencore.feature.mobdrop.MobDropSettings
 import com.pixlehavencore.feature.notification.NotificationService
 import com.pixlehavencore.feature.optimization.entityclearer.EntityClearerService
 import com.pixlehavencore.feature.optimization.spawnreducer.SpawnReducerService
 import com.pixlehavencore.feature.optimization.viewdistance.ViewDistanceService
 import com.pixlehavencore.feature.playerinv.PlayerInvService
-import com.pixlehavencore.feature.spawners.SpawnerService
+import com.pixlehavencore.feature.mmhealthbar.MMHealthBarService
 import com.pixlehavencore.feature.security.SecurityService
 import com.pixlehavencore.feature.trade.TradeService
 import com.pixlehavencore.feature.vanish.VanishSettings
-import com.pixlehavencore.feature.world.WorldService
 import com.pixlehavencore.feature.veinminer.VeinminerSettings
 import com.pixlehavencore.feature.playtime.PlaytimeSettings
 import com.pixlehavencore.feature.playtime.PlaytimeStorage
 import com.pixlehavencore.feature.playtime.PlaytimeService
+import com.pixlehavencore.feature.realworld.RealWorldService
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission
 import taboolib.common.platform.ProxyCommandSender
@@ -143,7 +142,6 @@ object MainCommand {
             ReloadStep("settings", false) { PixleHavenSettings.reload() },
             ReloadStep("veinminer", false) { VeinminerSettings.init() },
             ReloadStep("grindstone", false) { GrindstoneRepairSettings.init() },
-            ReloadStep("simple-chat", false) { SimpleChatService.reload() },
             ReloadStep("crafting-bench", false) { CraftingBenchService.reload() },
             ReloadStep("notification", true) { NotificationService.reload() },
             ReloadStep("view-distance", true) { ViewDistanceService.reload() },
@@ -156,14 +154,14 @@ object MainCommand {
             ReloadStep("death-drop", false) { DeathDropSettings.init() },
             ReloadStep("death-drop-usage", false) { DeathDropUsageStorage.init() },
             ReloadStep("economy", true) { EconomyProvider.reload() },
-            ReloadStep("mob-drop", false) { MobDropSettings.init() },
-            ReloadStep("spawners", false) { SpawnerService.reload() },
-            ReloadStep("world", true) { WorldService.reload() },
             ReloadStep("base-command", false) { BaseCommandSettings.init() },
             ReloadStep("security", false) { SecurityService.reload() },
+            ReloadStep("mm-healthbar", false) { MMHealthBarService.reload() },
             ReloadStep("playtime-settings", false) { PlaytimeSettings.reload() },
             ReloadStep("playtime-storage", false) { PlaytimeStorage.reload() },
-            ReloadStep("playtime-service", false) { PlaytimeService.reload() }
+            ReloadStep("playtime-service", false) { PlaytimeService.reload() },
+            ReloadStep("flight", false) { FlightService.reload() },
+            ReloadStep("realworld", true) { RealWorldService.reload() }
         )
 
         steps.forEach { step ->

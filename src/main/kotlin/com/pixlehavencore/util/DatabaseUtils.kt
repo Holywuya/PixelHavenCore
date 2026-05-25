@@ -7,6 +7,7 @@ import taboolib.common.platform.ProxyPlayer
 import taboolib.common.platform.function.getDataFolder
 import taboolib.common.platform.function.submit
 import taboolib.common.platform.function.submitAsync
+import taboolib.common.platform.function.warning
 import taboolib.expansion.MultipleHandler
 import taboolib.expansion.getDataContainer
 import taboolib.expansion.setupDataContainer
@@ -123,6 +124,22 @@ object DatabaseUtils {
             )
         }
         return MultipleHandler(conf, table = table, dataFile = sqliteFile, autoHook = autoHook, syncTick = syncTick)
+    }
+
+    /**
+     * 安全关闭 MultipleHandler：取消周期同步任务并释放底层连接池。
+     */
+    fun closeMultipleHandler(handler: MultipleHandler?) {
+        if (handler == null) return
+        runCatching { handler.stopSync() }.onFailure { ex ->
+            warning("[DatabaseUtils] stopSync 失败: ${ex.message}")
+        }
+        runCatching {
+            val ds = handler.database.dataSource
+            if (ds is HikariDataSource) ds.close()
+        }.onFailure { ex ->
+            warning("[DatabaseUtils] 关闭数据源失败: ${ex.message}")
+        }
     }
 
 }

@@ -28,9 +28,6 @@ adminNotifications:
   # 是否启用管理员手动通知
   enabled: true
 
-  # 发送管理员通知的权限节点
-  permission: "phcore.notification.admin"
-
   # 无权限时的提示消息
   noPermissionMessage: "&c你没有权限发送服务器通知！"
 

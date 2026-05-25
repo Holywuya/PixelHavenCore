@@ -4,10 +4,10 @@ version: 1
 enabled: true
 
 # 未打开界面时按 F 执行，支持 {player}
-f: "warehouse"
+f: "playerinv"
 
 # 未打开界面时按 Shift + F 执行，支持 {player}
-shiftF: "warehouse shared open public"
+shiftF: "playerinv shared open public"
 
 # 预留项（服务端无法可靠识别 Ctrl / Alt）
 ctrlF: ""

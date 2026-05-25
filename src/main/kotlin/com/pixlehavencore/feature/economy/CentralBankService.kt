@@ -374,7 +374,7 @@ object CentralBankService {
             recovered = recovered.add(amount)
         }
         if (recovered > BigDecimal.ZERO) {
-            EconomyStorageService.rawDeposit(CENTRAL_BANK_EXECUTOR_D_ACCOUNT_ID, EconomySettings.defaultCurrency, recovered, exempt = true)
+            EconomyStorageService.rawDeposit(CENTRAL_BANK_RESERVE_C_ACCOUNT_ID, EconomySettings.defaultCurrency, recovered, exempt = true)
         }
     }
 

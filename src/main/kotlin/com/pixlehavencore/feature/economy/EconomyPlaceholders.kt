@@ -5,6 +5,7 @@ import org.bukkit.entity.Player
 import taboolib.platform.compat.PlaceholderExpansion
 import com.pixlehavencore.util.EconomyUtils
 import java.math.BigDecimal
+import java.math.RoundingMode
 
 object EconomyPlaceholders : PlaceholderExpansion {
 
@@ -36,35 +37,52 @@ object EconomyPlaceholders : PlaceholderExpansion {
                     EconomySettings.formatBalance(EconomyUtils.getBalance(player, resolvedCurrency), resolvedCurrency)
                 }
             }
-            lower == "cbank_balance_raw" || lower == "c_balance_raw" -> resolveAdminMetric(player, EconomySettings.defaultCurrency) { CentralBankService.getReserveBalance() }
-            lower == "cbank_balance" || lower == "c_balance" -> resolveAdminMetric(player, EconomySettings.defaultCurrency) { CentralBankService.getReserveBalance() }
+            lower == "cbank_balance_raw" || lower == "c_balance_raw" ->
+                formatCentralBankRaw { CentralBankService.getReserveBalance() }
+            lower == "cbank_balance" || lower == "c_balance" ->
+                formatCentralBank { CentralBankService.getReserveBalance() }
             lower.startsWith("cbank_balance_") || lower.startsWith("c_balance_") -> {
                 val prefix = if (lower.startsWith("cbank_balance_")) "cbank_balance_" else "c_balance_"
-                val currency = lower.removePrefix(prefix).removeSuffix("_raw").ifBlank { EconomySettings.defaultCurrency }
-                resolveAdminMetric(player, currency) { CentralBankService.getReserveBalance() }
+                val suffix = lower.removePrefix(prefix)
+                if (suffix.endsWith("_raw")) {
+                    formatCentralBankRaw { CentralBankService.getReserveBalance() }
+                } else {
+                    formatCentralBank { CentralBankService.getReserveBalance() }
+                }
             }
             lower == "dbank_balance" || lower == "d_balance" || lower == "cbank_executor_balance" ->
-                resolveAdminMetric(player, EconomySettings.defaultCurrency) { CentralBankService.getExecutorBalance() }
+                formatCentralBank { CentralBankService.getExecutorBalance() }
             lower == "dbank_balance_raw" || lower == "d_balance_raw" || lower == "cbank_executor_balance_raw" ->
-                resolveAdminMetric(player, EconomySettings.defaultCurrency) { CentralBankService.getExecutorBalance() }
-            lower == "cbank_reserve_rate" || lower == "reserve_rate" ->
-                resolveAdminMetric(player, EconomySettings.defaultCurrency) { CentralBankService.getReserveRate() }
-            lower == "cbank_reserve_rate_raw" || lower == "reserve_rate_raw" ->
-                resolveAdminMetric(player, EconomySettings.defaultCurrency) { CentralBankService.getReserveRate() }
-            lower == "active_m0" -> resolveAdminMetric(player, EconomySettings.defaultCurrency) { CentralBankService.getActiveM0() }
-            lower == "active_m0_raw" -> resolveAdminMetric(player, EconomySettings.defaultCurrency) { CentralBankService.getActiveM0() }
-            lower == "active_player_count" -> {
-                if (!canReadCentralBank(player)) "" else CentralBankService.getActivePlayerCount().toString()
+                formatCentralBankRaw { CentralBankService.getExecutorBalance() }
+            lower == "cbank_reserve_rate" || lower == "reserve_rate" -> {
+                if (!isCentralBankReady()) return ""
+                val rate = CentralBankService.getReserveRate().multiply(BigDecimal(100)).setScale(2, RoundingMode.HALF_UP)
+                "${rate.toPlainString()}%"
             }
-            lower == "active_player_count_raw" -> {
-                if (!canReadCentralBank(player)) "" else CentralBankService.getActivePlayerCount().toString()
+            lower == "cbank_reserve_rate_raw" || lower == "reserve_rate_raw" -> {
+                if (!isCentralBankReady()) return ""
+                CentralBankService.getReserveRate().multiply(BigDecimal(100)).setScale(2, RoundingMode.HALF_UP).toPlainString()
             }
-            lower == "cbank_max_supply" -> resolveAdminMetric(player, EconomySettings.defaultCurrency) { CentralBankService.getMaxSupply() }
-            lower == "cbank_max_supply_raw" -> resolveAdminMetric(player, EconomySettings.defaultCurrency) { CentralBankService.getMaxSupply() }
-            lower == "cbank_total_player_balance" -> resolveAdminMetric(player, EconomySettings.defaultCurrency) { CentralBankService.getTotalPlayerBalance() }
-            lower == "cbank_total_player_balance_raw" -> resolveAdminMetric(player, EconomySettings.defaultCurrency) { CentralBankService.getTotalPlayerBalance() }
-            lower == "cbank_period_tax" -> resolveAdminMetric(player, EconomySettings.defaultCurrency) { CentralBankService.getPeriodTaxCollected() }
-            lower == "cbank_period_tax_raw" -> resolveAdminMetric(player, EconomySettings.defaultCurrency) { CentralBankService.getPeriodTaxCollected() }
+            lower == "active_m0" ->
+                formatCentralBank { CentralBankService.getActiveM0() }
+            lower == "active_m0_raw" ->
+                formatCentralBankRaw { CentralBankService.getActiveM0() }
+            lower == "active_player_count" || lower == "active_player_count_raw" -> {
+                if (!isCentralBankReady()) return ""
+                CentralBankService.getActivePlayerCount().toString()
+            }
+            lower == "cbank_max_supply" ->
+                formatCentralBank { CentralBankService.getMaxSupply() }
+            lower == "cbank_max_supply_raw" ->
+                formatCentralBankRaw { CentralBankService.getMaxSupply() }
+            lower == "cbank_total_player_balance" ->
+                formatCentralBank { CentralBankService.getTotalPlayerBalance() }
+            lower == "cbank_total_player_balance_raw" ->
+                formatCentralBankRaw { CentralBankService.getTotalPlayerBalance() }
+            lower == "cbank_period_tax" ->
+                formatCentralBank { CentralBankService.getPeriodTaxCollected() }
+            lower == "cbank_period_tax_raw" ->
+                formatCentralBankRaw { CentralBankService.getPeriodTaxCollected() }
             lower.startsWith("currency_name_") -> {
                 val currency = lower.removePrefix("currency_name_").ifBlank { EconomySettings.defaultCurrency }
                 EconomySettings.getDefinition(currency).singular
@@ -77,18 +95,22 @@ object EconomyPlaceholders : PlaceholderExpansion {
         }
     }
 
-    private fun canReadCentralBank(player: OfflinePlayer): Boolean {
-        return player is Player && (player.hasPermission("phcore.admin") || player.hasPermission("phcore.economy.admin") || player.hasPermission("eco.admin.cbank"))
+    private fun isCentralBankReady(): Boolean {
+        return EconomySettings.enabled && CentralBankService.isReady()
     }
 
-    private fun resolveAdminMetric(player: OfflinePlayer, currency: String, supplier: () -> BigDecimal): String {
-        if (!canReadCentralBank(player)) {
-            return ""
-        }
-        if (EconomySettings.resolveCurrency(currency) != EconomySettings.defaultCurrency) {
-            return "0"
-        }
-        return EconomySettings.formatAmount(supplier(), EconomySettings.defaultCurrency)
+    private fun formatCentralBank(supplier: () -> BigDecimal): String {
+        if (!isCentralBankReady()) return ""
+        val currency = EconomySettings.defaultCurrency
+        if (EconomySettings.resolveCurrency(currency) != currency) return "0"
+        return EconomySettings.formatBalance(supplier(), currency)
+    }
+
+    private fun formatCentralBankRaw(supplier: () -> BigDecimal): String {
+        if (!isCentralBankReady()) return ""
+        val currency = EconomySettings.defaultCurrency
+        if (EconomySettings.resolveCurrency(currency) != currency) return "0"
+        return EconomySettings.formatAmount(supplier(), currency)
     }
 }
 
@@ -105,32 +127,38 @@ object EconomyCentralBankAliasPlaceholders : PlaceholderExpansion {
     }
 
     private fun resolve(player: OfflinePlayer, args: String): String {
-        if (player !is Player || (!player.hasPermission("phcore.admin") && !player.hasPermission("phcore.economy.admin") && !player.hasPermission("eco.admin.cbank"))) {
-            return ""
-        }
         val lower = args.lowercase()
         return when {
-            lower == "cbank_balance_raw" || lower.startsWith("cbank_balance_") && lower.endsWith("_raw") ->
-                resolveCurrencyMetric(lower, "cbank_balance") { CentralBankService.getReserveBalance() }
+            lower == "cbank_balance_raw" || (lower.startsWith("cbank_balance_") && lower.endsWith("_raw")) ->
+                resolveCurrencyMetric(lower, "cbank_balance", withUnit = false)
             lower == "cbank_balance" || lower.startsWith("cbank_balance_") ->
-                resolveCurrencyMetric(lower, "cbank_balance") { CentralBankService.getReserveBalance() }
-            lower == "cbank_reserve_rate" || lower.startsWith("cbank_reserve_rate_") ->
-                resolveCurrencyMetric(lower, "cbank_reserve_rate") { CentralBankService.getReserveRate() }
+                resolveCurrencyMetric(lower, "cbank_balance", withUnit = true)
+            lower == "cbank_reserve_rate" || lower.startsWith("cbank_reserve_rate_") -> {
+                if (!CentralBankService.isReady()) return ""
+                CentralBankService.getReserveRate().multiply(BigDecimal(100))
+                    .setScale(2, RoundingMode.HALF_UP).let {
+                        if (lower.endsWith("_raw")) "${it.toPlainString()}" else "${it.toPlainString()}%"
+                    }
+            }
             lower == "active_m0" || lower.startsWith("active_m0_") ->
-                resolveCurrencyMetric(lower, "active_m0") { CentralBankService.getActiveM0() }
+                resolveCurrencyMetric(lower, "active_m0", withUnit = !lower.endsWith("_raw"))
             else -> ""
         }
     }
 
-    private fun resolveCurrencyMetric(args: String, prefix: String, supplier: () -> BigDecimal): String {
-        val currency = if (args == prefix || args == "${prefix}_raw") {
-            EconomySettings.defaultCurrency
+    private fun resolveCurrencyMetric(args: String, prefix: String, withUnit: Boolean): String {
+        if (!CentralBankService.isReady()) return ""
+        val currency = EconomySettings.defaultCurrency
+        if (EconomySettings.resolveCurrency(currency) != currency) return "0"
+        val value = when (prefix) {
+            "cbank_balance" -> CentralBankService.getReserveBalance()
+            "active_m0" -> CentralBankService.getActiveM0()
+            else -> return "0"
+        }
+        return if (withUnit) {
+            EconomySettings.formatBalance(value, currency)
         } else {
-            args.removePrefix("${prefix}_").removeSuffix("_raw").ifBlank { EconomySettings.defaultCurrency }
+            EconomySettings.formatAmount(value, currency)
         }
-        if (EconomySettings.resolveCurrency(currency) != EconomySettings.defaultCurrency) {
-            return "0"
-        }
-        return EconomySettings.formatAmount(supplier(), EconomySettings.defaultCurrency)
     }
 }

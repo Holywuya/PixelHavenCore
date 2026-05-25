@@ -25,26 +25,26 @@
 
 ## 指令
 
-主命令：`/warehouse`（别名：`/wh`）
+ 主命令：`/playerinv`（别名：`/pi`）
 
-- `/warehouse`
+- `/playerinv`
   - 打开自己的仓库
 
-- `/warehouse open <玩家>`
+- `/playerinv open <玩家>`
   - 管理员打开目标玩家仓库
 
-- `/warehouse size <玩家> <大小>`
+- `/playerinv size <玩家> <大小>`
   - 管理员设置个人仓库容量
 
-- `/warehouse shared ...`
+- `/playerinv shared ...`
   - 共享仓库子命令（create/open/add/remove/members/upgrade/quota/admin-open/owner）
 
-- `/warehouse reload`
+- `/playerinv reload`
   - 重载仓库模块配置
 
 ## 配置文件
 
-路径：`feature/warehouse.yml`
+ 路径：`feature/playerinv.yml`
 
 - `enabled`
   - 模块总开关

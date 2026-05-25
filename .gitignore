@@ -7,7 +7,7 @@ bin
 .arts
 ### VSCode ###
 .vscode
-
+docs
 ### Claude Code ###
 .claude
 .claude.local.md
@@ -25,3 +25,4 @@ nul
 CLAUDE.md
 AGENTS.md
 skills
+.worktrees

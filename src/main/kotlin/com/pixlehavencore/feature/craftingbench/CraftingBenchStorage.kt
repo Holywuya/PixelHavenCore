@@ -73,6 +73,7 @@ object CraftingBenchStorage {
     }
 
     fun close() {
+        DatabaseUtils.closeMultipleHandler(handler)
         handler = null
     }
 

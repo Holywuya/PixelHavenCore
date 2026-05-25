@@ -23,7 +23,7 @@ object GrindstoneRepairCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.grindstone.admin")) return@execute
+            if (!sender.requirePermission("phcore.admin")) return@execute
             GrindstoneRepairSettings.init()
             sender.msg("&a砂轮修复配置已重载。")
         }

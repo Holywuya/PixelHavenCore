@@ -19,6 +19,7 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 
 object TradeService {
 
@@ -44,6 +45,8 @@ object TradeService {
     fun reload() {
         TradeSettings.reload()
         requests.clear()
+        // 先退还进行中交易的物品，再清空会话
+        sessions.values.toSet().forEach { session -> abort(session, true) }
         sessions.clear()
         moneyInputs.clear()
         interactCooldown.clear()
@@ -166,9 +169,10 @@ object TradeService {
 
     fun handleClick(player: Player, rawSlot: Int): Boolean {
         val session = sessions[player.uniqueId] ?: return false
-        val ownSlots = leftOfferSlots
-        val ownMoneySlot = LEFT_MONEY_SLOT
-        val ownStatusSlot = LEFT_STATUS_SLOT
+        val isLeft = player.uniqueId == session.left
+        val ownSlots = if (isLeft) leftOfferSlots else rightOfferSlots
+        val ownMoneySlot = if (isLeft) LEFT_MONEY_SLOT else RIGHT_MONEY_SLOT
+        val ownStatusSlot = if (isLeft) LEFT_STATUS_SLOT else RIGHT_STATUS_SLOT
         val topSize = playerInventory(session, player.uniqueId).size
 
         if (rawSlot >= topSize) {
@@ -179,7 +183,7 @@ object TradeService {
             ownStatusSlot -> {
                 session.confirm(player.uniqueId)
                 render(session, preserveOffers = true)
-                if (session.leftConfirmed && session.rightConfirmed) {
+                if (session.leftConfirmed.get() && session.rightConfirmed.get()) {
                     completeTrade(session)
                 }
                 return true
@@ -192,7 +196,7 @@ object TradeService {
                 abort(session, true)
                 return true
             }
-            CENTER_INFO_SLOT, LEFT_STATUS_SLOT, RIGHT_STATUS_SLOT, LEFT_MONEY_SLOT, RIGHT_MONEY_SLOT -> return true
+            CENTER_INFO_SLOT -> return true
         }
 
         if (session.isLocked(player.uniqueId)) {
@@ -212,9 +216,11 @@ object TradeService {
         if (session.isLocked(player.uniqueId)) {
             return true
         }
+        val isLeft = player.uniqueId == session.left
+        val ownSlots = if (isLeft) leftOfferSlots else rightOfferSlots
         if (shift && action == org.bukkit.event.inventory.InventoryAction.MOVE_TO_OTHER_INVENTORY && currentItem != null && currentItem.type != Material.AIR) {
             val inventory = playerInventory(session, player.uniqueId)
-            val empty = leftOfferSlots.firstOrNull { inventory.getItem(it) == null }
+            val empty = ownSlots.firstOrNull { inventory.getItem(it) == null }
             if (empty != null) {
                 inventory.setItem(empty, currentItem.clone())
                 currentItem.amount = 0
@@ -300,20 +306,13 @@ object TradeService {
 
         val leftMoney = session.moneyOffers[session.left] ?: BigDecimal.ZERO
         val rightMoney = session.moneyOffers[session.right] ?: BigDecimal.ZERO
-        if (leftMoney > BigDecimal.ZERO && !EconomyUtils.has(left, leftMoney)) {
-            left.sendMessage(TextUtils.parse("&c你的余额不足，交易取消。"))
-            return abort(session, true)
-        }
-        if (rightMoney > BigDecimal.ZERO && !EconomyUtils.has(right, rightMoney)) {
-            right.sendMessage(TextUtils.parse("&c你的余额不足，交易取消。"))
-            return abort(session, true)
-        }
-
         if (leftMoney > BigDecimal.ZERO && !EconomyUtils.withdraw(left, leftMoney)) {
+            left.sendMessage(TextUtils.parse("&c你的余额不足，交易取消。"))
             return abort(session, true)
         }
         if (rightMoney > BigDecimal.ZERO && !EconomyUtils.withdraw(right, rightMoney)) {
             if (leftMoney > BigDecimal.ZERO) EconomyUtils.depositInternal(left, leftMoney)
+            right.sendMessage(TextUtils.parse("&c你的余额不足，交易取消。"))
             return abort(session, true)
         }
 
@@ -370,7 +369,8 @@ object TradeService {
     }
 
     private fun snapshotOwnerItems(session: TradeSession, owner: UUID): List<ItemStack> {
-        return snapshotItems(playerInventory(session, owner), leftOfferSlots)
+        val slots = if (owner == session.left) leftOfferSlots else rightOfferSlots
+        return snapshotItems(playerInventory(session, owner), slots)
     }
 
     private fun clearOfferInventories(session: TradeSession) {
@@ -446,8 +446,8 @@ object TradeService {
             otherName = right?.name ?: "Unknown",
             selfItems = leftItems,
             otherItems = rightItems,
-            selfConfirmed = session.leftConfirmed,
-            otherConfirmed = session.rightConfirmed,
+            selfConfirmed = session.leftConfirmed.get(),
+            otherConfirmed = session.rightConfirmed.get(),
             selfMoney = session.moneyOffers[session.left] ?: BigDecimal.ZERO,
             otherMoney = session.moneyOffers[session.right] ?: BigDecimal.ZERO
         )
@@ -458,8 +458,8 @@ object TradeService {
             otherName = left?.name ?: "Unknown",
             selfItems = rightItems,
             otherItems = leftItems,
-            selfConfirmed = session.rightConfirmed,
-            otherConfirmed = session.leftConfirmed,
+            selfConfirmed = session.rightConfirmed.get(),
+            otherConfirmed = session.leftConfirmed.get(),
             selfMoney = session.moneyOffers[session.right] ?: BigDecimal.ZERO,
             otherMoney = session.moneyOffers[session.left] ?: BigDecimal.ZERO
         )
@@ -502,12 +502,12 @@ object TradeService {
     private fun infoItem(left: String, right: String): ItemStack {
         return ItemStack(Material.BOOK).apply {
             itemMeta = itemMeta?.apply {
-                displayName(TextUtils.parse("&e交易信息"))
+                displayName(TextUtils.parseItem("&e交易信息"))
                 lore(listOf(
-                    TextUtils.parse("&7左侧玩家: &f$left"),
-                    TextUtils.parse("&7右侧玩家: &f$right"),
-                    TextUtils.parse("&7双方确认后才会完成交换"),
-                    TextUtils.parse("&7修改物品或金额会重置确认")
+                    TextUtils.parseItem("&7左侧玩家: &f$left"),
+                    TextUtils.parseItem("&7右侧玩家: &f$right"),
+                    TextUtils.parseItem("&7双方确认后才会完成交换"),
+                    TextUtils.parseItem("&7修改物品或金额会重置确认")
                 ))
             }
         }
@@ -521,12 +521,12 @@ object TradeService {
         val otherStatus = if (otherConfirmed) "&a已确认" else "&c未确认"
         return ItemStack(material).apply {
             itemMeta = itemMeta?.apply {
-                displayName(TextUtils.parse("&e$side 确认按钮"))
+                displayName(TextUtils.parseItem("&e$side 确认按钮"))
                 lore(listOf(
-                    TextUtils.parse("&7$side 状态: $selfStatus"),
-                    TextUtils.parse("&7$otherSide 状态: $otherStatus"),
-                    TextUtils.parse("&7$side 报价: &f${formatMoney(money)}"),
-                    TextUtils.parse("&7确认后会锁定该侧的交易操作")
+                    TextUtils.parseItem("&7$side 状态: $selfStatus"),
+                    TextUtils.parseItem("&7$otherSide 状态: $otherStatus"),
+                    TextUtils.parseItem("&7$side 报价: &f${formatMoney(money)}"),
+                    TextUtils.parseItem("&7确认后会锁定该侧的交易操作")
                 ))
             }
         }
@@ -536,12 +536,12 @@ object TradeService {
         val side = if (leftSide) "左侧" else "右侧"
         return ItemStack(Material.GOLD_INGOT).apply {
             itemMeta = itemMeta?.apply {
-                displayName(TextUtils.parse("&6$side 金币报价: &f${formatMoney(amount)}"))
+                displayName(TextUtils.parseItem("&6$side 金币报价: &f${formatMoney(amount)}"))
                 lore(listOf(
-                    TextUtils.parse("&7当前编辑的是${side}的金币报价"),
-                    TextUtils.parse("&7点击后通过聊天输入金额"),
-                    TextUtils.parse("&7输入 cancel 取消本次输入"),
-                    TextUtils.parse("&7税收会在交易完成时结算")
+                    TextUtils.parseItem("&7当前编辑的是${side}的金币报价"),
+                    TextUtils.parseItem("&7点击后通过聊天输入金额"),
+                    TextUtils.parseItem("&7输入 cancel 取消本次输入"),
+                    TextUtils.parseItem("&7税收会在交易完成时结算")
                 ))
             }
         }
@@ -550,8 +550,8 @@ object TradeService {
     private fun cancelItem(): ItemStack {
         return ItemStack(Material.BARRIER).apply {
             itemMeta = itemMeta?.apply {
-                displayName(TextUtils.parse("&c取消交易"))
-                lore(listOf(TextUtils.parse("&7点击后立即取消并退回双方物品")))
+                displayName(TextUtils.parseItem("&c取消交易"))
+                lore(listOf(TextUtils.parseItem("&7点击后立即取消并退回双方物品")))
             }
         }
     }
@@ -576,21 +576,21 @@ object TradeService {
         val rightInventory: Inventory,
         val id: UUID = UUID.randomUUID(),
         val moneyOffers: MutableMap<UUID, BigDecimal> = mutableMapOf(left to BigDecimal.ZERO, right to BigDecimal.ZERO),
-        var leftConfirmed: Boolean = false,
-        var rightConfirmed: Boolean = false
+        val leftConfirmed: AtomicBoolean = AtomicBoolean(false),
+        val rightConfirmed: AtomicBoolean = AtomicBoolean(false)
     ) {
         fun confirm(player: UUID) {
-            if (player == left) leftConfirmed = true
-            if (player == right) rightConfirmed = true
+            if (player == left) leftConfirmed.set(true)
+            if (player == right) rightConfirmed.set(true)
         }
 
         fun resetConfirm() {
-            leftConfirmed = false
-            rightConfirmed = false
+            leftConfirmed.set(false)
+            rightConfirmed.set(false)
         }
 
         fun isLocked(player: UUID): Boolean {
-            return if (player == left) leftConfirmed else rightConfirmed
+            return if (player == left) leftConfirmed.get() else rightConfirmed.get()
         }
     }
 }

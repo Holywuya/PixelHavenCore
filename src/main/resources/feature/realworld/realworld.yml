@@ -1,0 +1,65 @@
+enabled: true
+
+tick-interval-seconds: 2
+
+season:
+  duration-ticks: 12096000
+  transition-progress: 0.1
+
+weather:
+  decision-interval-seconds: 300
+  persistence-chance: 0.6
+  extreme:
+    # 预留给后续天气切换预警；当前版本未接线。
+    warning-seconds: 30
+    grace-period-seconds: 10
+    damage-interval-seconds: 3
+    base-damage-hearts: 2.0
+
+temperature:
+  comfort-min: 15
+  comfort-max: 36
+  altitude-threshold-y: 80
+  altitude-drop-per-block: 0.5
+  scan-interval-seconds: 5
+  max-change-per-tick: 0.5
+  armor-bonus:
+    leather: 5
+    netherite: 10
+  thresholds:
+    severe-heat: 42.0
+    heat: 36.0
+    cold-mild: 15.0
+    cold: 5.0
+    severe-cold: -5.0
+
+thirst:
+  base-rate-per-minute: 0.5
+  sprint-multiplier: 2.0
+  submerge-multiplier: 0.1
+  altitude-threshold-y: 100
+  altitude-multiplier: 1.2
+  temperature-deviation-percent-per-degree: 2.0
+  thresholds:
+    full: 60.0
+    thirsty: 30.0
+    severe: 10.0
+  water-sources:
+    water-bottle: 30.0
+    right-click-source: 20.0
+    rain-per-minute: 2.0
+    sea-water: 10.0
+  water-quality:
+    river-nausea-chance: 0.1
+    sea-water-nausea-chance: 1.0
+
+hud:
+  actionbar-format: "&c🌡 {temp}°C  &b💧 {hydration}/100  &f{weather}  &a{season}"
+  refresh-interval-seconds: 2
+  bossbar-enabled: true
+  bossbar-title-heat: "&c严重过热！寻找阴凉处！"
+  bossbar-title-cold: "&b严重过冷！寻找热源！"
+  bossbar-title-thirst: "&e严重脱水！寻找水源！"
+
+storage:
+  auto-save-interval-minutes: 5

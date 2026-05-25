@@ -1,0 +1,12 @@
+version: 1
+
+# =============================================================================
+# MM 怪物血量 BossBar
+# =============================================================================
+enabled: true
+bar_color: PURPLE
+bar_style: PROGRESS
+title_format: "<red>{name} <white>{health}/{max_health}</white></red>"
+damage_format: " <gray>(-{damage})</gray>"
+remove_delay_ticks: 60
+update_interval_ticks: 5

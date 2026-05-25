@@ -89,7 +89,7 @@ object DurabilityPacketListener : PacketListener {
         }
 
         val newLore = filtered.toMutableList()
-        newLore.add(TextUtils.parse(text))
+        newLore.add(TextUtils.parseItem(text))
         meta.lore(newLore)
         item.itemMeta = meta
         return item

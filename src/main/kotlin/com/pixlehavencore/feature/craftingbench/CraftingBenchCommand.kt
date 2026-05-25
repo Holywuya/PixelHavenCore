@@ -112,7 +112,7 @@ object CraftingBenchCommand {
             suggestPlayers()
             dynamic(comment = "tier") {
                 execute<ProxyCommandSender> { sender, context, argument ->
-                    if (!sender.requirePermission("phcore.craftingbench.admin")) {
+                    if (!sender.requirePermission("phcore.admin")) {
                         return@execute
                     }
                     val targetName = context.getOrNull("player")?.toString()?.trim().orEmpty()
@@ -146,7 +146,7 @@ object CraftingBenchCommand {
             suggestPlayers()
             dynamic(comment = "tier") {
                 execute<ProxyCommandSender> { sender, context, argument ->
-                    if (!sender.requirePermission("phcore.craftingbench.admin")) {
+                    if (!sender.requirePermission("phcore.admin")) {
                         return@execute
                     }
                     val targetName = context.getOrNull("player")?.toString()?.trim().orEmpty()
@@ -198,7 +198,7 @@ object CraftingBenchCommand {
                 CraftingBenchService.getAllRecipeIds()
             }
             execute<ProxyCommandSender> { sender, _, argument ->
-                if (!sender.requirePermission("phcore.craftingbench.admin")) return@execute
+                if (!sender.requirePermission("phcore.admin")) return@execute
                 val player = sender.requirePlayer() ?: return@execute
                 val recipeId = argument.toString().trim()
                 val bukkitPlayer = Bukkit.getPlayer(player.uniqueId) ?: return@execute
@@ -216,7 +216,7 @@ object CraftingBenchCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.craftingbench.admin")) {
+            if (!sender.requirePermission("phcore.admin")) {
                 return@execute
             }
             submit(async = true) {

@@ -55,19 +55,16 @@ object PlaytimeCommand {
     @CommandBody
     val top = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.playtime.top")) return@execute
             handleLeaderboard(sender, "total", PlaytimeSettings.leaderboardDefaultLimit)
         }
         dynamic(comment = "type") {
             suggestion<ProxyCommandSender> { _, _ -> listOf("total", "today", "week", "month") }
             execute<ProxyCommandSender> { sender, context, _ ->
-                if (!sender.requirePermission("phcore.playtime.top")) return@execute
                 val type = context.getOrNull("type")?.toString() ?: "total"
                 handleLeaderboard(sender, type, PlaytimeSettings.leaderboardDefaultLimit)
             }
             dynamic(comment = "limit") {
                 execute<ProxyCommandSender> { sender, context, _ ->
-                    if (!sender.requirePermission("phcore.playtime.top")) return@execute
                     val type = context.getOrNull("type")?.toString() ?: "total"
                     val limit = context.getOrNull("limit")?.toString()?.toIntOrNull() ?: PlaytimeSettings.leaderboardDefaultLimit
                     handleLeaderboard(sender, type, limit)
@@ -79,19 +76,19 @@ object PlaytimeCommand {
     @CommandBody
     val cleanup = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.playtime.cleanup")) return@execute
+            if (!sender.requirePermission("phcore.admin")) return@execute
             val days = PlaytimeSettings.cleanupDefaultDays
             showCleanupPreview(sender, days)
         }
         dynamic(comment = "days") {
             execute<ProxyCommandSender> { sender, context, _ ->
-                if (!sender.requirePermission("phcore.playtime.cleanup")) return@execute
+                if (!sender.requirePermission("phcore.admin")) return@execute
                 val days = context.getOrNull("days")?.toString()?.toIntOrNull() ?: PlaytimeSettings.cleanupDefaultDays
                 showCleanupPreview(sender, days)
             }
             literal("confirm") {
                 execute<ProxyCommandSender> { sender, context, _ ->
-                    if (!sender.requirePermission("phcore.playtime.cleanup")) return@execute
+                    if (!sender.requirePermission("phcore.admin")) return@execute
                     val days = context.getOrNull("days")?.toString()?.toIntOrNull() ?: PlaytimeSettings.cleanupDefaultDays
                     sender.msg("&7正在清理超过 $days 天未登录的玩家数据...")
                     PlaytimeService.cleanupExecute(days) { count ->
@@ -105,7 +102,7 @@ object PlaytimeCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.playtime.reload")) return@execute
+            if (!sender.requirePermission("phcore.admin")) return@execute
             PlaytimeSettings.reload()
             PlaytimeStorage.reload()
             PlaytimeService.reload()

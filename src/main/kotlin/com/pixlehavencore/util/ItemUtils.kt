@@ -98,8 +98,8 @@ object ItemUtils {
     fun staticItem(material: Material, title: String, lore: List<String> = emptyList()): ItemStack {
         return ItemStack(material).apply {
             itemMeta = itemMeta?.apply {
-                displayName(TextUtils.parse(title))
-                this.lore(TextUtils.parseLore(lore))
+                displayName(TextUtils.parseItem(title))
+                this.lore(TextUtils.parseItemLore(lore))
             }
         }
     }
@@ -107,7 +107,7 @@ object ItemUtils {
     fun namedItem(material: Material, title: String): ItemStack {
         return ItemStack(material).apply {
             itemMeta = itemMeta?.apply {
-                displayName(TextUtils.parse(title))
+                displayName(TextUtils.parseItem(title))
             }
         }
     }

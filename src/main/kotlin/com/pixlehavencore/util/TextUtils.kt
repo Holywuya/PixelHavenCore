@@ -1,6 +1,7 @@
 package com.pixlehavencore.util
 
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 
@@ -24,6 +25,17 @@ object TextUtils {
     }
 
     fun parseLore(lines: List<String>): List<Component> = lines.map(::parse)
+
+    /**
+     * 解析物品显示名称，显式禁用斜体。
+     */
+    fun parseItem(text: String): Component =
+        parse(text).decoration(TextDecoration.ITALIC, false)
+
+    /**
+     * 解析物品 Lore，显式禁用斜体。
+     */
+    fun parseItemLore(lines: List<String>): List<Component> = lines.map(::parseItem)
 
     /**
      * 将 & 和 § 颜色码翻译为 MiniMessage 标签。

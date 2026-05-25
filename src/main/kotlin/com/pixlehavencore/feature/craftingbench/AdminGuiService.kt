@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 object AdminGuiService {
 
-    private const val ADMIN_PERMISSION = "phcore.craftingbench.admin"
+    private const val ADMIN_PERMISSION = "phcore.admin"
     private const val CHAT_INPUT_TIMEOUT_MS = 30_000L
 
     private val editSessions = ConcurrentHashMap<UUID, RecipeEditSession>()

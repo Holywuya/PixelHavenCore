@@ -1,0 +1,87 @@
+version: 1
+
+# 称号模块总开关
+enabled: true
+
+# PlaceholderAPI 配置
+papi:
+  enabled: true
+
+# GUI 配置
+gui:
+  title: "<gradient:gold:yellow>称号系统</gradient>"
+  rows: 6
+  # 边框材质
+  border_item: "GRAY_STAINED_GLASS_PANE"
+  # 深色边框（顶部/底部行）
+  border_accent: "BLACK_STAINED_GLASS_PANE"
+  # 分类网格槽位（含 all）
+  category_slots: [7, 17, 26, 35, 44]
+  # 称号展示起始槽位
+  title_start_slot: 10
+  # 每页称号数量
+  page_size: 28
+  # 导航按钮
+  prev_page_slot: 48
+  info_slot: 49
+  next_page_slot: 50
+  # 已装备标识
+  active_indicator: "LIME_STAINED_GLASS_PANE"
+  # 已过期标识
+  expired_indicator: "RED_STAINED_GLASS_PANE"
+  # 可用标识
+  available_indicator: "WHITE_STAINED_GLASS_PANE"
+  # 未拥有标识
+  locked_indicator: "ORANGE_STAINED_GLASS_PANE"
+  # 稀有度颜色
+  rarity_colors:
+    common: "&7"
+    uncommon: "&a"
+    rare: "&9"
+    epic: "&5"
+    legendary: "&6"
+
+# 玩家默认称号（首次进入时自动发放并装备）
+default_title:
+  enabled: false
+  # 称号ID，需与 titles/*.yml 中定义的 ID 一致
+  title_id: "new_player"
+  # 是否自动装备该称号
+  auto_equip: true
+
+# 自动过期清理
+expiry:
+  check_interval_ticks: 6000
+
+# 消息
+messages:
+  title_activated: "&a已装备称号: {title}"
+  title_deactivated: "&e已卸下称号。"
+  title_not_owned: "&c你尚未拥有该称号。"
+  title_expired: "&c该称号已过期。"
+  title_no_permission: "&c你没有使用该称号的权限。"
+  title_given: "&a已发放称号 &f{title} &a给 &f{player}&a。"
+  title_removed: "&a已移除玩家 &f{player} &a的称号 &f{title}&a。"
+  reload_success: "&a称号配置已重载。"
+  no_title_active: "&7无称号"
+  gui_no_titles: "&7暂无可用称号"
+  gui_page_info: "&7第 {current}/{total} 页"
+  # GUI 内部文本
+  gui_category_all: "全部"
+  gui_category_filter: "&7点击筛选"
+  gui_category_current: "&7当前筛选"
+  gui_prev_page: "&e上一页"
+  gui_next_page: "&e下一页"
+  gui_equipped: "&a✔ 已装备"
+  gui_click_unequip: "&7点击卸下称号"
+  gui_expired: "&c✘ 已过期"
+  gui_available: "&e可装备"
+  gui_click_equip: "&7点击装备称号"
+  gui_permanent: "&7有效期: &a永久"
+  gui_not_owned: "&c✘ 未拥有"
+  gui_title_system: "&6称号系统"
+  gui_owned: "&7已拥有: &f{count}"
+  gui_total: "&7总称号: &f{count}"
+  gui_category: "&7分类: &f{category}"
+  gui_rarity: "&7稀有度: &f{rarity}"
+  gui_remaining: "&7剩余时间: &f{time}"
