@@ -23,6 +23,8 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
 import taboolib.common.platform.function.info
 import taboolib.common.platform.function.submit
+import taboolib.module.ui.buildMenu
+import taboolib.module.ui.type.Chest
 import taboolib.common.platform.function.warning
 import taboolib.expansion.MultipleHandler
 import taboolib.platform.util.submit as submitOnEntity
@@ -791,7 +793,15 @@ object PlayerInvService {
 
             player.submitOnRegion {
                 if (!player.isOnline) return@submitOnRegion
-                val inventory = Bukkit.createInventory(null, 27, TextUtils.parse(PlayerInvSettings.sharedManagerTitle.resolvePlaceholders("{name}" to sharedName)))
+                val inventory = buildMenu<Chest>(TextUtils.parse(PlayerInvSettings.sharedManagerTitle.resolvePlaceholders("{name}" to sharedName)).toString()) {
+                    rows(3)
+                    map(
+                        "#########",
+                        "#M#AVR#B#",
+                        "#########"
+                    )
+                    set('#', ItemStack(Material.GRAY_STAINED_GLASS_PANE))
+                }
 
                 // slot 10: 成员按钮，公开时显示公开提示，私有时显示成员预览
                 inventory.setItem(MANAGE_SLOT_MEMBERS, if (isPublic) {

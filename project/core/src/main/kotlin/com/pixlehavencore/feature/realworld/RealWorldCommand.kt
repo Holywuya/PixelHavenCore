@@ -134,17 +134,9 @@ object RealWorldCommand {
                     return@execute
                 }
 
-                val plugin = Bukkit.getPluginManager().getPlugin("phcore")
-                if (plugin != null) {
-                    Bukkit.getGlobalRegionScheduler().run(plugin) { _ ->
-                        RealWorldService.forceWeather(newWeather)
-                        sender.msg("&a天气已切换为 &f${newWeather.displayName}&a。")
-                    }
-                } else {
-                    submit {
-                        RealWorldService.forceWeather(newWeather)
-                        sender.msg("&a天气已切换为 &f${newWeather.displayName}&a。")
-                    }
+                submit {
+                    RealWorldService.forceWeather(newWeather)
+                    sender.msg("&a天气已切换为 &f${newWeather.displayName}&a。")
                 }
             }
         }
