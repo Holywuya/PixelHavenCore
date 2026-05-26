@@ -14,6 +14,8 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 import taboolib.common.platform.function.submit
+import taboolib.module.ui.buildMenu
+import taboolib.module.ui.type.Chest
 import taboolib.platform.util.submit as submitOnEntity
 import taboolib.platform.util.submit as submitOnLocation
 import java.math.BigDecimal
@@ -154,14 +156,36 @@ object TradeService {
 
     fun openTrade(left: Player, right: Player) {
         val titleStr = TextBridge.toLegacy(TextUtils.parse(TradeSettings.title))
-        val leftInventory = Bukkit.createInventory(null, 54, titleStr)
-        val rightInventory = Bukkit.createInventory(null, 54, titleStr)
-        val session = TradeSession(left.uniqueId, right.uniqueId, leftInventory, rightInventory)
-        sessions.set(left.uniqueId, session)
-        sessions.set(right.uniqueId, session)
-        render(session)
-        left.openInventory(leftInventory)
-        right.openInventory(rightInventory)
+        val session = TradeSession(left.uniqueId, right.uniqueId)
+        sessions[left.uniqueId] = session
+        sessions[right.uniqueId] = session
+
+        val mapLines = arrayOf(
+            "#########",
+            "#LLL#RRR#",
+            "#LLL#RRR#",
+            "#LLL#RRR#",
+            "#########",
+            "#AM#X#MA#"
+        )
+
+        val leftInv = buildMenu<Chest>(titleStr) {
+            rows(6)
+            map(*mapLines)
+            set('#', ItemUtils.namedItem(Material.GRAY_STAINED_GLASS_PANE, "&7 "))
+        }
+        session.leftInventory = leftInv
+        renderView(leftInv, left.name, right.name, emptyList(), emptyList(), false, false, BigDecimal.ZERO, BigDecimal.ZERO)
+        left.openInventory(leftInv)
+
+        val rightInv = buildMenu<Chest>(titleStr) {
+            rows(6)
+            map(*mapLines)
+            set('#', ItemUtils.namedItem(Material.GRAY_STAINED_GLASS_PANE, "&7 "))
+        }
+        session.rightInventory = rightInv
+        renderView(rightInv, right.name, left.name, emptyList(), emptyList(), false, false, BigDecimal.ZERO, BigDecimal.ZERO)
+        right.openInventory(rightInv)
         left.sendMessage(TextBridge.toLegacy(TextUtils.parse(TradeSettings.tradeStartedMessage.resolvePlaceholders("{player}" to right.name))))
         right.sendMessage(TextBridge.toLegacy(TextUtils.parse(TradeSettings.tradeStartedMessage.resolvePlaceholders("{player}" to left.name))))
     }
@@ -299,9 +323,39 @@ object TradeService {
     }
 
     private fun reopen(player: Player, session: TradeSession) {
-        render(session, preserveOffers = true)
-        sessionSuspendClose.set(player.uniqueId, System.currentTimeMillis() + 1500L)
-        player.openInventory(playerInventory(session, player.uniqueId))
+        sessionSuspendClose[player.uniqueId] = System.currentTimeMillis() + 1500L
+        val titleStr = TextBridge.toLegacy(TextUtils.parse(TradeSettings.title))
+        val left = Bukkit.getPlayer(session.left)
+        val right = Bukkit.getPlayer(session.right)
+        val isLeft = player.uniqueId == session.left
+        val selfName = if (isLeft) (left?.name ?: "Unknown") else (right?.name ?: "Unknown")
+        val otherName = if (isLeft) (right?.name ?: "Unknown") else (left?.name ?: "Unknown")
+        val selfItems = snapshotOwnerItems(session, player.uniqueId)
+        val otherItems = snapshotOwnerItems(session, if (isLeft) session.right else session.left)
+        val selfConfirmed = if (isLeft) session.leftConfirmed.get() else session.rightConfirmed.get()
+        val otherConfirmed = if (isLeft) session.rightConfirmed.get() else session.leftConfirmed.get()
+        val selfMoney = session.moneyOffers[player.uniqueId] ?: BigDecimal.ZERO
+        val otherMoney = session.moneyOffers[if (isLeft) session.right else session.left] ?: BigDecimal.ZERO
+
+        val inv = buildMenu<Chest>(titleStr) {
+            rows(6)
+            map(
+                "#########",
+                "#LLL#RRR#",
+                "#LLL#RRR#",
+                "#LLL#RRR#",
+                "#########",
+                "#AM#X#MA#"
+            )
+            set('#', ItemUtils.namedItem(Material.GRAY_STAINED_GLASS_PANE, "&7 "))
+        }
+        if (isLeft) {
+            session.leftInventory = inv
+        } else {
+            session.rightInventory = inv
+        }
+        renderView(inv, selfName, otherName, selfItems, otherItems, selfConfirmed, otherConfirmed, selfMoney, otherMoney)
+        player.openInventory(inv)
     }
 
     private fun completeTrade(session: TradeSession) {
@@ -490,9 +544,6 @@ object TradeService {
         selfMoney: BigDecimal,
         otherMoney: BigDecimal
     ) {
-        for (slot in 0 until inventory.size) {
-            inventory.setItem(slot, ItemUtils.namedItem(Material.GRAY_STAINED_GLASS_PANE, "&7 "))
-        }
         (leftOfferSlots + rightOfferSlots).forEach { inventory.setItem(it, null) }
         restoreOfferItems(inventory, leftOfferSlots, selfItems)
         restoreOfferItems(inventory, rightOfferSlots, otherItems)
@@ -586,13 +637,14 @@ object TradeService {
     private data class TradeSession(
         val left: UUID,
         val right: UUID,
-        val leftInventory: Inventory,
-        val rightInventory: Inventory,
-        val id: UUID = UUID.randomUUID(),
-        val moneyOffers: MutableMap<UUID, BigDecimal> = mutableMapOf(left to BigDecimal.ZERO, right to BigDecimal.ZERO),
-        val leftConfirmed: AtomicBoolean = AtomicBoolean(false),
-        val rightConfirmed: AtomicBoolean = AtomicBoolean(false)
     ) {
+        lateinit var leftInventory: Inventory
+        lateinit var rightInventory: Inventory
+        val id: UUID = UUID.randomUUID()
+        val moneyOffers: MutableMap<UUID, BigDecimal> = mutableMapOf(left to BigDecimal.ZERO, right to BigDecimal.ZERO)
+        val leftConfirmed: AtomicBoolean = AtomicBoolean(false)
+        val rightConfirmed: AtomicBoolean = AtomicBoolean(false)
+
         fun confirm(player: UUID) {
             if (player == left) leftConfirmed.set(true)
             if (player == right) rightConfirmed.set(true)
