@@ -54,7 +54,7 @@ object CraftingBenchListener {
             AdminGuiListener.onInventoryClick(event)
             return
         }
-        val holder = event.view.topInventory.holder as? CraftingBenchMenuHolder ?: return
+        val holder = CraftingBenchMenu.getOpenHolder(event.view.topInventory) ?: return
         val player = event.whoClicked as? org.bukkit.entity.Player ?: return
         event.isCancelled = true
         if (event.clickedInventory != event.view.topInventory) return
@@ -107,7 +107,7 @@ object CraftingBenchListener {
             AdminGuiListener.onInventoryClose(event)
             return
         }
-        if (event.inventory.holder !is CraftingBenchMenuHolder) {
+        if (CraftingBenchMenu.getOpenHolder(event.inventory) == null) {
             return
         }
         CraftingBenchMenu.unregister(player?.uniqueId ?: return)

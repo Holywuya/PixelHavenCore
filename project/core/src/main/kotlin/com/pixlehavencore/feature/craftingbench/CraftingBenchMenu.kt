@@ -7,16 +7,16 @@ import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
-import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
+import taboolib.module.chat.colored
+import taboolib.module.ui.openMenu
+import taboolib.module.ui.type.Chest
 import taboolib.platform.util.submit as submitOnEntity
 import taboolib.platform.util.PlayerSessionMap
 import java.util.UUID
 
 object CraftingBenchMenu {
 
-    private const val SLOT_DETAIL_RESULT = 22
-    private const val SLOT_DETAIL_MATERIAL_START = 10
     internal const val SLOT_DETAIL_MINUS = 31
     internal const val SLOT_DETAIL_AMOUNT = 32
     internal const val SLOT_DETAIL_CRAFT = 34
@@ -39,11 +39,23 @@ object CraftingBenchMenu {
             craftCount = 1,
             category = category,
         )
-        val inventory = Bukkit.createInventory(holder, 54, TextUtils.parse("&8${tier.displayName} 制作台"))
-        holder.backingInventory = inventory
-        renderInventory(inventory, player, holder, tier)
-        player.openInventory(inventory)
-        openViews[player.uniqueId] = holder
+        player.openMenu<Chest>("&8${tier.displayName} 制作台".colored()) {
+            map(
+                "#########",
+                "|.......|",
+                "|.......|",
+                "|.......|",
+                "|.......|",
+                "#########"
+            )
+            set('#', ItemStack(CraftingBenchSettings.guiBorderAccent))
+            set('|', ItemStack(CraftingBenchSettings.guiBorderItem))
+            onBuild { p, inv ->
+                holder.backingInventory = inv
+                openViews[p.uniqueId] = holder
+                renderListInventory(inv, p, holder, tier)
+            }
+        }
     }
 
     fun openRecipeDetail(player: Player, tier: BenchTier, category: String?, page: Int, recipeId: String, craftCount: Int = 1) {
@@ -55,11 +67,23 @@ object CraftingBenchMenu {
             craftCount = craftCount.coerceAtLeast(1),
             category = category,
         )
-        val inventory = Bukkit.createInventory(holder, 54, TextUtils.parse("&8${tier.displayName} 配方详情"))
-        holder.backingInventory = inventory
-        renderInventory(inventory, player, holder, tier)
-        player.openInventory(inventory)
-        openViews[player.uniqueId] = holder
+        player.openMenu<Chest>("&8${tier.displayName} 配方详情".colored()) {
+            map(
+                "#########",
+                "|.......|",
+                "|.......|",
+                "#########",
+                "|.......|",
+                "#I#####B#"
+            )
+            set('#', ItemStack(CraftingBenchSettings.guiBorderAccent))
+            set('|', ItemStack(CraftingBenchSettings.guiBorderItem))
+            onBuild { p, inv ->
+                holder.backingInventory = inv
+                openViews[p.uniqueId] = holder
+                renderDetailInventory(inv, p, holder, tier)
+            }
+        }
     }
 
     fun refreshOpenMenus() {
@@ -70,7 +94,7 @@ object CraftingBenchMenu {
             }
             player.submitOnEntity {
                 val topInventory = player.openInventory.topInventory
-                if (topInventory.holder !== holder) {
+                if (holder.backingInventory !== topInventory) {
                     openViews.remove(playerId)
                     return@submitOnEntity
                 }
@@ -78,27 +102,28 @@ object CraftingBenchMenu {
                     openViews.remove(playerId)
                     return@submitOnEntity
                 }
-                renderInventory(holder.backingInventory, player, holder, tier)
+                when (holder.mode) {
+                    CraftingBenchMenuMode.LIST -> renderListInventory(topInventory, player, holder, tier)
+                    CraftingBenchMenuMode.DETAIL -> renderDetailInventory(topInventory, player, holder, tier)
+                }
                 player.updateInventory()
             }
         }
     }
 
-    fun unregister(playerId: UUID) {
-        openViews.remove(playerId)
+    fun unregister(playerId: UUID?) {
+        if (playerId != null) openViews.remove(playerId)
     }
 
-    private fun drawBorder(inventory: Inventory, accentRows: Set<Int>, sideRows: IntRange) {
-        val accentItem = ItemStack(CraftingBenchSettings.guiBorderAccent)
-        val sideItem = ItemStack(CraftingBenchSettings.guiBorderItem)
-        for (slot in 0 until inventory.size) {
-            val row = slot / 9
-            val col = slot % 9
-            when {
-                row in accentRows -> inventory.setItem(slot, accentItem)
-                row in sideRows && (col == 0 || col == 8) -> inventory.setItem(slot, sideItem)
-            }
+    fun getOpenHolder(playerId: UUID): CraftingBenchMenuHolder? {
+        return openViews[playerId]
+    }
+
+    fun getOpenHolder(inventory: Inventory): CraftingBenchMenuHolder? {
+        openViews.entries().forEach { (_, holder) ->
+            if (holder.backingInventory === inventory) return holder
         }
+        return null
     }
 
     private fun renderCategoryGrid(inventory: Inventory, selectedCategory: String?, categories: List<String>) {
@@ -121,14 +146,6 @@ object CraftingBenchMenu {
         }
     }
 
-    private fun renderInventory(inventory: Inventory, player: Player, holder: CraftingBenchMenuHolder, tier: BenchTier) {
-        inventory.clear()
-        when (holder.mode) {
-            CraftingBenchMenuMode.LIST -> renderListInventory(inventory, player, holder, tier)
-            CraftingBenchMenuMode.DETAIL -> renderDetailInventory(inventory, player, holder, tier)
-        }
-    }
-
     private fun renderListInventory(inventory: Inventory, player: Player, holder: CraftingBenchMenuHolder, tier: BenchTier) {
         val allPreviews = CraftingBenchService.getAvailableRecipes(player, tier)
         val categories = allPreviews.map { it.recipe.category }.distinct().sorted()
@@ -137,7 +154,6 @@ object CraftingBenchMenu {
         val maxPage = if (filtered.isEmpty()) 0 else (filtered.size - 1) / pageSize
         val currentPage = holder.page.coerceIn(0, maxPage)
 
-        drawBorder(inventory, setOf(0, 5), 1..4)
         renderCategoryGrid(inventory, holder.category, categories)
 
         val start = currentPage * pageSize
@@ -174,12 +190,10 @@ object CraftingBenchMenu {
         val enoughMaterials = statuses.all { it.enough }
         val estimatedSeconds = CraftingBenchService.estimateCraftSeconds(player, tier, recipe, craftCount)
 
-        drawBorder(inventory, setOf(0, 3, 5), 1..2)
-
-        inventory.setItem(SLOT_DETAIL_RESULT, createRecipeResultItem(recipe, craftCount, estimatedSeconds))
+        inventory.setItem(22, createRecipeResultItem(recipe, craftCount, estimatedSeconds))
         statuses.forEachIndexed { index, status ->
             if (index >= 7) return@forEachIndexed
-            inventory.setItem(SLOT_DETAIL_MATERIAL_START + index, createMaterialItem(status))
+            inventory.setItem(10 + index, createMaterialItem(status))
         }
         inventory.setItem(CraftingBenchSettings.guiInfoSlot, createInfoItem(player, tier, CraftingBenchService.getPlayerTasks(player.uniqueId).size))
         inventory.setItem(SLOT_DETAIL_MINUS, ItemUtils.staticItem(Material.RED_STAINED_GLASS_PANE, "&c减少数量", listOf("&7每次减少 1")))
@@ -286,10 +300,6 @@ class CraftingBenchMenuHolder(
     val recipeId: String?,
     val craftCount: Int,
     val category: String? = null,
-) : InventoryHolder {
+) {
     lateinit var backingInventory: Inventory
-
-    override fun getInventory(): Inventory {
-        return backingInventory
-    }
 }
