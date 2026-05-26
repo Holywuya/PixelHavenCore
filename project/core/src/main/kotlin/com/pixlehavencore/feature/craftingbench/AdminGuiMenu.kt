@@ -1,13 +1,11 @@
 package com.pixlehavencore.feature.craftingbench
 
 import com.pixlehavencore.util.ItemUtils
-import com.pixlehavencore.util.TextUtils
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 import taboolib.module.chat.colored
-import taboolib.module.ui.buildMenu
 import taboolib.module.ui.openMenu
 import taboolib.module.ui.type.Chest
 import taboolib.platform.util.PlayerSessionMap
@@ -16,9 +14,6 @@ import java.util.UUID
 object AdminGuiMenu {
 
     private const val PAGE_SIZE = 45
-    private const val SIX_ROWS = 6
-    private const val FOUR_ROWS = 4
-    private const val THREE_ROWS = 3
 
     private val openAdminGuis = PlayerSessionMap<AdminGuiHolder>({ throw IllegalStateException() })
 
@@ -26,14 +21,46 @@ object AdminGuiMenu {
         val recipes = AdminGuiService.getAllRecipeIds()
         val maxPage = if (recipes.isEmpty()) 0 else (recipes.size - 1) / PAGE_SIZE
         val currentPage = page.coerceIn(0, maxPage)
-        openPage(
-            player = player,
+        val holder = AdminGuiHolder(
+            ownerId = player.uniqueId,
             page = AdminGuiPage.RECIPE_LIST,
-            title = "&8配方管理 - 第${currentPage + 1}页",
-            menuRows = SIX_ROWS,
             context = mutableMapOf("page" to currentPage),
-        ) { inv, _ ->
-            renderRecipeList(inv, recipes, currentPage, maxPage)
+        )
+        player.openMenu<Chest>("&8配方管理 - 第${currentPage + 1}页".colored()) {
+            map(
+                ".........",
+                ".........",
+                ".........",
+                ".........",
+                ".........",
+                "#########"
+            )
+            set('#', ItemStack(Material.BLACK_STAINED_GLASS_PANE))
+            onBuild { _, inv ->
+                holder.backingInventory = inv
+                openAdminGuis[player.uniqueId] = holder
+                val start = currentPage * PAGE_SIZE
+                val end = (start + PAGE_SIZE).coerceAtMost(recipes.size)
+                for (i in start until end) {
+                    val recipeId = recipes[i]
+                    val recipe = CraftingBenchService.getRecipe(recipeId)
+                    val display = recipe?.displayName ?: recipeId
+                    inv.setItem(i - start, ItemUtils.staticItem(Material.PAPER, "&a$display", listOf(
+                        "&7ID: &f$recipeId",
+                        "&7分类: &f${recipe?.category ?: "-"}",
+                        "&7左键: &e编辑",
+                        "&7右键: &e复制",
+                        "&7Shift+右键: &c删除",
+                    )))
+                }
+                if (currentPage > 0) {
+                    inv.setItem(45, ItemUtils.staticItem(Material.ARROW, "&e上一页", emptyList()))
+                }
+                inv.setItem(48, ItemUtils.staticItem(Material.LIME_STAINED_GLASS_PANE, "&a新建配方", listOf("&7点击创建新配方")))
+                if (currentPage < maxPage) {
+                    inv.setItem(53, ItemUtils.staticItem(Material.ARROW, "&e下一页", emptyList()))
+                }
+            }
         }
     }
 
@@ -42,55 +69,106 @@ object AdminGuiMenu {
             ?: AdminGuiService.getEditSession(player.uniqueId)
             ?: AdminGuiService.createEditSession(player.uniqueId, originalRecipeId)
         AdminGuiService.setEditSession(player.uniqueId, editSession)
-        openPage(
-            player = player,
+        val holder = AdminGuiHolder(
+            ownerId = player.uniqueId,
             page = AdminGuiPage.RECIPE_EDITOR,
-            title = "&8配方编辑",
-            menuRows = FOUR_ROWS,
             context = mutableMapOf("originalRecipeId" to (editSession.originalRecipeId ?: "")),
-        ) { inv, _ ->
-            renderRecipeEditor(inv, editSession)
+        )
+        player.openMenu<Chest>("&8配方编辑".colored()) {
+            map(
+                "@@@@@@@@@",
+                "|       |",
+                "|       |",
+                "#########"
+            )
+            set('#', ItemStack(Material.BLACK_STAINED_GLASS_PANE))
+            set('|', ItemStack(Material.GRAY_STAINED_GLASS_PANE))
+            onBuild { _, inv ->
+                holder.backingInventory = inv
+                openAdminGuis[player.uniqueId] = holder
+                renderRecipeEditor(inv, editSession)
+            }
         }
     }
 
-    // 材料列表 GUI：6 行 54 格，slot 0-44 可放入区域，slot 45-53 功能按钮
     fun openMaterialList(player: Player) {
         val session = AdminGuiService.getEditSession(player.uniqueId)
-        openPage(player, AdminGuiPage.MATERIAL_LIST, "&8材料列表（直接放入物品）", SIX_ROWS) { inv, _ ->
-            // 从 session.materials 读取并放入格子
-            session?.materials?.forEachIndexed { index, mat ->
-                if (index >= PAGE_SIZE) return@forEachIndexed
-                val item = ItemUtils.resolveSpec(mat.item)?.clone() ?: ItemStack(Material.PAPER)
-                item.amount = mat.amount.coerceAtLeast(1).coerceAtMost(64)
-                inv.setItem(index, item)
+        val holder = AdminGuiHolder(
+            ownerId = player.uniqueId,
+            page = AdminGuiPage.MATERIAL_LIST,
+        )
+        player.openMenu<Chest>("&8材料列表（直接放入物品）".colored()) {
+            handLocked(false)
+            map(
+                ".........",
+                ".........",
+                ".........",
+                ".........",
+                ".........",
+                "#B########"
+            )
+            set('#', ItemStack(Material.BLACK_STAINED_GLASS_PANE))
+            onBuild { _, inv ->
+                holder.backingInventory = inv
+                openAdminGuis[player.uniqueId] = holder
+                session?.materials?.forEachIndexed { index, mat ->
+                    if (index >= PAGE_SIZE) return@forEachIndexed
+                    val item = ItemUtils.resolveSpec(mat.item)?.clone() ?: ItemStack(Material.PAPER)
+                    item.amount = mat.amount.coerceAtLeast(1).coerceAtMost(64)
+                    inv.setItem(index, item)
+                }
+                inv.setItem(45, ItemUtils.staticItem(Material.ARROW, "&e返回", listOf("&7返回配方编辑")))
             }
-            // 底部功能区
-            inv.setItem(45, ItemUtils.staticItem(Material.ARROW, "&e返回", listOf("&7返回配方编辑")))
-            drawAdminBorder(inv, 6)
         }
     }
 
-    // 奖励物品 GUI：3 行 27 格，slot 0-17 可放入区域，slot 18-26 功能按钮
     fun openRewardItems(player: Player) {
         val session = AdminGuiService.getEditSession(player.uniqueId)
-        openPage(player, AdminGuiPage.REWARD_ITEMS, "&8奖励物品（直接放入物品）", THREE_ROWS) { inv, _ ->
-            // 从 session.results 读取并放入格子
-            session?.results?.forEachIndexed { index, result ->
-                if (index >= 18) return@forEachIndexed
-                val item = ItemUtils.resolveSpec(result.item)?.clone() ?: ItemStack(Material.PAPER)
-                item.amount = result.amount.coerceAtLeast(1).coerceAtMost(64)
-                inv.setItem(index, item)
+        val holder = AdminGuiHolder(
+            ownerId = player.uniqueId,
+            page = AdminGuiPage.REWARD_ITEMS,
+        )
+        player.openMenu<Chest>("&8奖励物品（直接放入物品）".colored()) {
+            handLocked(false)
+            map(
+                ".........",
+                ".........",
+                "#B########"
+            )
+            set('#', ItemStack(Material.BLACK_STAINED_GLASS_PANE))
+            onBuild { _, inv ->
+                holder.backingInventory = inv
+                openAdminGuis[player.uniqueId] = holder
+                session?.results?.forEachIndexed { index, result ->
+                    if (index >= 18) return@forEachIndexed
+                    val item = ItemUtils.resolveSpec(result.item)?.clone() ?: ItemStack(Material.PAPER)
+                    item.amount = result.amount.coerceAtLeast(1).coerceAtMost(64)
+                    inv.setItem(index, item)
+                }
+                inv.setItem(18, ItemUtils.staticItem(Material.ARROW, "&e返回", listOf("&7返回配方编辑")))
             }
-            // 底部功能区
-            inv.setItem(18, ItemUtils.staticItem(Material.ARROW, "&e返回", listOf("&7返回配方编辑")))
-            drawAdminBorder(inv, 3)
         }
     }
 
     fun openDeleteConfirm(player: Player, target: DeleteTarget) {
         AdminGuiService.setDeleteTarget(player.uniqueId, target)
-        openPage(player, AdminGuiPage.DELETE_CONFIRM, "&c确认删除", THREE_ROWS) { inv, _ ->
-            renderDeleteConfirm(inv, target)
+        val holder = AdminGuiHolder(
+            ownerId = player.uniqueId,
+            page = AdminGuiPage.DELETE_CONFIRM,
+        )
+        player.openMenu<Chest>("&c确认删除".colored()) {
+            map(
+                "#########",
+                "|       |",
+                "#########"
+            )
+            set('#', ItemStack(Material.BLACK_STAINED_GLASS_PANE))
+            set('|', ItemStack(Material.GRAY_STAINED_GLASS_PANE))
+            onBuild { _, inv ->
+                holder.backingInventory = inv
+                openAdminGuis[player.uniqueId] = holder
+                renderDeleteConfirm(inv, target)
+            }
         }
     }
 
@@ -109,69 +187,6 @@ object AdminGuiMenu {
     fun getOpenHolder(playerId: UUID, inventory: Inventory): AdminGuiHolder? {
         val holder = openAdminGuis[playerId] ?: return null
         return holder.takeIf { it.backingInventory === inventory }
-    }
-
-    private fun openPage(
-        player: Player,
-        page: AdminGuiPage,
-        title: String,
-        menuRows: Int,
-        context: MutableMap<String, Any> = mutableMapOf(),
-        renderer: (Inventory, AdminGuiHolder) -> Unit,
-    ) {
-        val holder = AdminGuiHolder(
-            ownerId = player.uniqueId,
-            page = page,
-            context = context,
-        )
-        val inv = buildMenu<Chest>(title.colored()) {
-            rows(menuRows)
-        }
-        holder.backingInventory = inv
-        renderer(inv, holder)
-        openAdminGuis[player.uniqueId] = holder
-        player.openMenu(inv)
-    }
-
-    private fun drawAdminBorder(inv: Inventory, rows: Int) {
-        val accentItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE)
-        val sideItem = ItemStack(Material.GRAY_STAINED_GLASS_PANE)
-        val size = rows * 9
-        for (slot in 0 until size) {
-            if (inv.getItem(slot) != null) continue
-            val row = slot / 9
-            val col = slot % 9
-            when {
-                row == 0 || row == rows - 1 -> inv.setItem(slot, accentItem)
-                col == 0 || col == 8 -> inv.setItem(slot, sideItem)
-            }
-        }
-    }
-
-    private fun renderRecipeList(inv: Inventory, recipes: List<String>, page: Int, maxPage: Int) {
-        val start = page * PAGE_SIZE
-        val end = (start + PAGE_SIZE).coerceAtMost(recipes.size)
-        for (i in start until end) {
-            val recipeId = recipes[i]
-            val recipe = CraftingBenchService.getRecipe(recipeId)
-            val display = recipe?.displayName ?: recipeId
-            val lore = listOf(
-                "&7ID: &f$recipeId",
-                "&7分类: &f${recipe?.category ?: "-"}",
-                "&7左键: &e编辑",
-                "&7右键: &e复制",
-                "&7Shift+右键: &c删除",
-            )
-            inv.setItem(i - start, ItemUtils.staticItem(Material.PAPER, "&a$display", lore))
-        }
-        if (page > 0) {
-            inv.setItem(45, ItemUtils.staticItem(Material.ARROW, "&e上一页", emptyList()))
-        }
-        inv.setItem(48, ItemUtils.staticItem(Material.LIME_STAINED_GLASS_PANE, "&a新建配方", listOf("&7点击创建新配方")))
-        if (page < maxPage) {
-            inv.setItem(53, ItemUtils.staticItem(Material.ARROW, "&e下一页", emptyList()))
-        }
-        drawAdminBorder(inv, 6)
     }
 
     private fun renderRecipeEditor(inv: Inventory, session: RecipeEditSession) {
@@ -195,7 +210,6 @@ object AdminGuiMenu {
         ))
         inv.setItem(27, ItemUtils.staticItem(Material.ARROW, "&e返回", emptyList()))
         inv.setItem(35, ItemUtils.staticItem(Material.RED_STAINED_GLASS_PANE, "&c删除", listOf("&7删除此配方")))
-        drawAdminBorder(inv, 4)
     }
 
     private fun renderDeleteConfirm(inv: Inventory, target: DeleteTarget) {
@@ -205,7 +219,5 @@ object AdminGuiMenu {
         inv.setItem(13, ItemUtils.staticItem(Material.BARRIER, "&c确定删除 $name？", listOf("&7此操作不可撤销")))
         inv.setItem(23, ItemUtils.staticItem(Material.RED_STAINED_GLASS_PANE, "&c确认删除", emptyList()))
         inv.setItem(26, ItemUtils.staticItem(Material.GRAY_STAINED_GLASS_PANE, "&7取消", emptyList()))
-        drawAdminBorder(inv, 3)
-    }
-
 }
+    }
