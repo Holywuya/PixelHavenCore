@@ -23,7 +23,7 @@ object TitleListener {
 
     @SubscribeEvent
     fun onInventoryClick(event: InventoryClickEvent) {
-        val holder = event.inventory.holder as? TitleMenuHolder ?: return
+        if (TitleMenu.getOpenHolder(event.view.topInventory) == null) return
         val player = event.whoClicked as? Player ?: return
         if (event.clickedInventory == null || event.clickedInventory != event.view.topInventory) return
         event.isCancelled = true
@@ -33,7 +33,7 @@ object TitleListener {
     @SubscribeEvent
     fun onInventoryClose(event: InventoryCloseEvent) {
         val player = event.player as? Player ?: return
-        if (event.inventory.holder is TitleMenuHolder) {
+        if (TitleMenu.getOpenHolder(event.inventory) != null) {
             TitleMenu.unregister(player.uniqueId)
         }
     }

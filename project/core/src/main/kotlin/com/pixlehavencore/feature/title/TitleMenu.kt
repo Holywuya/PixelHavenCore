@@ -11,8 +11,9 @@ import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
-import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
+import taboolib.module.ui.openMenu
+import taboolib.module.ui.type.Chest
 import taboolib.platform.util.PlayerSessionMap
 import taboolib.platform.util.submit as submitOnEntity
 import java.util.UUID
@@ -27,13 +28,24 @@ object TitleMenu {
         val maxPage = if (previews.isEmpty()) 0 else (previews.size - 1) / TitleSettings.pageSize
         val currentPage = page.coerceIn(0, maxPage)
         val holder = TitleMenuHolder(category = category, page = currentPage)
-        val guiTitle = TextBridge.fromMiniMessage(TitleSettings.guiTitle)
-        val inventory = Bukkit.createInventory(holder, TitleSettings.guiRows * 9, guiTitle)
-        holder.backingInventory = inventory
-        renderInventory(inventory, player, holder)
-        player.submitOnEntity {
-            player.openInventory(inventory)
-            openViews[player.uniqueId] = holder
+        val guiTitle = TextBridge.toLegacy(TextBridge.fromMiniMessage(TitleSettings.guiTitle))
+        val rows = TitleSettings.guiRows
+        player.openMenu<Chest>(guiTitle) {
+            val lines = buildList {
+                add("#########")
+                for (i in 1 until rows - 1) {
+                    add("|       |")
+                }
+                add("#########")
+            }
+            map(*lines.toTypedArray())
+            set('#', ItemStack(TitleSettings.borderAccent))
+            set('|', ItemStack(TitleSettings.borderItem))
+            onBuild { p, inv ->
+                holder.backingInventory = inv
+                openViews[p.uniqueId] = holder
+                renderInventory(inv, p, holder)
+            }
         }
     }
 
@@ -45,7 +57,7 @@ object TitleMenu {
             }
             player.submitOnEntity {
                 val topInventory = player.openInventory.topInventory
-                if (topInventory.holder !== holder) {
+                if (holder.backingInventory !== topInventory) {
                     openViews.remove(playerId)
                     return@submitOnEntity
                 }
@@ -59,10 +71,20 @@ object TitleMenu {
         openViews.remove(playerId)
     }
 
+    fun getOpenHolder(playerId: UUID): TitleMenuHolder? {
+        return openViews[playerId]
+    }
+
+    fun getOpenHolder(inventory: Inventory): TitleMenuHolder? {
+        openViews.entries().forEach { (_, holder) ->
+            if (holder.backingInventory === inventory) return holder
+        }
+        return null
+    }
+
     fun handleClick(player: Player, slot: Int): Boolean {
         val holder = openViews[player.uniqueId] ?: return false
 
-        // Category slots
         val categories = TitleService.getCategories()
         val catIndex = TitleSettings.categorySlots.indexOf(slot)
         if (catIndex >= 0) {
@@ -71,7 +93,6 @@ object TitleMenu {
             return true
         }
 
-        // Navigation
         if (slot == TitleSettings.prevPageSlot && holder.page > 0) {
             open(player, holder.category, holder.page - 1)
             return true
@@ -81,13 +102,12 @@ object TitleMenu {
             return true
         }
 
-        // Title slot click
-        val previews = TitleService.getTitlePreviews(player, holder.category)
+        val titlePreviews = TitleService.getTitlePreviews(player, holder.category)
         val start = holder.page * TitleSettings.pageSize
         val gridIndex = slotToTitleIndex(slot)
         val titleIndex = gridIndex + start
-        if (gridIndex >= 0 && titleIndex in previews.indices) {
-            val preview = previews[titleIndex]
+        if (gridIndex >= 0 && titleIndex in titlePreviews.indices) {
+            val preview = titlePreviews[titleIndex]
             if (preview.entry == null || preview.isExpired) return true
             if (preview.isActive) {
                 TitleService.deactivateTitle(player)
@@ -101,12 +121,6 @@ object TitleMenu {
         return true
     }
 
-    // ── 辅助方法 ──────────────────────────────────────────────────────
-
-    /**
-     * 将称号列表中的 index 转换为 GUI inventory 的 slot 编号，
-     * 自动跳过分类列（column 8）。
-     */
     private fun titleIndexToSlot(index: Int): Int {
         val baseRow = TitleSettings.titleStartSlot / 9
         val baseCol = TitleSettings.titleStartSlot % 9
@@ -116,10 +130,6 @@ object TitleMenu {
         return row * 9 + col
     }
 
-    /**
-     * 将 GUI inventory 的 slot 编号反向转换为称号列表中的 index，
-     * 自动跳过分类列（column 8）。返回 -1 表示该 slot 不在称号网格内。
-     */
     private fun slotToTitleIndex(slot: Int): Int {
         val baseRow = TitleSettings.titleStartSlot / 9
         val baseCol = TitleSettings.titleStartSlot % 9
@@ -128,19 +138,6 @@ object TitleMenu {
         val clickCol = slot % 9
         if (clickRow < baseRow || clickCol < baseCol || clickCol >= baseCol + cols) return -1
         return (clickRow - baseRow) * cols + (clickCol - baseCol)
-    }
-
-    private fun drawBorder(inventory: Inventory, accentRows: Set<Int>, sideRows: IntRange) {
-        val accentItem = ItemStack(TitleSettings.borderAccent)
-        val sideItem = ItemStack(TitleSettings.borderItem)
-        for (slot in 0 until inventory.size) {
-            val row = slot / 9
-            val col = slot % 9
-            when {
-                row in accentRows -> inventory.setItem(slot, accentItem)
-                row in sideRows && (col == 0 || col == 8) -> inventory.setItem(slot, sideItem)
-            }
-        }
     }
 
     private fun resolveRarityColor(rarity: String): String {
@@ -189,12 +186,8 @@ object TitleMenu {
         inventory.setItem(TitleSettings.infoSlot, createInfoItem(player, totalTitles, currentPage, maxPage))
     }
 
-    // ── 渲染 ──────────────────────────────────────────────────────────
-
     private fun renderInventory(inventory: Inventory, player: Player, holder: TitleMenuHolder) {
-        inventory.clear()
         val totalSize = TitleSettings.guiRows * 9
-        drawBorder(inventory, setOf(0, 5), 1..4)
         renderCategoryGrid(inventory, holder)
         val previews = TitleService.getTitlePreviews(player, holder.category)
         val start = holder.page * TitleSettings.pageSize
@@ -208,8 +201,6 @@ object TitleMenu {
         val maxPage = if (previews.isEmpty()) 0 else (previews.size - 1) / TitleSettings.pageSize
         renderNavigation(inventory, player, previews.size, holder.page, maxPage)
     }
-
-    // ── ItemStack 构建 ────────────────────────────────────────────────
 
     private fun createTitleItem(player: Player, preview: TitlePreview): ItemStack {
         val base = resolveTitleDisplayItem(preview)
@@ -308,8 +299,6 @@ object TitleMenu {
 class TitleMenuHolder(
     val category: String?,
     val page: Int,
-) : InventoryHolder {
+) {
     lateinit var backingInventory: Inventory
-
-    override fun getInventory(): Inventory = backingInventory
 }
