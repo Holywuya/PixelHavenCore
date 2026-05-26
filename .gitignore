@@ -11,6 +11,10 @@ docs
 ### Claude Code ###
 .claude
 .claude.local.md
+CLAUDE*.md
+AGENTS*.md
+skills/
+.worktrees
 
 ### Cursor ###
 .cursor
@@ -22,7 +26,3 @@ package.json
 gradle.properties
 ### Temp ###
 nul
-CLAUDE.md
-AGENTS.md
-skills
-.worktrees
