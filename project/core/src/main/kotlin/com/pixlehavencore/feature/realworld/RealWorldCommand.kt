@@ -3,8 +3,6 @@ package com.pixlehavencore.feature.realworld
 import com.pixlehavencore.feature.realworld.foodcorrosion.FoodCorrosionCommand
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.TimeUnit
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import taboolib.common.platform.ProxyCommandSender
@@ -116,9 +114,7 @@ object RealWorldCommand {
                     return@execute
                 }
 
-                runOnGlobalRegion {
-                    RealWorldService.forceSeason(newSeason)
-                }
+                RealWorldService.forceSeason(newSeason)
                 sender.msg("&a季节已切换为 &f${newSeason.displayName}&a。")
             }
         }
@@ -138,10 +134,18 @@ object RealWorldCommand {
                     return@execute
                 }
 
-                runOnGlobalRegion {
-                    RealWorldService.forceWeather(newWeather)
+                val plugin = Bukkit.getPluginManager().getPlugin("phcore")
+                if (plugin != null) {
+                    Bukkit.getGlobalRegionScheduler().run(plugin) { _ ->
+                        RealWorldService.forceWeather(newWeather)
+                        sender.msg("&a天气已切换为 &f${newWeather.displayName}&a。")
+                    }
+                } else {
+                    submit {
+                        RealWorldService.forceWeather(newWeather)
+                        sender.msg("&a天气已切换为 &f${newWeather.displayName}&a。")
+                    }
                 }
-                sender.msg("&a天气已切换为 &f${newWeather.displayName}&a。")
             }
         }
     }
@@ -161,9 +165,7 @@ object RealWorldCommand {
                     return@execute
                 }
 
-                runOnGlobalRegion {
-                    RealWorldService.resetPlayer(target.uniqueId)
-                }
+                RealWorldService.resetPlayer(target.uniqueId)
                 sender.msg("&a已重置玩家 &f${target.name ?: targetName} &a的生存数据。")
             }
         }
@@ -174,9 +176,7 @@ object RealWorldCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
             if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
 
-            runOnGlobalRegion {
-                RealWorldService.reload()
-            }
+            RealWorldService.reload()
             sender.msg("&a真实世界模块已重载。")
         }
     }
@@ -208,22 +208,6 @@ object RealWorldCommand {
 
     private fun formatHeatSource(source: HeatSource?): String {
         return source?.name ?: "无"
-    }
-
-    private fun runOnGlobalRegion(action: () -> Unit) {
-        val future = CompletableFuture<Unit>()
-        val plugin = Bukkit.getPluginManager().getPlugin("phcore")
-        val task = {
-            runCatching { action() }
-                .onFailure { future.completeExceptionally(it) }
-                .onSuccess { future.complete(Unit) }
-        }
-        if (plugin != null) {
-            Bukkit.getGlobalRegionScheduler().run(plugin) { _ -> task() }
-        } else {
-            submit { task() }
-        }
-        future.get(30, TimeUnit.SECONDS)
     }
 
     private fun formatDecimal(value: Double): String {
