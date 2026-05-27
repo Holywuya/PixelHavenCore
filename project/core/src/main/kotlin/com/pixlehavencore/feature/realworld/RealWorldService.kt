@@ -10,6 +10,8 @@ import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerItemConsumeEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.entity.EntityDamageEvent
+import org.bukkit.event.entity.EntityDamageByEntityEvent
+import org.bukkit.event.block.BlockBreakEvent
 import taboolib.common.platform.event.EventPriority
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
@@ -48,6 +50,7 @@ object RealWorldService {
 
     fun init() {
         RealWorldSettings.init()
+        StaminaEngine.init()
         stop()
         if (!RealWorldSettings.enabled) {
             return
@@ -73,6 +76,7 @@ object RealWorldService {
 
     fun reload() {
         RealWorldSettings.reload()
+        StaminaEngine.reload()
         stopInternal()
         if (!RealWorldSettings.enabled) {
             return
@@ -319,6 +323,40 @@ object RealWorldService {
         }
     }
 
+    @SubscribeEvent
+    fun onStaminaConsume(event: PlayerItemConsumeEvent) {
+        if (!StaminaSettings.enabled) return
+        val player = event.player
+        val item = event.item
+        val foodValues = getFoodValues(item.type)
+        if (foodValues > 0) {
+            RealWorldStorage.withPlayerState(player.uniqueId) { state ->
+                StaminaEngine.onEat(player, state, foodValues)
+            }
+        }
+        RealWorldStorage.withPlayerState(player.uniqueId) { state ->
+            StaminaEngine.onSpecialItem(player, state, item.type)
+        }
+    }
+
+    @SubscribeEvent
+    fun onEntityDamageByEntity(event: EntityDamageByEntityEvent) {
+        if (!StaminaSettings.enabled) return
+        val player = event.damager as? Player ?: return
+        RealWorldStorage.withPlayerState(player.uniqueId) { state ->
+            StaminaEngine.onAttack(player, state)
+        }
+    }
+
+    @SubscribeEvent
+    fun onBlockBreak(event: BlockBreakEvent) {
+        if (!StaminaSettings.enabled) return
+        val player = event.player
+        RealWorldStorage.withPlayerState(player.uniqueId) { state ->
+            StaminaEngine.onMine(player, state)
+        }
+    }
+
     @SubscribeEvent(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onPlayerInteract(event: PlayerInteractEvent) {
         if (!RealWorldSettings.enabled) {
@@ -404,6 +442,24 @@ object RealWorldService {
         }
     }
 
+    private fun getFoodValues(material: Material): Int {
+        return when (material) {
+            Material.BREAD -> 5
+            Material.COOKED_BEEF, Material.COOKED_PORKCHOP, Material.COOKED_MUTTON -> 8
+            Material.COOKED_CHICKEN, Material.COOKED_COD, Material.COOKED_SALMON -> 6
+            Material.BAKED_POTATO -> 5
+            Material.MUSHROOM_STEW, Material.RABBIT_STEW, Material.BEETROOT_SOUP -> 7
+            Material.GOLDEN_APPLE -> 4
+            Material.ENCHANTED_GOLDEN_APPLE -> 4
+            Material.COOKED_RABBIT -> 5
+            Material.APPLE, Material.BEETROOT, Material.CARROT, Material.POTATO, Material.SWEET_BERRIES, Material.GLOW_BERRIES -> 3
+            Material.MELON_SLICE, Material.CHORUS_FRUIT -> 2
+            Material.COOKIE -> 2
+            Material.DRIED_KELP -> 1
+            else -> 0
+        }
+    }
+
     private fun handleDrinkerInteract(uuid: UUID, state: PlayerEnvState, block: org.bukkit.block.Block): Boolean {
         if (!ThirstEngine.isDrinker(block)) {
             return false
@@ -458,6 +514,8 @@ object RealWorldService {
                         FractureEngine.applyEffects(player, playerState, tickSeconds)
                         FoodCorrosionEngine.tickPlayer(player)
                         SurvivalEffectApplier.apply(player, playerState, globalSnapshot, tickSeconds)
+                        StaminaEngine.checkIdle(player, playerState, tickSeconds.toDouble())
+                        StaminaEngine.tick(player, playerState, globalSnapshot, tickSeconds)
                         playerState.hudRefreshTimer -= tickSeconds.coerceAtLeast(0).toDouble()
                         if (playerState.hudRefreshTimer <= 0.0) {
                             SurvivalHud.renderCurrentThread(player, playerState, globalSnapshot)
