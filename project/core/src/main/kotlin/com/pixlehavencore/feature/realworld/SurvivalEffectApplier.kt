@@ -121,7 +121,12 @@ object SurvivalEffectApplier {
         state: PlayerEnvState,
         global: GlobalEnvState,
     ) {
-        val weather = WeatherEngine.currentVisibilityWeather(global) ?: return
+        val visibilityWeather = if (RealWorldSettings.localWeatherEnabled) {
+            WeatherQuery.getVisibilityWeatherAt(player.location, global)
+        } else {
+            global.weather.takeIf { it.affectsVisibility }
+        }
+        val weather = visibilityWeather ?: return
         val visibilityDurationSeconds = RealWorldSettings.visibilityEffectDurationSeconds
         when (weather) {
             WeatherType.FOG -> {
