@@ -199,6 +199,7 @@ object RealWorldSettings {
         private set
 
     fun init() {
+        StaminaSettings.init()
         reload()
     }
 
@@ -328,5 +329,7 @@ object RealWorldSettings {
         severeColdThreshold = severeColdThreshold.coerceAtMost(coldThreshold)
         thirstThirsty = thirstThirsty.coerceAtMost(thirstFull)
         thirstSevere = thirstSevere.coerceAtMost(thirstThirsty)
+
+        StaminaSettings.reload()
     }
 }
