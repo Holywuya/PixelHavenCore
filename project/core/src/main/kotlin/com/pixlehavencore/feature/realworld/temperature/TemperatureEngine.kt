@@ -14,6 +14,19 @@ import kotlin.math.abs
 
 object TemperatureEngine {
 
+    private const val TEMPERATURE_SCAN_RANGE = 5
+    private const val SHELTER_CACHE_SECONDS = 5.0
+
+    private val temperatureScanOffsets = buildList {
+        for (x in -TEMPERATURE_SCAN_RANGE..TEMPERATURE_SCAN_RANGE) {
+            for (y in -TEMPERATURE_SCAN_RANGE..TEMPERATURE_SCAN_RANGE) {
+                for (z in -TEMPERATURE_SCAN_RANGE..TEMPERATURE_SCAN_RANGE) {
+                    add(TemperatureScanOffset(x, y, z, x * x + y * y + z * z))
+                }
+            }
+        }
+    }
+
     fun compute(
         player: Player,
         state: PlayerEnvState,
@@ -36,8 +49,7 @@ object TemperatureEngine {
         }
         val altitudeModifier = computeAltitudeModifier(location.blockY)
 
-        state.isSheltered = isSheltered(player)
-        state.isWeatherSheltered = isWeatherSheltered(player)
+        updateShelterState(player, state, tickIntervalSeconds)
         val shelteredModifier = if (state.isSheltered) 5.0 else 0.0
         val armorModifier = getArmorTemperatureBonus(player)
 
@@ -123,6 +135,27 @@ object TemperatureEngine {
         return hasWeatherTopCoverage(location)
     }
 
+    private fun updateShelterState(player: Player, state: PlayerEnvState, tickIntervalSeconds: Int) {
+        state.shelterCacheTimer -= tickIntervalSeconds.coerceAtLeast(0).toDouble()
+
+        val eyeBlock = player.eyeLocation.block
+        val movedToDifferentBlock =
+            state.shelterCacheBlockX != eyeBlock.x ||
+                state.shelterCacheBlockY != eyeBlock.y ||
+                state.shelterCacheBlockZ != eyeBlock.z
+
+        if (!movedToDifferentBlock && state.shelterCacheTimer > 0.0) {
+            return
+        }
+
+        state.isSheltered = hasAnyOverheadCover(player.eyeLocation)
+        state.isWeatherSheltered = isWeatherSheltered(player.eyeLocation)
+        state.shelterCacheBlockX = eyeBlock.x
+        state.shelterCacheBlockY = eyeBlock.y
+        state.shelterCacheBlockZ = eyeBlock.z
+        state.shelterCacheTimer = SHELTER_CACHE_SECONDS
+    }
+
     /**
      * 距离加权扫描周围温度方块。
      * 返回 (最近热源枚举, 加权平均温度偏移量)。
@@ -131,36 +164,35 @@ object TemperatureEngine {
      * 权重公式: 1 / max(0.5, distance²)
      */
     private fun scanTemperatureBlocks(player: Player, ambientBaseline: Double): Pair<HeatSource?, Double> {
-        val originBlock = player.location.block
+        val playerLocation = player.location
+        val originBlock = playerLocation.block
         val temperatureBlocks = TemperatureSettings.temperatureBlocks
         if (temperatureBlocks.isEmpty()) return null to 0.0
 
-        val originLoc = player.location.add(0.0, 0.5, 0.0)
+        val baseCenterOffsetX = originBlock.x + 0.5 - playerLocation.x
+        val baseCenterOffsetY = originBlock.y + 0.5 - (playerLocation.y + 0.5)
+        val baseCenterOffsetZ = originBlock.z + 0.5 - playerLocation.z
         var weightedSum = 0.0
         var totalWeight = 0.0
         var nearestSource: HeatSource? = null
         var nearestDistSq = Int.MAX_VALUE
 
-        val maxRange = 5
-        for (x in -maxRange..maxRange) {
-            for (y in -maxRange..maxRange) {
-                for (z in -maxRange..maxRange) {
-                    val block = originBlock.getRelative(x, y, z)
-                    val temp = temperatureBlocks[block.type] ?: continue
-                    if (!isBlockActive(block)) continue
+        for (offset in temperatureScanOffsets) {
+            val block = originBlock.getRelative(offset.x, offset.y, offset.z)
+            val temp = temperatureBlocks[block.type] ?: continue
+            if (!isBlockActive(block)) continue
 
-                    val blockCenter = block.location.add(0.5, 0.5, 0.5)
-                    val distSq = originLoc.distanceSquared(blockCenter)
-                    val weight = 1.0 / maxOf(0.5, distSq)
-                    weightedSum += temp * weight
-                    totalWeight += weight
+            val dx = offset.x + baseCenterOffsetX
+            val dy = offset.y + baseCenterOffsetY
+            val dz = offset.z + baseCenterOffsetZ
+            val distSq = dx * dx + dy * dy + dz * dz
+            val weight = 1.0 / maxOf(0.5, distSq)
+            weightedSum += temp * weight
+            totalWeight += weight
 
-                    val distSqInt = x * x + y * y + z * z
-                    if (distSqInt < nearestDistSq) {
-                        nearestDistSq = distSqInt
-                        nearestSource = matchLegacyHeatSource(block)
-                    }
-                }
+            if (offset.distSqInt < nearestDistSq) {
+                nearestDistSq = offset.distSqInt
+                nearestSource = matchLegacyHeatSource(block)
             }
         }
 
@@ -319,4 +351,11 @@ object TemperatureEngine {
             global.weather == WeatherType.THUNDER ||
             global.weather == WeatherType.ACID_RAIN
     }
+
+    private data class TemperatureScanOffset(
+        val x: Int,
+        val y: Int,
+        val z: Int,
+        val distSqInt: Int,
+    )
 }

@@ -517,7 +517,12 @@ object RealWorldService {
                     if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
                         return@submitOnEntity
                     }
-                    RealWorldStorage.withPlayerState(player.uniqueId) { playerState ->
+                    val shouldMarkDirty = RealWorldStorage.withPlayerState(player.uniqueId) { playerState ->
+                        val previousTemperature = playerState.temperature
+                        val previousHydration = playerState.hydration
+                        val previousFracture = playerState.fracture
+                        val previousStamina = playerState.stamina
+
                         TemperatureEngine.compute(player, playerState, globalSnapshot, tickSeconds)
                         ThirstEngine.compute(player, playerState, globalSnapshot, tickSeconds)
                         FractureEngine.applyEffects(player, playerState, tickSeconds)
@@ -533,14 +538,36 @@ object RealWorldService {
                                 playerState.hudRefreshTimer += refreshInterval
                             }
                         }
+                        hasPersistedPlayerStateChanged(
+                            playerState = playerState,
+                            previousTemperature = previousTemperature,
+                            previousHydration = previousHydration,
+                            previousFracture = previousFracture,
+                            previousStamina = previousStamina,
+                        )
                     } ?: return@submitOnEntity
                     if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
                         return@submitOnEntity
                     }
-                    RealWorldStorage.markPlayerDirty(player.uniqueId)
+                    if (shouldMarkDirty) {
+                        RealWorldStorage.markPlayerDirty(player.uniqueId)
+                    }
                 }
             }
         }
+    }
+
+    private fun hasPersistedPlayerStateChanged(
+        playerState: PlayerEnvState,
+        previousTemperature: Double,
+        previousHydration: Double,
+        previousFracture: Double,
+        previousStamina: Double,
+    ): Boolean {
+        return playerState.temperature != previousTemperature ||
+            playerState.hydration != previousHydration ||
+            playerState.fracture != previousFracture ||
+            playerState.stamina != previousStamina
     }
 
     private fun startAutoSaveTask() {
