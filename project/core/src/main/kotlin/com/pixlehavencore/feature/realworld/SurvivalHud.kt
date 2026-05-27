@@ -126,20 +126,26 @@ object SurvivalHud {
     }
 
     private fun renderBossBar(player: Player, state: PlayerEnvState) {
-        if (!RealWorldSettings.hudBossBarEnabled) {
-            removeBossBar(player)
-            return
-        }
-
-        val isSevere = isSevereState(state)
-        if (!isSevere) {
+        if (!RealWorldSettings.hudBossBarEnabled && !StaminaSettings.hudBossBarEnabled) {
             removeBossBar(player)
             return
         }
 
         val title: String
         val color: BarColor
+
         when {
+            // 体力 DEPLETED 最高优先级
+            StaminaSettings.hudBossBarEnabled && state.staminaPhase == StaminaPhase.DEPLETED -> {
+                title = StaminaSettings.hudBossBarTitleDepleted
+                color = BarColor.valueOf(StaminaSettings.hudBossBarColorDepleted)
+            }
+            // 体力 EXHAUSTED 次优先级
+            StaminaSettings.hudBossBarEnabled && state.staminaPhase == StaminaPhase.EXHAUSTED -> {
+                title = StaminaSettings.hudBossBarTitleExhausted
+                color = BarColor.valueOf(StaminaSettings.hudBossBarColorExhausted)
+            }
+            // 温度/口渴极端状态
             state.temperaturePhase == TemperaturePhase.SEVERE_HEAT -> {
                 title = RealWorldSettings.hudBossBarTitleHeat
                 color = BarColor.RED
@@ -148,27 +154,26 @@ object SurvivalHud {
                 title = RealWorldSettings.hudBossBarTitleCold
                 color = BarColor.BLUE
             }
-            else -> {
+            state.thirstPhase == ThirstPhase.DEHYDRATED -> {
                 title = RealWorldSettings.hudBossBarTitleThirst
                 color = BarColor.YELLOW
+            }
+            else -> {
+                removeBossBar(player)
+                return
             }
         }
 
         val bossBar: BossBar = bossBars.get(player.uniqueId) ?: run {
-            val bar = Bukkit.createBossBar(colorize(title), color, BarStyle.SOLID)
+            val barStyle = try { BarStyle.valueOf(StaminaSettings.hudBossBarStyle) } catch (_: Exception) { BarStyle.SOLID }
+            val bar = Bukkit.createBossBar(colorize(title), color, barStyle)
             bossBars[player.uniqueId] = bar
             bar
-        }
-        val gracePeriod = RealWorldSettings.extremeGracePeriodSeconds.toDouble()
-        val progress = if (gracePeriod <= 0.0) {
-            0.0
-        } else {
-            (state.graceTimer / gracePeriod).coerceIn(0.0, 1.0)
         }
 
         bossBar.setTitle(colorize(title))
         bossBar.color = color
-        bossBar.progress = progress
+        bossBar.progress = 1.0
         if (!bossBar.players.contains(player)) {
             bossBar.addPlayer(player)
         }
@@ -183,7 +188,9 @@ object SurvivalHud {
     private fun isSevereState(state: PlayerEnvState): Boolean {
         return state.temperaturePhase == TemperaturePhase.SEVERE_HEAT ||
             state.temperaturePhase == TemperaturePhase.SEVERE_COLD ||
-            state.thirstPhase == ThirstPhase.DEHYDRATED
+            state.thirstPhase == ThirstPhase.DEHYDRATED ||
+            state.staminaPhase == StaminaPhase.EXHAUSTED ||
+            state.staminaPhase == StaminaPhase.DEPLETED
     }
 
     fun onPlayerQuit(player: Player) {
