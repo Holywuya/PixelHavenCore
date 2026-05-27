@@ -44,15 +44,19 @@ object WeatherEngine {
         if (players.isEmpty()) return
 
         val weatherCounts = mutableMapOf<WeatherType, Int>()
+        val weatherIntensitySums = mutableMapOf<WeatherType, Double>()
 
-        // 统计每个玩家所在区块的天气
+        // 统计每个玩家所在区块的天气和强度
         for (player in players) {
             val weather = WeatherQuery.getWeatherAt(player.location, global)
             weatherCounts[weather.type] = (weatherCounts[weather.type] ?: 0) + 1
+            weatherIntensitySums[weather.type] = (weatherIntensitySums[weather.type] ?: 0.0) + weather.intensity
         }
 
-        // 找出最常见的天气
+        // 找出最常见的天气及其平均强度
         val dominantWeather = weatherCounts.maxByOrNull { it.value }?.key ?: WeatherType.CLEAR
+        val dominantCount = weatherCounts[dominantWeather] ?: 1
+        val averageIntensity = (weatherIntensitySums[dominantWeather] ?: 0.5) / dominantCount
 
         // 如果主导天气变化，触发事件
         if (dominantWeather != global.weather) {
@@ -65,11 +69,13 @@ object WeatherEngine {
                     previousWeather = previousWeather,
                     previousWeatherIntensity = global.weatherIntensity,
                     weather = dominantWeather,
-                    intensity = 0.5,  // 主导天气强度取平均值
+                    intensity = averageIntensity,
                 ),
             )
-            info("[RealWorld] 主导天气切换为: ${dominantWeather.displayName}")
+            info("[RealWorld] 主导天气切换为: ${dominantWeather.displayName} (强度: %.2f)".format(averageIntensity))
         }
+        // 天气类型未变时也更新强度
+        global.weatherIntensity = averageIntensity
     }
 
     /**

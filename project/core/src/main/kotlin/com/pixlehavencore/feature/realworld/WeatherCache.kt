@@ -4,57 +4,58 @@ import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 天气缓存
- * 避免频繁计算噪声值，提升性能
+ * 使用 TTL 策略避免每 tick 重新计算噪声值
  */
 object WeatherCache {
-    
+
     private val cache = ConcurrentHashMap<Long, CachedWeather>()
     private var maxCacheSize = 1000
-    
+    private var ttlMillis = 10_000L
+
+    fun setMaxSize(size: Int) {
+        maxCacheSize = size
+    }
+
+    fun setTtl(millis: Long) {
+        ttlMillis = millis.coerceAtLeast(1000L)
+    }
+
     /**
      * 获取或计算区块天气
+     * 缓存有效期内（默认 10 秒）直接返回缓存结果
      */
     fun getOrCompute(chunkX: Int, chunkZ: Int, timeFactor: Float, season: Season): WeatherState {
         val key = chunkKey(chunkX, chunkZ)
+        val now = System.currentTimeMillis()
         val cached = cache[key]
-        
-        // 检查缓存是否有效（相同时间因子）
-        if (cached != null && cached.timeFactor == timeFactor) {
+
+        if (cached != null && now - cached.timestamp < ttlMillis) {
             return cached.weather
         }
-        
-        // 计算新天气
+
         val weather = ChunkWeatherEngine.computeWeather(chunkX, chunkZ, timeFactor, season)
-        
-        // 存入缓存（如果超过大小限制，清空缓存）
+
         if (cache.size >= maxCacheSize) {
-            cache.clear()
+            cache.entries
+                .sortedBy { it.value.timestamp }
+                .take(cache.size - maxCacheSize / 2)
+                .forEach { cache.remove(it.key) }
         }
-        cache[key] = CachedWeather(timeFactor, weather)
-        
+        cache[key] = CachedWeather(weather, now)
+
         return weather
     }
-    
-    /**
-     * 清空缓存
-     */
+
     fun clear() {
         cache.clear()
     }
-    
-    /**
-     * 设置最大缓存大小
-     */
-    fun setMaxSize(size: Int) {
-        maxCacheSize = size.coerceAtLeast(100)
-    }
-    
+
     private fun chunkKey(x: Int, z: Int): Long {
         return (x.toLong() shl 32) or (z.toLong() and 0xFFFFFFFFL)
     }
-    
+
     private data class CachedWeather(
-        val timeFactor: Float,
         val weather: WeatherState,
+        val timestamp: Long,
     )
 }

@@ -137,7 +137,11 @@ object RealWorldSettings {
     var riverNauseaChance: Double = 0.1
         private set
 
-    var hudActionBarFormat: String = "&c{temp}°C  &b{hydration}/100  &f{weather}  &a{season}"
+    var hudActionBarFormat: String = "&c{temp}°C  &b{hydration}/100  &9{wetness}%  {sheltered}  &f{weather}  &a{season}"
+        private set
+    var hudShelteredIndicator: String = "&a🏠"
+        private set
+    var hudUnshelteredIndicator: String = "&7☁"
         private set
     var hudRefreshIntervalSeconds: Int = 2
         private set
@@ -250,7 +254,9 @@ object RealWorldSettings {
         seaWaterNauseaChance = config.getDouble("thirst.water-quality.sea-water-nausea-chance", 1.0).coerceIn(0.0, 1.0)
         riverNauseaChance = config.getDouble("thirst.water-quality.river-nausea-chance", 0.1).coerceIn(0.0, 1.0)
 
-        hudActionBarFormat = config.getString("hud.actionbar-format") ?: "&c{temp}°C  &b{hydration}/100  &f{weather}  &a{season}"
+        hudActionBarFormat = config.getString("hud.actionbar-format") ?: "&c{temp}°C  &b{hydration}/100  &9{wetness}%  {sheltered}  &f{weather}  &a{season}"
+        hudShelteredIndicator = config.getString("hud.sheltered-indicator") ?: "&a🏠"
+        hudUnshelteredIndicator = config.getString("hud.unsheltered-indicator") ?: "&7☁"
         hudRefreshIntervalSeconds = config.getInt("hud.refresh-interval-seconds", 2).coerceAtLeast(1)
         hudBossBarEnabled = config.getBoolean("hud.bossbar-enabled", true)
         hudBossBarTitleHeat = config.getString("hud.bossbar-title-heat") ?: "&c严重过热！寻找阴凉处！"

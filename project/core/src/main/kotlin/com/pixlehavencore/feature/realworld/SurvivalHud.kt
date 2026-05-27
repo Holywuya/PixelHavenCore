@@ -69,11 +69,17 @@ object SurvivalHud {
         } else {
             global.weather
         }
+        val shelterText = if (state.isWeatherSheltered) {
+            RealWorldSettings.hudShelteredIndicator
+        } else {
+            RealWorldSettings.hudUnshelteredIndicator
+        }
 
         return RealWorldSettings.hudActionBarFormat
             .replace("{temp}", "$tempColor${state.temperature.toInt()}")
             .replace("{hydration}", "$hydrationColor${state.hydration.toInt()}")
             .replace("{wetness}", "${(state.wetness * 100).toInt()}")
+            .replace("{sheltered}", shelterText)
             .replace("{weather}", weather.displayName)
             .replace("{season}", global.season.displayName)
     }
