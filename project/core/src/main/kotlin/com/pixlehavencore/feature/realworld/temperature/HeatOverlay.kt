@@ -1,5 +1,6 @@
-package com.pixlehavencore.feature.realworld
+package com.pixlehavencore.feature.realworld.temperature
 
+import com.pixlehavencore.feature.realworld.TemperaturePhase
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import taboolib.platform.util.PlayerSessionMap
@@ -18,8 +19,8 @@ object HeatOverlay {
 
     fun update(player: Player, phase: TemperaturePhase) {
         val intensity = when (phase) {
-            TemperaturePhase.SEVERE_HEAT -> RealWorldSettings.heatOverlaySevereIntensity
-            TemperaturePhase.HEAT -> RealWorldSettings.heatOverlayHeatIntensity
+            TemperaturePhase.SEVERE_HEAT -> TemperatureSettings.heatOverlaySevereIntensity
+            TemperaturePhase.HEAT -> TemperatureSettings.heatOverlayHeatIntensity
             else -> 0.0
         }
         if (intensity <= 0.01) {

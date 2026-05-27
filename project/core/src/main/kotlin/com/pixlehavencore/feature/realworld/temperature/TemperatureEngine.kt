@@ -1,5 +1,8 @@
-package com.pixlehavencore.feature.realworld
+package com.pixlehavencore.feature.realworld.temperature
 
+import com.pixlehavencore.feature.realworld.*
+import com.pixlehavencore.feature.realworld.weather.WeatherQuery
+import com.pixlehavencore.feature.realworld.weather.WeatherSettings
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.Tag
@@ -25,7 +28,7 @@ object TemperatureEngine {
 
         val seasonModifier = SeasonEngine.getTemperatureModifier(global)
         val timeModifier = SeasonEngine.getTimeTemperatureModifier(worldTime)
-        val weatherModifier = if (RealWorldSettings.localWeatherEnabled) {
+        val weatherModifier = if (WeatherSettings.localEnabled) {
             WeatherQuery.getTemperatureModifierAt(player.location, global)
         } else {
             global.weather.temperatureModifier
@@ -47,7 +50,7 @@ object TemperatureEngine {
             val scanResult = scanTemperatureBlocks(player, ambientBaseline)
             state.nearHeatSource = scanResult.first
             state.temperatureBlockModifier = scanResult.second
-            val interval = RealWorldSettings.heatSourceScanIntervalSeconds.toDouble()
+            val interval = TemperatureSettings.heatSourceScanIntervalSeconds.toDouble()
             while (state.heatSourceScanTimer <= 0.0) {
                 state.heatSourceScanTimer += interval
             }
@@ -59,10 +62,10 @@ object TemperatureEngine {
 
         val rawTarget = ambientBaseline + state.temperatureBlockModifier
 
-        val comfortableMid = (RealWorldSettings.comfortMin + RealWorldSettings.comfortMax) / 2.0
+        val comfortableMid = (TemperatureSettings.comfortMin + TemperatureSettings.comfortMax) / 2.0
         val targetTemperature = comfortableMid + (rawTarget - comfortableMid) * insulationMultiplier
 
-        val maxChangePerTick = RealWorldSettings.maxChangePerTick.coerceAtLeast(0.0)
+        val maxChangePerTick = TemperatureSettings.maxChangePerTick.coerceAtLeast(0.0)
         val temperatureDifference = targetTemperature - state.temperature
         val change = when {
             maxChangePerTick <= 0.0 -> 0.0
@@ -128,7 +131,7 @@ object TemperatureEngine {
      */
     private fun scanTemperatureBlocks(player: Player, ambientBaseline: Double): Pair<HeatSource?, Double> {
         val originBlock = player.location.block
-        val temperatureBlocks = RealWorldSettings.temperatureBlocks
+        val temperatureBlocks = TemperatureSettings.temperatureBlocks
         if (temperatureBlocks.isEmpty()) return null to 0.0
 
         val originLoc = player.location.add(0.0, 0.5, 0.0)
@@ -196,7 +199,7 @@ object TemperatureEngine {
     }
 
     private fun hasWeatherTopCoverage(location: Location): Boolean {
-        val radius = RealWorldSettings.shelterHorizontalRadius
+        val radius = TemperatureSettings.shelterHorizontalRadius
         for (xOffset in -radius..radius) {
             for (zOffset in -radius..radius) {
                 if (findWeatherRoofBlock(location, xOffset, zOffset) == null) {
@@ -230,10 +233,10 @@ object TemperatureEngine {
         if (isBaseWeatherRoof(material)) {
             return true
         }
-        if (RealWorldSettings.shelterGlassCountsAsShelter && isGlassLike(material)) {
+        if (TemperatureSettings.shelterGlassCountsAsShelter && isGlassLike(material)) {
             return true
         }
-        if (RealWorldSettings.shelterLeavesCountAsShelter && Tag.LEAVES.isTagged(material)) {
+        if (TemperatureSettings.shelterLeavesCountAsShelter && Tag.LEAVES.isTagged(material)) {
             return true
         }
         return false
@@ -260,13 +263,13 @@ object TemperatureEngine {
                 Material.LEATHER_CHESTPLATE,
                 Material.LEATHER_LEGGINGS,
                 Material.LEATHER_BOOTS,
-                -> RealWorldSettings.armorBonusLeather / 4.0
+                -> TemperatureSettings.armorBonusLeather / 4.0
 
                 Material.NETHERITE_HELMET,
                 Material.NETHERITE_CHESTPLATE,
                 Material.NETHERITE_LEGGINGS,
                 Material.NETHERITE_BOOTS,
-                -> RealWorldSettings.armorBonusNetherite / 4.0
+                -> TemperatureSettings.armorBonusNetherite / 4.0
 
                 else -> 0.0
             }
@@ -276,34 +279,34 @@ object TemperatureEngine {
 
     fun classifyTemperature(temp: Double): TemperaturePhase {
         return when {
-            temp >= RealWorldSettings.severeHeatThreshold -> TemperaturePhase.SEVERE_HEAT
-            temp >= RealWorldSettings.heatThreshold -> TemperaturePhase.HEAT
-            temp >= RealWorldSettings.coldMildThreshold -> TemperaturePhase.COMFORTABLE
-            temp >= RealWorldSettings.coldThreshold -> TemperaturePhase.COLD_MILD
-            temp >= RealWorldSettings.severeColdThreshold -> TemperaturePhase.COLD
+            temp >= TemperatureSettings.severeHeatThreshold -> TemperaturePhase.SEVERE_HEAT
+            temp >= TemperatureSettings.heatThreshold -> TemperaturePhase.HEAT
+            temp >= TemperatureSettings.coldMildThreshold -> TemperaturePhase.COMFORTABLE
+            temp >= TemperatureSettings.coldThreshold -> TemperaturePhase.COLD_MILD
+            temp >= TemperatureSettings.severeColdThreshold -> TemperaturePhase.COLD
             else -> TemperaturePhase.SEVERE_COLD
         }
     }
 
     private fun computeAltitudeModifier(blockY: Int): Double {
-        val threshold = RealWorldSettings.altitudeThresholdY
+        val threshold = TemperatureSettings.altitudeThresholdY
         if (blockY <= threshold) {
             return 0.0
         }
         val exceededHeight = blockY - threshold
-        return -exceededHeight * RealWorldSettings.altitudeDropPerBlock
+        return -exceededHeight * TemperatureSettings.altitudeDropPerBlock
     }
 
     private fun computeWetness(player: Player, state: PlayerEnvState, global: GlobalEnvState, tickSeconds: Int) {
         val dt = tickSeconds.coerceAtLeast(0).toDouble()
         when {
-            player.isInWater -> state.wetness += RealWorldSettings.wetnessRateSubmerge * dt
-            !state.isWeatherSheltered && isRaining(global) -> state.wetness += RealWorldSettings.wetnessRateRain * dt
+            player.isInWater -> state.wetness += TemperatureSettings.wetnessRateSubmerge * dt
+            !state.isWeatherSheltered && isRaining(global) -> state.wetness += TemperatureSettings.wetnessRateRain * dt
             else -> {
                 val dryRate = if (state.temperature > 30.0)
-                    RealWorldSettings.wetnessDryRate * 2.0
+                    TemperatureSettings.wetnessDryRate * 2.0
                 else
-                    RealWorldSettings.wetnessDryRate
+                    TemperatureSettings.wetnessDryRate
                 state.wetness -= dryRate * dt
             }
         }

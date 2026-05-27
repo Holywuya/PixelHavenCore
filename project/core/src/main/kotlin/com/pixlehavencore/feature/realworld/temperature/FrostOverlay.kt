@@ -1,5 +1,6 @@
-package com.pixlehavencore.feature.realworld
+package com.pixlehavencore.feature.realworld.temperature
 
+import com.pixlehavencore.feature.realworld.TemperaturePhase
 import org.bukkit.entity.Player
 
 /**
@@ -10,8 +11,8 @@ object FrostOverlay {
 
     fun update(player: Player, phase: TemperaturePhase) {
         val ticks = when (phase) {
-            TemperaturePhase.COLD -> RealWorldSettings.frostOverlayColdIntensity
-            TemperaturePhase.SEVERE_COLD -> RealWorldSettings.frostOverlaySevereColdIntensity
+            TemperaturePhase.COLD -> TemperatureSettings.frostOverlayColdIntensity
+            TemperaturePhase.SEVERE_COLD -> TemperatureSettings.frostOverlaySevereColdIntensity
             else -> 0
         }
         player.freezeTicks = ticks

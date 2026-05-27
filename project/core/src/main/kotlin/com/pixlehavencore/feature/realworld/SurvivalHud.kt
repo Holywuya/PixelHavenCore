@@ -1,6 +1,11 @@
 package com.pixlehavencore.feature.realworld
 
 import com.pixlehavencore.bridge.TextBridge
+import com.pixlehavencore.feature.realworld.temperature.FrostOverlay
+import com.pixlehavencore.feature.realworld.temperature.HeatOverlay
+import com.pixlehavencore.feature.realworld.weather.WeatherEngine
+import com.pixlehavencore.feature.realworld.weather.WeatherQuery
+import com.pixlehavencore.feature.realworld.weather.WeatherSettings
 import com.pixlehavencore.util.TextUtils
 import org.bukkit.Bukkit
 import org.bukkit.boss.BarColor
@@ -64,7 +69,7 @@ object SurvivalHud {
             ThirstPhase.THIRSTY -> "&6"
             ThirstPhase.SEVERE_THIRST, ThirstPhase.DEHYDRATED -> "&c"
         }
-        val weather = if (RealWorldSettings.localWeatherEnabled) {
+        val weather = if (WeatherSettings.localEnabled) {
             WeatherQuery.getWeatherAt(player.location, global).type
         } else {
             global.weather
