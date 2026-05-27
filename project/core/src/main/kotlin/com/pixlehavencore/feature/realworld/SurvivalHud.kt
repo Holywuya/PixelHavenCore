@@ -31,7 +31,7 @@ object SurvivalHud {
     }
 
     private fun renderActionBar(player: Player, state: PlayerEnvState, global: GlobalEnvState) {
-        val statusText = buildStatusActionBar(state, global)
+        val statusText = buildStatusActionBar(player, state, global)
         val warningText = buildWarningActionBar(global)
         if (warningText != null) {
             val mergedText = if (isSevereState(state)) {
@@ -52,7 +52,7 @@ object SurvivalHud {
         TextBridge.sendActionBar(player, TextUtils.parse(colorize(finalText)))
     }
 
-    private fun buildStatusActionBar(state: PlayerEnvState, global: GlobalEnvState): String {
+    private fun buildStatusActionBar(player: Player, state: PlayerEnvState, global: GlobalEnvState): String {
         val tempColor = when (state.temperaturePhase) {
             TemperaturePhase.COMFORTABLE -> "&a"
             TemperaturePhase.HEAT, TemperaturePhase.COLD_MILD -> "&6"
@@ -64,12 +64,17 @@ object SurvivalHud {
             ThirstPhase.THIRSTY -> "&6"
             ThirstPhase.SEVERE_THIRST, ThirstPhase.DEHYDRATED -> "&c"
         }
+        val weather = if (RealWorldSettings.localWeatherEnabled) {
+            WeatherQuery.getWeatherAt(player.location, global).type
+        } else {
+            global.weather
+        }
 
         return RealWorldSettings.hudActionBarFormat
             .replace("{temp}", "$tempColor${state.temperature.toInt()}")
             .replace("{hydration}", "$hydrationColor${state.hydration.toInt()}")
             .replace("{wetness}", "${(state.wetness * 100).toInt()}")
-            .replace("{weather}", global.weather.displayName)
+            .replace("{weather}", weather.displayName)
             .replace("{season}", global.season.displayName)
     }
 
