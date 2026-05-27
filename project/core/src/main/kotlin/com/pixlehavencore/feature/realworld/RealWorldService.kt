@@ -65,6 +65,7 @@ object RealWorldService {
         loadOnlinePlayersData()
         FoodCorrosionSettings.init()
         FoodCorrosionService.init()
+        WeatherEngine.init(Bukkit.getWorlds().first().seed.toInt())
         initTimeControl()
         info("[RealWorld] 模块已启动，在线玩家 ${onlinePlayers().size} 人。")
     }
@@ -89,6 +90,7 @@ object RealWorldService {
         loadOnlinePlayersData()
         FoodCorrosionSettings.reload()
         FoodCorrosionService.reload()
+        WeatherEngine.init(Bukkit.getWorlds().first().seed.toInt())
         initTimeControl()
         info("[RealWorld] 模块已重载，在线玩家 ${onlinePlayers().size} 人。")
     }
