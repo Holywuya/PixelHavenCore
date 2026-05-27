@@ -7,46 +7,34 @@ import com.pixlehavencore.util.FastNoiseLite
  * 使用噪声函数生成连续的天气分布
  */
 object ChunkWeatherEngine {
-    
-    private lateinit var typeNoise: FastNoiseLite
-    private lateinit var intensityNoise: FastNoiseLite
-    
-    /**
-     * 初始化噪声生成器
-     * @param worldSeed 世界种子
-     * @param frequency 噪声频率，值越小天气区域越大
-     */
+
+    private var typeNoise: FastNoiseLite? = null
+    private var intensityNoise: FastNoiseLite? = null
+
+    val isInitialized: Boolean
+        get() = typeNoise != null
+
     fun init(worldSeed: Int, frequency: Float = 0.015f) {
         typeNoise = FastNoiseLite(worldSeed).apply {
             setFrequency(frequency)
         }
         intensityNoise = FastNoiseLite(worldSeed + 1).apply {
-            setFrequency(frequency * 1.3f)  // 强度噪声频率略高，增加变化
+            setFrequency(frequency * 1.3f)
         }
     }
-    
-    /**
-     * 计算指定区块的天气状态
-     * @param chunkX 区块 X 坐标
-     * @param chunkZ 区块 Z 坐标
-     * @param timeFactor 时间因子，用于天气随时间变化
-     * @param season 当前季节
-     * @return 天气状态
-     */
+
     fun computeWeather(chunkX: Int, chunkZ: Int, timeFactor: Float, season: Season): WeatherState {
-        // 1. 生成类型噪声值 (-1 ~ 1)
-        val typeValue = typeNoise.getNoise(chunkX.toFloat(), chunkZ.toFloat(), timeFactor)
-        // 归一化到 0 ~ 1
+        val typeGen = typeNoise ?: return WeatherState(WeatherType.CLEAR, 0.5)
+        val intensityGen = intensityNoise ?: return WeatherState(WeatherType.CLEAR, 0.5)
+
+        val typeValue = typeGen.getNoise(chunkX.toFloat(), chunkZ.toFloat(), timeFactor)
         val normalizedType = (typeValue + 1.0f) / 2.0f
-        
-        // 2. 按季节权重映射到天气类型
+
         val weatherType = mapToWeatherType(normalizedType, season.weatherWeights)
-        
-        // 3. 生成强度噪声值 (-1 ~ 1)
-        val intensityValue = intensityNoise.getNoise(chunkX.toFloat(), chunkZ.toFloat(), timeFactor)
-        // 映射到 0.5 ~ 1.0（保证最小强度为 0.5）
+
+        val intensityValue = intensityGen.getNoise(chunkX.toFloat(), chunkZ.toFloat(), timeFactor)
         val intensity = 0.5 + (intensityValue + 1.0) / 4.0
-        
+
         return WeatherState(weatherType, intensity)
     }
     

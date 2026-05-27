@@ -1,5 +1,6 @@
 package com.pixlehavencore.feature.realworld
 
+import org.bukkit.Particle
 import org.bukkit.entity.Player
 import org.bukkit.potion.PotionEffect
 import org.bukkit.potion.PotionEffectType
@@ -214,18 +215,39 @@ object SurvivalEffectApplier {
         when (weather) {
             WeatherType.BLIZZARD -> {
                 addEffect(player, PotionEffectType.SLOWNESS, 1, tickIntervalSeconds)
+                spawnWeatherParticles(player, Particle.SNOWFLAKE, 30, 0.8, 0.5, 0.8, 0.1)
             }
             WeatherType.SANDSTORM -> {
                 addEffect(player, PotionEffectType.SLOWNESS, 0, tickIntervalSeconds)
                 addEffect(player, PotionEffectType.MINING_FATIGUE, 0, tickIntervalSeconds)
+                spawnWeatherParticles(player, Particle.DUST, 40, 1.2, 0.8, 1.2, 0.05)
             }
             WeatherType.ACID_RAIN -> {
                 addEffect(player, PotionEffectType.WEAKNESS, 0, tickIntervalSeconds)
                 if (allowDamage) {
                     addEffect(player, PotionEffectType.POISON, 0, tickIntervalSeconds)
                 }
+                spawnWeatherParticles(player, Particle.FALLING_WATER, 25, 0.6, 1.0, 0.6, 0.2)
             }
             else -> Unit
+        }
+    }
+
+    private fun spawnWeatherParticles(
+        player: Player,
+        particle: Particle,
+        count: Int,
+        offsetX: Double,
+        offsetY: Double,
+        offsetZ: Double,
+        speed: Double,
+        data: Any? = null
+    ) {
+        val location = player.location.add(0.0, 1.0, 0.0)
+        if (data != null) {
+            player.world.spawnParticle(particle, location, count, offsetX, offsetY, offsetZ, speed, data)
+        } else {
+            player.world.spawnParticle(particle, location, count, offsetX, offsetY, offsetZ, speed)
         }
     }
 
