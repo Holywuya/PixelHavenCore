@@ -73,7 +73,7 @@ object RealWorldStorage {
 
         val loaded = DatabaseUtils.withConnection(dataSource) { connection ->
             connection.prepareStatement(
-                "SELECT ${quoted("hydration")}, ${quoted("last_temperature")}, ${quoted("fracture")} FROM $PLAYER_TABLE WHERE ${quoted("uuid")} = ?"
+                "SELECT ${quoted("hydration")}, ${quoted("last_temperature")}, ${quoted("fracture")}, ${quoted("stamina")} FROM $PLAYER_TABLE WHERE ${quoted("uuid")} = ?"
             ).use { statement ->
                 statement.setString(1, uuid.toString())
                 statement.executeQuery().use { result ->
@@ -83,7 +83,8 @@ object RealWorldStorage {
                     PlayerEnvState(
                         temperature = result.getDouble("last_temperature"),
                         hydration = result.getDouble("hydration"),
-                        fracture = result.getDouble("fracture")
+                        fracture = result.getDouble("fracture"),
+                        stamina = result.getDouble("stamina").let { if (it == 0.0) 100.0 else it }
                     )
                 }
             }
@@ -245,6 +246,12 @@ object RealWorldStorage {
             }
 
             connection.prepareStatement(
+                "ALTER TABLE $PLAYER_TABLE ADD COLUMN ${quoted("stamina")} DOUBLE NOT NULL DEFAULT 100.0".trimIndent()
+            ).use { statement ->
+                runCatching { statement.execute() }
+            }
+
+            connection.prepareStatement(
                 """
                 CREATE TABLE IF NOT EXISTS $GLOBAL_TABLE (
                     ${quoted("id")} INT NOT NULL,
@@ -269,7 +276,8 @@ object RealWorldStorage {
                 statement.setDouble(2, snapshot.hydration)
                 statement.setDouble(3, snapshot.temperature)
                 statement.setDouble(4, snapshot.fracture)
-                statement.setTimestamp(5, DatabaseUtils.now())
+                statement.setDouble(5, snapshot.stamina)
+                statement.setTimestamp(6, DatabaseUtils.now())
                 statement.executeUpdate()
                 true
             }
@@ -295,7 +303,8 @@ object RealWorldStorage {
         return current != null &&
             current.hydration == snapshot.hydration &&
             current.temperature == snapshot.temperature &&
-            current.fracture == snapshot.fracture
+            current.fracture == snapshot.fracture &&
+            current.stamina == snapshot.stamina
     }
 
     private fun samePersistedGlobalState(current: GlobalEnvState, snapshot: GlobalEnvState): Boolean {
@@ -307,10 +316,10 @@ object RealWorldStorage {
 
     private fun playerUpsertSql(): String {
         return if (DatabaseUtils.isMySql) {
-            "INSERT INTO $PLAYER_TABLE (${quoted("uuid")}, ${quoted("hydration")}, ${quoted("last_temperature")}, ${quoted("fracture")}, ${quoted("updated_at")}) VALUES (?, ?, ?, ?, ?) " +
-                "ON DUPLICATE KEY UPDATE ${quoted("hydration")} = VALUES(${quoted("hydration")}), ${quoted("last_temperature")} = VALUES(${quoted("last_temperature")}), ${quoted("fracture")} = VALUES(${quoted("fracture")}), ${quoted("updated_at")} = VALUES(${quoted("updated_at")})"
+            "INSERT INTO $PLAYER_TABLE (${quoted("uuid")}, ${quoted("hydration")}, ${quoted("last_temperature")}, ${quoted("fracture")}, ${quoted("stamina")}, ${quoted("updated_at")}) VALUES (?, ?, ?, ?, ?, ?) " +
+                "ON DUPLICATE KEY UPDATE ${quoted("hydration")} = VALUES(${quoted("hydration")}), ${quoted("last_temperature")} = VALUES(${quoted("last_temperature")}), ${quoted("fracture")} = VALUES(${quoted("fracture")}), ${quoted("stamina")} = VALUES(${quoted("stamina")}), ${quoted("updated_at")} = VALUES(${quoted("updated_at")})"
         } else {
-            "INSERT OR REPLACE INTO $PLAYER_TABLE (${quoted("uuid")}, ${quoted("hydration")}, ${quoted("last_temperature")}, ${quoted("fracture")}, ${quoted("updated_at")}) VALUES (?, ?, ?, ?, ?)"
+            "INSERT OR REPLACE INTO $PLAYER_TABLE (${quoted("uuid")}, ${quoted("hydration")}, ${quoted("last_temperature")}, ${quoted("fracture")}, ${quoted("stamina")}, ${quoted("updated_at")}) VALUES (?, ?, ?, ?, ?, ?)"
         }
     }
 
