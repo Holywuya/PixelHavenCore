@@ -7,6 +7,11 @@ import org.bukkit.Bukkit
 import org.bukkit.OfflinePlayer
 import org.bukkit.command.CommandSender
 
+/**
+ * 全局管理员权限节点
+ */
+const val ADMIN_PERMISSION = "phcore.admin"
+
 private val PERMISSION_ALIASES = mapOf(
     "phcore.viewdistance.admin" to listOf("phcore.vdc.admin"),
     "phcore.viewdistance.afk.bypass" to listOf("phcore.vdc.afk.bypass"),
@@ -25,16 +30,16 @@ fun ProxyCommandSender.msg(text: String) =
     sendMessage(TextBridge.toLegacy(TextUtils.parse(text)))
 
 /**
- * 全局超级权限：`phcore.admin`。
+ * 全局超级权限：`[ADMIN_PERMISSION]`。
  * 任何模块权限校验都会先检查这个节点。
  */
 fun ProxyCommandSender.hasPermissionOrAdmin(permission: String): Boolean {
-    if (hasPermission("phcore.admin") || hasPermission(permission)) return true
+    if (hasPermission(ADMIN_PERMISSION) || hasPermission(permission)) return true
     return PERMISSION_ALIASES[permission].orEmpty().any { hasPermission(it) }
 }
 
 fun CommandSender.hasPermissionOrAdmin(permission: String): Boolean {
-    if (hasPermission("phcore.admin") || hasPermission(permission)) return true
+    if (hasPermission(ADMIN_PERMISSION) || hasPermission(permission)) return true
     return PERMISSION_ALIASES[permission].orEmpty().any { hasPermission(it) }
 }
 
