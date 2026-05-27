@@ -2,6 +2,7 @@ package com.pixlehavencore.feature.realworld.foodcorrosion
 
 import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import com.pixlehavencore.util.TextUtils
+import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Player
@@ -10,10 +11,15 @@ import org.bukkit.persistence.PersistentDataType
 
 object FoodCorrosionEngine {
 
-    private val CREATION_TIME_KEY = NamespacedKey("phcore", "food_creation_time")
+    private val CREATION_DAY_KEY = NamespacedKey("phcore", "food_creation_day")
     private val DISPLAYED_DAYS_KEY = NamespacedKey("phcore", "food_displayed_days")
+    private val OLD_CREATION_TIME_KEY = NamespacedKey("phcore", "food_creation_time")
     private val OLD_CORROSION_KEY = NamespacedKey("phcore", "food_corrosion")
-    private const val SECONDS_PER_DAY = 86400L
+
+    fun getCurrentGameDay(): Int {
+        val world = Bukkit.getWorlds().firstOrNull() ?: return 0
+        return (world.fullTime / 24000).toInt()
+    }
 
     fun isCorrosiveFood(item: ItemStack): Boolean {
         if (item.type.isAir) return false
@@ -22,16 +28,29 @@ object FoodCorrosionEngine {
         return true
     }
 
-    fun getCreationTime(item: ItemStack): Long? {
+    fun getCreationDay(item: ItemStack): Int? {
         val meta = item.itemMeta ?: return null
-        return meta.persistentDataContainer.get(CREATION_TIME_KEY, PersistentDataType.LONG)
+        val pdc = meta.persistentDataContainer
+        return pdc.get(CREATION_DAY_KEY, PersistentDataType.INTEGER)
+            ?: pdc.get(OLD_CREATION_TIME_KEY, PersistentDataType.LONG)?.toInt()?.also {
+                pdc.remove(OLD_CREATION_TIME_KEY)
+                pdc.set(CREATION_DAY_KEY, PersistentDataType.INTEGER, it)
+                item.itemMeta = meta
+            }
     }
 
     fun setCreationTimeIfAbsent(item: ItemStack) {
         val meta = item.itemMeta ?: return
-        if (meta.persistentDataContainer.has(CREATION_TIME_KEY, PersistentDataType.LONG)) return
-        meta.persistentDataContainer.set(CREATION_TIME_KEY, PersistentDataType.LONG, System.currentTimeMillis())
-        meta.persistentDataContainer.remove(OLD_CORROSION_KEY)
+        val pdc = meta.persistentDataContainer
+        if (pdc.has(CREATION_DAY_KEY, PersistentDataType.INTEGER)) return
+        if (pdc.has(OLD_CREATION_TIME_KEY, PersistentDataType.LONG)) {
+            val oldDay = pdc.get(OLD_CREATION_TIME_KEY, PersistentDataType.LONG)?.toInt() ?: getCurrentGameDay()
+            pdc.remove(OLD_CREATION_TIME_KEY)
+            pdc.set(CREATION_DAY_KEY, PersistentDataType.INTEGER, oldDay)
+        } else {
+            pdc.set(CREATION_DAY_KEY, PersistentDataType.INTEGER, getCurrentGameDay())
+        }
+        pdc.remove(OLD_CORROSION_KEY)
         item.itemMeta = meta
     }
 
@@ -47,11 +66,10 @@ object FoodCorrosionEngine {
     }
 
     fun computeRemainingDays(item: ItemStack): Int {
-        val creationMs = getCreationTime(item) ?: return FoodCorrosionSettings.defaultDays
-        val elapsedMs = System.currentTimeMillis() - creationMs
-        val elapsedDays = (elapsedMs / 1000.0 / SECONDS_PER_DAY)
+        val creationDay = getCreationDay(item) ?: return FoodCorrosionSettings.defaultDays
+        val elapsedDays = getCurrentGameDay() - creationDay
         val maxDays = getItemDays(item.type)
-        return (maxDays - elapsedDays).toInt().coerceIn(0, maxDays)
+        return (maxDays - elapsedDays).coerceIn(0, maxDays)
     }
 
     fun getItemDays(material: Material): Int {
@@ -83,9 +101,8 @@ object FoodCorrosionEngine {
         }
     }
 
-    fun corrosionColor(days: Int): String {
-        val maxDays = FoodCorrosionSettings.defaultDays
-        val ratio = if (maxDays > 0) days.toDouble() / maxDays else 0.0
+    fun corrosionColor(remainingDays: Int, shelfLife: Int): String {
+        val ratio = if (shelfLife > 0) remainingDays.toDouble() / shelfLife else 0.0
         return when {
             ratio > 0.50 -> "&a"
             ratio > 0.25 -> "&e"
@@ -94,11 +111,11 @@ object FoodCorrosionEngine {
         }
     }
 
-    fun buildCorrosionLoreText(days: Int): String {
-        val color = corrosionColor(days)
+    fun buildCorrosionLoreText(remainingDays: Int, shelfLife: Int): String {
+        val color = corrosionColor(remainingDays, shelfLife)
         return FoodCorrosionSettings.loreFormat
             .resolvePlaceholders(
-                "{days}" to days.toString(),
+                "{days}" to remainingDays.toString(),
                 "{color}" to color,
             )
     }
