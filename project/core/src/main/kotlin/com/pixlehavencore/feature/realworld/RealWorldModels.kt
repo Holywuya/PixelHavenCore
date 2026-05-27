@@ -147,3 +147,11 @@ data class GlobalEnvState(
     var dayPhase: DayPhase = DayPhase.DAY,
     var weatherDecisionTimer: Double = 0.0,
 )
+
+/**
+ * 区块级天气状态
+ */
+data class WeatherState(
+    val type: WeatherType,
+    val intensity: Double,  // 0.0 ~ 1.0
+)
