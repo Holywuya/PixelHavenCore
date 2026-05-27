@@ -135,6 +135,11 @@ data class PlayerEnvState(
     var weatherExposureDamageTimer: Double = 0.0,
     var heatSourceScanTimer: Double = 0.0,
     var hudRefreshTimer: Double = 0.0,
+    var stamina: Double = 100.0,
+    var staminaPhase: StaminaPhase = StaminaPhase.FULL,
+    var staminaIdleTimer: Double = 0.0,
+    var staminaRecoveryCooldown: Double = 0.0,
+    var staminaChatWarnCooldown: Double = 0.0,
 )
 
 data class GlobalEnvState(
