@@ -72,7 +72,7 @@ object StaminaSettings {
     // 恢复方式 - drink
     var recoveryDrinkEnabled: Boolean = true
         private set
-    var recoveryDrinkHydrationToStaminaRatio: Double = 1.5
+    var recoveryDrinkHydrationToStaminaRatio: Double = 0.5
         private set
 
     // 恢复方式 - sleep
@@ -98,17 +98,17 @@ object StaminaSettings {
     // 惩罚阶段 - exhausted
     var penaltyExhaustedThreshold: Double = 0.3
         private set
-    var penaltyExhaustedSpeedMultiplier: Double = 0.6
+    var penaltyExhaustedSpeedMultiplier: Double = 0.70
         private set
-    var penaltyExhaustedMiningFatigueAmplifier: Int = 1
+    var penaltyExhaustedMiningFatigueAmplifier: Int = 0
         private set
-    var penaltyExhaustedWeaknessAmplifier: Int = 1
+    var penaltyExhaustedWeaknessAmplifier: Int = 0
         private set
 
     // 惩罚阶段 - depleted
     var penaltyDepletedThreshold: Double = 0.0
         private set
-    var penaltyDepletedSpeedMultiplier: Double = 0.4
+    var penaltyDepletedSpeedMultiplier: Double = 0.50
         private set
     var penaltyDepletedMiningFatigueAmplifier: Int = 2
         private set
@@ -154,17 +154,17 @@ object StaminaSettings {
     // 系统联动 - temperature
     var integrationTemperatureEnabled: Boolean = true
         private set
-    var integrationTemperatureExtremeMultiplier: Double = 3.0
+    var integrationTemperatureExtremeMultiplier: Double = 1.5
         private set
-    var integrationTemperatureMildMultiplier: Double = 1.5
+    var integrationTemperatureMildMultiplier: Double = 1.2
         private set
 
     // 系统联动 - fracture
     var integrationFractureEnabled: Boolean = true
         private set
-    var integrationFractureThreshold: Double = 50.0
+    var integrationFractureThreshold: Double = 20.0
         private set
-    var integrationFractureConsumptionMultiplier: Double = 2.0
+    var integrationFractureConsumptionMultiplier: Double = 1.3
         private set
     var integrationFractureMaxStaminaReduction: Double = 30.0
         private set
@@ -180,29 +180,29 @@ object StaminaSettings {
     // 系统联动 - wetness
     var integrationWetnessEnabled: Boolean = true
         private set
-    var integrationWetnessThreshold: Double = 80.0
+    var integrationWetnessThreshold: Double = 0.7
         private set
-    var integrationWetnessConsumptionMultiplier: Double = 1.5
+    var integrationWetnessConsumptionMultiplier: Double = 1.2
         private set
 
     // 系统联动 - food
     var integrationFoodEnabled: Boolean = true
         private set
-    var integrationFoodFullSaturationBonus: Double = 1.2
+    var integrationFoodFullSaturationBonus: Double = 1.25
         private set
 
     // 系统联动 - weather
     var integrationWeatherEnabled: Boolean = true
         private set
-    var integrationWeatherExtremeMultiplier: Double = 2.0
+    var integrationWeatherExtremeMultiplier: Double = 1.3
         private set
 
     // 系统联动 - season
     var integrationSeasonEnabled: Boolean = true
         private set
-    var integrationSeasonWinterMultiplier: Double = 1.5
+    var integrationSeasonWinterMultiplier: Double = 1.1
         private set
-    var integrationSeasonSummerMultiplier: Double = 1.2
+    var integrationSeasonSummerMultiplier: Double = 1.05
         private set
 
     fun init() {
@@ -250,7 +250,7 @@ object StaminaSettings {
 
         // 恢复方式 - drink
         recoveryDrinkEnabled = config.getBoolean("stamina.recovery.drink.enabled", true)
-        recoveryDrinkHydrationToStaminaRatio = config.getDouble("stamina.recovery.drink.hydration-to-stamina-ratio", 1.5).coerceAtLeast(0.0)
+        recoveryDrinkHydrationToStaminaRatio = config.getDouble("stamina.recovery.drink.hydration-to-stamina-ratio", 0.5).coerceAtLeast(0.0)
 
         // 恢复方式 - sleep
         recoverySleepEnabled = config.getBoolean("stamina.recovery.sleep.enabled", true)
@@ -275,13 +275,13 @@ object StaminaSettings {
 
         // 惩罚阶段 - exhausted
         penaltyExhaustedThreshold = config.getDouble("stamina.penalties.exhausted.threshold", 0.3).coerceIn(0.0, 1.0)
-        penaltyExhaustedSpeedMultiplier = config.getDouble("stamina.penalties.exhausted.speed-multiplier", 0.6).coerceIn(0.0, 1.0)
-        penaltyExhaustedMiningFatigueAmplifier = config.getInt("stamina.penalties.exhausted.mining-fatigue-amplifier", 1).coerceAtLeast(0)
-        penaltyExhaustedWeaknessAmplifier = config.getInt("stamina.penalties.exhausted.weakness-amplifier", 1).coerceAtLeast(0)
+        penaltyExhaustedSpeedMultiplier = config.getDouble("stamina.penalties.exhausted.speed-multiplier", 0.70).coerceIn(0.0, 1.0)
+        penaltyExhaustedMiningFatigueAmplifier = config.getInt("stamina.penalties.exhausted.mining-fatigue-amplifier", 0).coerceAtLeast(0)
+        penaltyExhaustedWeaknessAmplifier = config.getInt("stamina.penalties.exhausted.weakness-amplifier", 0).coerceAtLeast(0)
 
         // 惩罚阶段 - depleted
         penaltyDepletedThreshold = config.getDouble("stamina.penalties.depleted.threshold", 0.0).coerceIn(0.0, 1.0)
-        penaltyDepletedSpeedMultiplier = config.getDouble("stamina.penalties.depleted.speed-multiplier", 0.4).coerceIn(0.0, 1.0)
+        penaltyDepletedSpeedMultiplier = config.getDouble("stamina.penalties.depleted.speed-multiplier", 0.50).coerceIn(0.0, 1.0)
         penaltyDepletedMiningFatigueAmplifier = config.getInt("stamina.penalties.depleted.mining-fatigue-amplifier", 2).coerceAtLeast(0)
         penaltyDepletedWeaknessAmplifier = config.getInt("stamina.penalties.depleted.weakness-amplifier", 2).coerceAtLeast(0)
 
@@ -308,13 +308,13 @@ object StaminaSettings {
 
         // 系统联动 - temperature
         integrationTemperatureEnabled = config.getBoolean("stamina.integration.temperature.enabled", true)
-        integrationTemperatureExtremeMultiplier = config.getDouble("stamina.integration.temperature.extreme-multiplier", 3.0).coerceAtLeast(0.0)
-        integrationTemperatureMildMultiplier = config.getDouble("stamina.integration.temperature.mild-multiplier", 1.5).coerceAtLeast(0.0)
+        integrationTemperatureExtremeMultiplier = config.getDouble("stamina.integration.temperature.extreme-multiplier", 1.5).coerceAtLeast(0.0)
+        integrationTemperatureMildMultiplier = config.getDouble("stamina.integration.temperature.mild-multiplier", 1.2).coerceAtLeast(0.0)
 
         // 系统联动 - fracture
         integrationFractureEnabled = config.getBoolean("stamina.integration.fracture.enabled", true)
-        integrationFractureThreshold = config.getDouble("stamina.integration.fracture.threshold", 50.0).coerceAtLeast(0.0)
-        integrationFractureConsumptionMultiplier = config.getDouble("stamina.integration.fracture.consumption-multiplier", 2.0).coerceAtLeast(0.0)
+        integrationFractureThreshold = config.getDouble("stamina.integration.fracture.threshold", 20.0).coerceAtLeast(0.0)
+        integrationFractureConsumptionMultiplier = config.getDouble("stamina.integration.fracture.consumption-multiplier", 1.3).coerceAtLeast(0.0)
         integrationFractureMaxStaminaReduction = config.getDouble("stamina.integration.fracture.max-stamina-reduction", 30.0).coerceAtLeast(0.0)
 
         // 系统联动 - thirst
@@ -324,21 +324,21 @@ object StaminaSettings {
 
         // 系统联动 - wetness
         integrationWetnessEnabled = config.getBoolean("stamina.integration.wetness.enabled", true)
-        integrationWetnessThreshold = config.getDouble("stamina.integration.wetness.threshold", 80.0).coerceAtLeast(0.0)
-        integrationWetnessConsumptionMultiplier = config.getDouble("stamina.integration.wetness.consumption-multiplier", 1.5).coerceAtLeast(0.0)
+        integrationWetnessThreshold = config.getDouble("stamina.integration.wetness.threshold", 0.7).coerceAtLeast(0.0)
+        integrationWetnessConsumptionMultiplier = config.getDouble("stamina.integration.wetness.consumption-multiplier", 1.2).coerceAtLeast(0.0)
 
         // 系统联动 - food
         integrationFoodEnabled = config.getBoolean("stamina.integration.food.enabled", true)
-        integrationFoodFullSaturationBonus = config.getDouble("stamina.integration.food.full-saturation-bonus", 1.2).coerceAtLeast(0.0)
+        integrationFoodFullSaturationBonus = config.getDouble("stamina.integration.food.full-saturation-bonus", 1.25).coerceAtLeast(0.0)
 
         // 系统联动 - weather
         integrationWeatherEnabled = config.getBoolean("stamina.integration.weather.enabled", true)
-        integrationWeatherExtremeMultiplier = config.getDouble("stamina.integration.weather.extreme-multiplier", 2.0).coerceAtLeast(0.0)
+        integrationWeatherExtremeMultiplier = config.getDouble("stamina.integration.weather.extreme-multiplier", 1.3).coerceAtLeast(0.0)
 
         // 系统联动 - season
         integrationSeasonEnabled = config.getBoolean("stamina.integration.season.enabled", true)
-        integrationSeasonWinterMultiplier = config.getDouble("stamina.integration.season.winter-multiplier", 1.5).coerceAtLeast(0.0)
-        integrationSeasonSummerMultiplier = config.getDouble("stamina.integration.season.summer-multiplier", 1.2).coerceAtLeast(0.0)
+        integrationSeasonWinterMultiplier = config.getDouble("stamina.integration.season.winter-multiplier", 1.1).coerceAtLeast(0.0)
+        integrationSeasonSummerMultiplier = config.getDouble("stamina.integration.season.summer-multiplier", 1.05).coerceAtLeast(0.0)
 
         // 确保惩罚阈值顺序正确：tired > exhausted > depleted
         penaltyExhaustedThreshold = penaltyExhaustedThreshold.coerceAtMost(penaltyTiredThreshold)
