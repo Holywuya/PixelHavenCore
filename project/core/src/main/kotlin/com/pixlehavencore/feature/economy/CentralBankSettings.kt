@@ -72,7 +72,7 @@ object CentralBankSettings {
             .toSet()
         maxNegativeReserve = config.getLong("max-negative-reserve", -1L)
         supplyMode = runCatching {
-            SupplyMode.valueOf(config.getString("supply-mode", "MANAGED")!!.uppercase())
+            SupplyMode.valueOf((config.getString("supply-mode", "MANAGED") ?: "MANAGED").uppercase())
         }.getOrDefault(SupplyMode.MANAGED)
         allowAutoContraction = config.getBoolean("allow-auto-contraction", true)
         inactivityWeights = config.getMapList("inactivity-weights")

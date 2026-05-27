@@ -11,7 +11,7 @@ object PixleHavenSettings {
     var databaseType: String = "sqlite"
         private set
 
-    var sqliteFile: String = "veinminer.db"
+    var sqliteFile: String = "pixelhavencore.db"
         private set
 
     var mysqlHost: String = "localhost"
@@ -20,7 +20,7 @@ object PixleHavenSettings {
     var mysqlPort: String = "3306"
         private set
 
-    var mysqlDatabase: String = "veinminer"
+    var mysqlDatabase: String = "pixelhavencore"
         private set
 
     var mysqlUser: String = "root"
@@ -36,10 +36,10 @@ object PixleHavenSettings {
     fun reload() {
         config.reload()
         databaseType = config.getString("database.type")?.lowercase() ?: "sqlite"
-        sqliteFile = config.getString("database.sqlite.file") ?: "veinminer.db"
+        sqliteFile = config.getString("database.sqlite.file") ?: "pixelhavencore.db"
         mysqlHost = config.getString("database.mysql.host") ?: "localhost"
         mysqlPort = config.getString("database.mysql.port") ?: "3306"
-        mysqlDatabase = config.getString("database.mysql.database") ?: "veinminer"
+        mysqlDatabase = config.getString("database.mysql.database") ?: "pixelhavencore"
         mysqlUser = config.getString("database.mysql.user") ?: "root"
         mysqlPassword = config.getString("database.mysql.password") ?: "root"
     }

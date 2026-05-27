@@ -27,7 +27,6 @@ import com.pixlehavencore.feature.security.SecuritySettings
 import com.pixlehavencore.feature.trade.TradeService
 import com.pixlehavencore.feature.vanish.VanishService
 import com.pixlehavencore.feature.vanish.VanishSettings
-import com.pixlehavencore.feature.veinminer.VeinminerHook
 import com.pixlehavencore.feature.veinminer.VeinminerLimitService
 import com.pixlehavencore.feature.veinminer.VeinminerSettings
 import com.pixlehavencore.feature.optimization.entityclearer.EntityClearerService
@@ -59,7 +58,6 @@ object PixleHavenCore : Plugin() {
         PixleHavenSettings.init()
         VeinminerSettings.init()
         VeinminerLimitService.init()
-        VeinminerHook.init()
         GrindstoneRepairSettings.init()
         CraftingBenchService.init()
         NotificationService.init()

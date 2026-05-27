@@ -209,25 +209,34 @@ object TaxService {
         var outstandingDebt = BigDecimal.ZERO
 
         accountIds.forEach { accountId ->
-            synchronized(accountLocks[accountId]) {
-                val currentIncome = currentIncomeOf(accountId)
-                val currentDebt = currentDebtOf(accountId)
-                if (currentIncome <= BigDecimal.ZERO && currentDebt <= BigDecimal.ZERO) {
-                    return@synchronized
+            // Phase 1: 在锁内快照数据并清零，避免与 CentralBankService.stateLock 形成嵌套死锁
+            val snapshotDue: BigDecimal? = synchronized(accountLocks[accountId]) {
+                val income = currentIncomeOf(accountId)
+                val debt = currentDebtOf(accountId)
+                if (income <= BigDecimal.ZERO && debt <= BigDecimal.ZERO) {
+                    return@synchronized null
                 }
-
-                val currentDue = calculateDue(currentIncome, currentDebt)
-                if (currentDue <= BigDecimal.ZERO) {
+                val due = calculateDue(income, debt)
+                if (due <= BigDecimal.ZERO) {
                     updateAccountStateLocked(accountId, BigDecimal.ZERO, BigDecimal.ZERO)
-                    return@synchronized
+                    return@synchronized null
                 }
-
-                val collected = collectTaxFromAccount(accountId, currentDue)
-                val remainingDebt = normalizeAmount(currentDue.subtract(collected))
-                updateAccountStateLocked(accountId, BigDecimal.ZERO, remainingDebt)
-                settled = settled.add(collected)
-                outstandingDebt = outstandingDebt.add(remainingDebt)
+                updateAccountStateLocked(accountId, BigDecimal.ZERO, BigDecimal.ZERO)
+                due
             }
+            if (snapshotDue == null) return@forEach
+
+            // Phase 2: 在锁外执行实际扣款（会获取 CentralBankService.stateLock）
+            val collected = collectTaxFromAccount(accountId, snapshotDue)
+            val remainingDebt = normalizeAmount(snapshotDue.subtract(collected))
+
+            // Phase 3: 重新获取锁，合并结算期间的新增收入并记录欠税
+            synchronized(accountLocks[accountId]) {
+                val newIncome = currentIncomeOf(accountId)
+                updateAccountStateLocked(accountId, newIncome, remainingDebt)
+            }
+            settled = settled.add(collected)
+            outstandingDebt = outstandingDebt.add(remainingDebt)
         }
 
         CentralBankService.recordCollectedTax(normalizeAmount(settled))

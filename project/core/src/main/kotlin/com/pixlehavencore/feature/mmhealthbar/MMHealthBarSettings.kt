@@ -29,9 +29,9 @@ object MMHealthBarSettings {
     fun reload() {
         config.reload()
         enabled = config.getBoolean("enabled", true)
-        barColor = runCatching { BossBar.Color.valueOf(config.getString("bar_color", "PURPLE")!!.uppercase()) }
+        barColor = runCatching { BossBar.Color.valueOf((config.getString("bar_color", "PURPLE") ?: "PURPLE").uppercase()) }
             .getOrDefault(BossBar.Color.PURPLE)
-        barOverlay = runCatching { BossBar.Overlay.valueOf(config.getString("bar_style", "PROGRESS")!!.uppercase()) }
+        barOverlay = runCatching { BossBar.Overlay.valueOf((config.getString("bar_style", "PROGRESS") ?: "PROGRESS").uppercase()) }
             .getOrDefault(BossBar.Overlay.PROGRESS)
         titleFormat = config.getString("title_format", titleFormat) ?: titleFormat
         damageFormat = config.getString("damage_format", damageFormat) ?: damageFormat

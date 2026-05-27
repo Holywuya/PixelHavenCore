@@ -21,6 +21,7 @@ import taboolib.platform.util.submit as submitOnLocation
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import taboolib.platform.util.PlayerSessionMap
 
@@ -641,7 +642,10 @@ object TradeService {
         lateinit var leftInventory: Inventory
         lateinit var rightInventory: Inventory
         val id: UUID = UUID.randomUUID()
-        val moneyOffers: MutableMap<UUID, BigDecimal> = mutableMapOf(left to BigDecimal.ZERO, right to BigDecimal.ZERO)
+        val moneyOffers: MutableMap<UUID, BigDecimal> = ConcurrentHashMap<UUID, BigDecimal>().apply {
+            put(left, BigDecimal.ZERO)
+            put(right, BigDecimal.ZERO)
+        }
         val leftConfirmed: AtomicBoolean = AtomicBoolean(false)
         val rightConfirmed: AtomicBoolean = AtomicBoolean(false)
 
