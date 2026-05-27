@@ -58,9 +58,7 @@ object FoodCorrosionPacketListener : PacketListener {
     private fun appendCorrosionLore(item: ItemStack): ItemStack? {
         val meta = item.itemMeta ?: return null
 
-        val current = FoodCorrosionEngine.getCorrosionValue(item)
-        val max = FoodCorrosionSettings.maxCorrosion
-        val remainingDays = FoodCorrosionEngine.computeRemainingDays(current, max)
+        val remainingDays = FoodCorrosionEngine.computeRemainingDays(item)
         val displayedDays = FoodCorrosionEngine.getDisplayedDays(item)
 
         // 天数未变化则跳过，避免频繁刷新 lore

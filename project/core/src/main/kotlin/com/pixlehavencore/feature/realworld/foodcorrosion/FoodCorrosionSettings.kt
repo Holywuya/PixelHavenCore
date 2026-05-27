@@ -10,11 +10,9 @@ object FoodCorrosionSettings {
 
     var enabled: Boolean = true
         private set
-    var maxCorrosion: Int = 100
+    var defaultDays: Int = 14
         private set
-    var defaultRate: Int = 1
-        private set
-    var totalDays: Int = 14
+    var expiredItem: String = "ROTTEN_FLESH"
         private set
     var loreFormat: String = "&7过期时间: {color}{days}d"
         private set
@@ -28,7 +26,7 @@ object FoodCorrosionSettings {
         "SUSPICIOUS_STEW",
     )
         private set
-    var itemRates: Map<String, Int> = emptyMap()
+    var itemDays: Map<String, Int> = emptyMap()
         private set
 
     fun init() = reload()
@@ -36,15 +34,14 @@ object FoodCorrosionSettings {
     fun reload() {
         config.reload()
         enabled = config.getBoolean("enabled", true)
-        maxCorrosion = config.getInt("max-corrosion", 100).coerceIn(1, 10000)
-        defaultRate = config.getInt("default-rate", 1).coerceIn(1, 100)
-        totalDays = config.getInt("total-days", 14).coerceIn(1, 365)
+        defaultDays = config.getInt("default-days", 14).coerceIn(1, 365)
+        expiredItem = config.getString("expired-item") ?: "ROTTEN_FLESH"
         loreFormat = config.getString("lore-format") ?: "&7过期时间: {color}{days}d"
         conversionMessage = config.getString("conversion-message") ?: "&e你的食物已经完全腐烂了！"
         excludedItems = config.getStringList("excluded-items").toSet()
-        itemRates = config.getConfigurationSection("item-rates")
+        itemDays = config.getConfigurationSection("item-days")
             ?.getKeys(false)
-            ?.associateWith { config.getInt("item-rates.$it", defaultRate) }
+            ?.associateWith { config.getInt("item-days.$it", defaultDays) }
             ?: emptyMap()
     }
 }

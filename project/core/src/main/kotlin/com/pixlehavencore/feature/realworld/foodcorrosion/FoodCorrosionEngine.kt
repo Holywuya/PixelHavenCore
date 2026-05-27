@@ -10,8 +10,10 @@ import org.bukkit.persistence.PersistentDataType
 
 object FoodCorrosionEngine {
 
-    private val NAMESPACED_KEY = NamespacedKey("phcore", "food_corrosion")
+    private val CREATION_TIME_KEY = NamespacedKey("phcore", "food_creation_time")
     private val DISPLAYED_DAYS_KEY = NamespacedKey("phcore", "food_displayed_days")
+    private val OLD_CORROSION_KEY = NamespacedKey("phcore", "food_corrosion")
+    private const val SECONDS_PER_DAY = 86400L
 
     fun isCorrosiveFood(item: ItemStack): Boolean {
         if (item.type.isAir) return false
@@ -20,14 +22,16 @@ object FoodCorrosionEngine {
         return true
     }
 
-    fun getCorrosionValue(item: ItemStack): Int {
-        val meta = item.itemMeta ?: return 0
-        return meta.persistentDataContainer.get(NAMESPACED_KEY, PersistentDataType.INTEGER) ?: 0
+    fun getCreationTime(item: ItemStack): Long? {
+        val meta = item.itemMeta ?: return null
+        return meta.persistentDataContainer.get(CREATION_TIME_KEY, PersistentDataType.LONG)
     }
 
-    fun setCorrosionValue(item: ItemStack, value: Int) {
+    fun setCreationTimeIfAbsent(item: ItemStack) {
         val meta = item.itemMeta ?: return
-        meta.persistentDataContainer.set(NAMESPACED_KEY, PersistentDataType.INTEGER, value)
+        if (meta.persistentDataContainer.has(CREATION_TIME_KEY, PersistentDataType.LONG)) return
+        meta.persistentDataContainer.set(CREATION_TIME_KEY, PersistentDataType.LONG, System.currentTimeMillis())
+        meta.persistentDataContainer.remove(OLD_CORROSION_KEY)
         item.itemMeta = meta
     }
 
@@ -42,37 +46,37 @@ object FoodCorrosionEngine {
         item.itemMeta = meta
     }
 
-    fun computeRemainingDays(current: Int, max: Int): Int {
-        val totalDays = FoodCorrosionSettings.totalDays
-        return ((max - current).toDouble() / max * totalDays).toInt().coerceIn(0, totalDays)
+    fun computeRemainingDays(item: ItemStack): Int {
+        val creationMs = getCreationTime(item) ?: return FoodCorrosionSettings.defaultDays
+        val elapsedMs = System.currentTimeMillis() - creationMs
+        val elapsedDays = (elapsedMs / 1000.0 / SECONDS_PER_DAY)
+        val maxDays = getItemDays(item.type)
+        return (maxDays - elapsedDays).toInt().coerceIn(0, maxDays)
     }
 
-    fun getCorrosionRate(material: Material): Int {
-        return FoodCorrosionSettings.itemRates[material.name] ?: FoodCorrosionSettings.defaultRate
+    fun getItemDays(material: Material): Int {
+        return FoodCorrosionSettings.itemDays[material.name] ?: FoodCorrosionSettings.defaultDays
     }
 
     fun tickPlayer(player: Player) {
         if (!FoodCorrosionSettings.enabled) return
-        val maxCorrosion = FoodCorrosionSettings.maxCorrosion
         val contents = player.inventory.contents
         for ((slot, item) in contents.withIndex()) {
             if (item == null || item.type.isAir) continue
             if (!isCorrosiveFood(item)) continue
-            val current = getCorrosionValue(item)
-            if (current >= maxCorrosion) continue
-            val rate = getCorrosionRate(item.type)
-            val newValue = (current + rate).coerceAtMost(maxCorrosion)
-            setCorrosionValue(item, newValue)
-            if (newValue >= maxCorrosion) {
-                convertToRottenFlesh(player, slot, item)
+            setCreationTimeIfAbsent(item)
+            if (computeRemainingDays(item) <= 0) {
+                convertToExpiredItem(player, slot, item)
             }
         }
     }
 
-    fun convertToRottenFlesh(player: Player, slot: Int, item: ItemStack) {
+    fun convertToExpiredItem(player: Player, slot: Int, item: ItemStack) {
         val amount = item.amount
-        val rottenFlesh = ItemStack(Material.ROTTEN_FLESH, amount)
-        player.inventory.setItem(slot, rottenFlesh)
+        val expiredMaterial = Material.matchMaterial(FoodCorrosionSettings.expiredItem)
+            ?: Material.ROTTEN_FLESH
+        val expiredItem = ItemStack(expiredMaterial, amount)
+        player.inventory.setItem(slot, expiredItem)
         val message = FoodCorrosionSettings.conversionMessage
         if (message.isNotEmpty()) {
             player.sendMessage(TextUtils.parse(message))
@@ -80,8 +84,8 @@ object FoodCorrosionEngine {
     }
 
     fun corrosionColor(days: Int): String {
-        val totalDays = FoodCorrosionSettings.totalDays
-        val ratio = if (totalDays > 0) days.toDouble() / totalDays else 0.0
+        val maxDays = FoodCorrosionSettings.defaultDays
+        val ratio = if (maxDays > 0) days.toDouble() / maxDays else 0.0
         return when {
             ratio > 0.50 -> "&a"
             ratio > 0.25 -> "&e"
