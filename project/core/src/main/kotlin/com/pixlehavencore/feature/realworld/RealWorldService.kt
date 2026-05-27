@@ -9,6 +9,7 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerItemConsumeEvent
 import org.bukkit.event.player.PlayerInteractEvent
+import org.bukkit.event.entity.EntityDamageEvent
 import taboolib.common.platform.event.EventPriority
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
@@ -330,14 +331,40 @@ object RealWorldService {
             return
         }
 
+        val player = event.player
+        val uuid = player.uniqueId
+        val generation = lifecycleGeneration.get()
+
+        val heldItem = event.item
+        if (heldItem != null && !heldItem.type.isAir) {
+            val treatment = when (heldItem.type) {
+                RealWorldSettings.fractureBandageMaterial -> FractureTreatment.BANDAGE
+                RealWorldSettings.fractureCastMaterial -> FractureTreatment.CAST
+                else -> null
+            }
+            if (treatment != null) {
+                player.submitOnEntity {
+                    if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
+                        return@submitOnEntity
+                    }
+                    val changed = RealWorldStorage.withPlayerState(uuid) { state ->
+                        FractureEngine.useTreatment(player, state, treatment)
+                    } ?: return@submitOnEntity
+                    if (!changed) {
+                        return@submitOnEntity
+                    }
+                    heldItem.amount = heldItem.amount - 1
+                    RealWorldStorage.markPlayerDirty(uuid)
+                }
+                return
+            }
+        }
+
         val block = event.clickedBlock ?: return
         if (!ThirstEngine.isDrinker(block) && !ThirstEngine.isNaturalWaterSource(block)) {
             return
         }
 
-        val player = event.player
-        val uuid = player.uniqueId
-        val generation = lifecycleGeneration.get()
         player.submitOnEntity {
             if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
                 return@submitOnEntity
@@ -349,6 +376,28 @@ object RealWorldService {
                 }
             } ?: return@submitOnEntity
             if (!changed) {
+                return@submitOnEntity
+            }
+            RealWorldStorage.markPlayerDirty(uuid)
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onEntityDamage(event: EntityDamageEvent) {
+        if (!RealWorldSettings.enabled || !RealWorldSettings.fractureEnabled) {
+            return
+        }
+        val player = event.entity as? Player ?: return
+        val uuid = player.uniqueId
+        val generation = lifecycleGeneration.get()
+        player.submitOnEntity {
+            if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
+                return@submitOnEntity
+            }
+            RealWorldStorage.withPlayerState(uuid) { state ->
+                FractureEngine.onFallDamage(player, state, event)
+            } ?: return@submitOnEntity
+            if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
                 return@submitOnEntity
             }
             RealWorldStorage.markPlayerDirty(uuid)
@@ -406,6 +455,7 @@ object RealWorldService {
                     RealWorldStorage.withPlayerState(player.uniqueId) { playerState ->
                         TemperatureEngine.compute(player, playerState, globalSnapshot, tickSeconds)
                         ThirstEngine.compute(player, playerState, globalSnapshot, tickSeconds)
+                        FractureEngine.applyEffects(player, playerState, tickSeconds)
                         FoodCorrosionEngine.tickPlayer(player)
                         SurvivalEffectApplier.apply(player, playerState, globalSnapshot, tickSeconds)
                         playerState.hudRefreshTimer -= tickSeconds.coerceAtLeast(0).toDouble()

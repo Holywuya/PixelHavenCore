@@ -171,6 +171,27 @@ object RealWorldSettings {
     var wetnessDryRate: Double = 0.005
         private set
 
+    var fractureEnabled: Boolean = true
+        private set
+    var fractureMinFallDamage: Double = 4.0
+        private set
+    var fractureDamageMultiplier: Double = 5.0
+        private set
+    var fractureRecoveryRate: Double = 2.0
+        private set
+    var fractureBandageHealAmount: Double = 30.0
+        private set
+    var fractureBandageMaterial: Material = Material.PAPER
+        private set
+    var fractureCastMaterial: Material = Material.CLAY_BALL
+        private set
+    var fractureMildThreshold: Double = 20.0
+        private set
+    var fractureModerateThreshold: Double = 50.0
+        private set
+    var fractureSevereThreshold: Double = 80.0
+        private set
+
     var temperatureBlocks: Map<Material, Double> = emptyMap()
         private set
 
@@ -272,6 +293,21 @@ object RealWorldSettings {
         wetnessRateSubmerge = config.getDouble("wetness.rate-submerge", 0.05).coerceAtLeast(0.0)
         wetnessRateRain = config.getDouble("wetness.rate-rain", 0.01).coerceAtLeast(0.0)
         wetnessDryRate = config.getDouble("wetness.dry-rate", 0.005).coerceAtLeast(0.0)
+
+        fractureEnabled = config.getBoolean("fracture.enabled", true)
+        fractureMinFallDamage = config.getDouble("fracture.min-fall-damage", 4.0).coerceAtLeast(0.0)
+        fractureDamageMultiplier = config.getDouble("fracture.damage-multiplier", 5.0).coerceAtLeast(0.0)
+        fractureRecoveryRate = config.getDouble("fracture.recovery-rate", 2.0).coerceAtLeast(0.0)
+        fractureBandageHealAmount = config.getDouble("fracture.bandage-heal-amount", 30.0).coerceAtLeast(0.0)
+        fractureBandageMaterial = runCatching {
+            Material.valueOf((config.getString("fracture.bandage-material", "PAPER") ?: "PAPER").uppercase())
+        }.getOrDefault(Material.PAPER)
+        fractureCastMaterial = runCatching {
+            Material.valueOf((config.getString("fracture.cast-material", "CLAY_BALL") ?: "CLAY_BALL").uppercase())
+        }.getOrDefault(Material.CLAY_BALL)
+        fractureMildThreshold = config.getDouble("fracture.thresholds.mild", 20.0).coerceAtLeast(0.0)
+        fractureModerateThreshold = config.getDouble("fracture.thresholds.moderate", 50.0).coerceAtLeast(fractureMildThreshold)
+        fractureSevereThreshold = config.getDouble("fracture.thresholds.severe", 80.0).coerceAtLeast(fractureModerateThreshold)
 
         temperatureBlocks = config.getConfigurationSection("temperature-blocks")
             ?.getKeys(false)

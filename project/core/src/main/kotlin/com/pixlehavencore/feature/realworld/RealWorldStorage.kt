@@ -73,7 +73,7 @@ object RealWorldStorage {
 
         val loaded = DatabaseUtils.withConnection(dataSource) { connection ->
             connection.prepareStatement(
-                "SELECT ${quoted("hydration")}, ${quoted("last_temperature")} FROM $PLAYER_TABLE WHERE ${quoted("uuid")} = ?"
+                "SELECT ${quoted("hydration")}, ${quoted("last_temperature")}, ${quoted("fracture")} FROM $PLAYER_TABLE WHERE ${quoted("uuid")} = ?"
             ).use { statement ->
                 statement.setString(1, uuid.toString())
                 statement.executeQuery().use { result ->
@@ -82,7 +82,8 @@ object RealWorldStorage {
                     }
                     PlayerEnvState(
                         temperature = result.getDouble("last_temperature"),
-                        hydration = result.getDouble("hydration")
+                        hydration = result.getDouble("hydration"),
+                        fracture = result.getDouble("fracture")
                     )
                 }
             }
@@ -228,12 +229,19 @@ object RealWorldStorage {
                     ${quoted("uuid")} VARCHAR(36) NOT NULL,
                     ${quoted("hydration")} DOUBLE NOT NULL DEFAULT 100.0,
                     ${quoted("last_temperature")} DOUBLE NOT NULL DEFAULT 20.0,
+                    ${quoted("fracture")} DOUBLE NOT NULL DEFAULT 0.0,
                     ${quoted("updated_at")} TIMESTAMP NOT NULL,
                     PRIMARY KEY (${quoted("uuid")})
                 )
                 """.trimIndent()
             ).use { statement ->
                 statement.execute()
+            }
+
+            connection.prepareStatement(
+                "ALTER TABLE $PLAYER_TABLE ADD COLUMN ${quoted("fracture")} DOUBLE NOT NULL DEFAULT 0.0".trimIndent()
+            ).use { statement ->
+                runCatching { statement.execute() }
             }
 
             connection.prepareStatement(
@@ -260,7 +268,8 @@ object RealWorldStorage {
                 statement.setString(1, uuid.toString())
                 statement.setDouble(2, snapshot.hydration)
                 statement.setDouble(3, snapshot.temperature)
-                statement.setTimestamp(4, DatabaseUtils.now())
+                statement.setDouble(4, snapshot.fracture)
+                statement.setTimestamp(5, DatabaseUtils.now())
                 statement.executeUpdate()
                 true
             }
@@ -285,7 +294,8 @@ object RealWorldStorage {
     private fun samePersistedPlayerState(current: PlayerEnvState?, snapshot: PlayerEnvState): Boolean {
         return current != null &&
             current.hydration == snapshot.hydration &&
-            current.temperature == snapshot.temperature
+            current.temperature == snapshot.temperature &&
+            current.fracture == snapshot.fracture
     }
 
     private fun samePersistedGlobalState(current: GlobalEnvState, snapshot: GlobalEnvState): Boolean {
@@ -297,10 +307,10 @@ object RealWorldStorage {
 
     private fun playerUpsertSql(): String {
         return if (DatabaseUtils.isMySql) {
-            "INSERT INTO $PLAYER_TABLE (${quoted("uuid")}, ${quoted("hydration")}, ${quoted("last_temperature")}, ${quoted("updated_at")}) VALUES (?, ?, ?, ?) " +
-                "ON DUPLICATE KEY UPDATE ${quoted("hydration")} = VALUES(${quoted("hydration")}), ${quoted("last_temperature")} = VALUES(${quoted("last_temperature")}), ${quoted("updated_at")} = VALUES(${quoted("updated_at")})"
+            "INSERT INTO $PLAYER_TABLE (${quoted("uuid")}, ${quoted("hydration")}, ${quoted("last_temperature")}, ${quoted("fracture")}, ${quoted("updated_at")}) VALUES (?, ?, ?, ?, ?) " +
+                "ON DUPLICATE KEY UPDATE ${quoted("hydration")} = VALUES(${quoted("hydration")}), ${quoted("last_temperature")} = VALUES(${quoted("last_temperature")}), ${quoted("fracture")} = VALUES(${quoted("fracture")}), ${quoted("updated_at")} = VALUES(${quoted("updated_at")})"
         } else {
-            "INSERT OR REPLACE INTO $PLAYER_TABLE (${quoted("uuid")}, ${quoted("hydration")}, ${quoted("last_temperature")}, ${quoted("updated_at")}) VALUES (?, ?, ?, ?)"
+            "INSERT OR REPLACE INTO $PLAYER_TABLE (${quoted("uuid")}, ${quoted("hydration")}, ${quoted("last_temperature")}, ${quoted("fracture")}, ${quoted("updated_at")}) VALUES (?, ?, ?, ?, ?)"
         }
     }
 

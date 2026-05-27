@@ -92,6 +92,7 @@ object RealWorldCommand {
                 sender.msg("&6=== 玩家环境状态：${target.name} ===")
                 sender.msg("&7体温: &f${formatDecimal(state.temperature)}°C &7(${state.temperaturePhase.name})")
                 sender.msg("&7口渴: &f${formatDecimal(state.hydration)}/100 &7(${state.thirstPhase.name})")
+                sender.msg("&7骨折: &f${formatDecimal(state.fracture)}/100 &7(${FractureEngine.getFractureDisplayName(FractureEngine.classifyFracture(state.fracture))})")
                 sender.msg("&7遮蔽: &f${if (state.isSheltered) "是" else "否"}")
                 sender.msg("&7天气遮蔽: &f${if (state.isWeatherSheltered) "是" else "否"}")
                 sender.msg("&7热源: &f${formatHeatSource(state.nearHeatSource)}")

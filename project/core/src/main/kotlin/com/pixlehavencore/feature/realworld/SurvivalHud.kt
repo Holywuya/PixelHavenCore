@@ -75,11 +75,18 @@ object SurvivalHud {
             RealWorldSettings.hudUnshelteredIndicator
         }
 
+        val fractureSeverity = FractureEngine.classifyFracture(state.fracture)
+        val fractureText = if (fractureSeverity != FractureSeverity.NONE) {
+            " ${FractureEngine.getFractureColor(fractureSeverity)}🦴${state.fracture.toInt()}"
+        } else {
+            ""
+        }
+
         return RealWorldSettings.hudActionBarFormat
             .replace("{temp}", "$tempColor${state.temperature.toInt()}")
             .replace("{hydration}", "$hydrationColor${state.hydration.toInt()}")
             .replace("{wetness}", "${(state.wetness * 100).toInt()}")
-            .replace("{sheltered}", shelterText)
+            .replace("{sheltered}", shelterText + fractureText)
             .replace("{weather}", weather.displayName)
             .replace("{season}", global.season.displayName)
     }

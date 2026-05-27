@@ -120,6 +120,7 @@ data class PlayerEnvState(
     var temperature: Double = 20.0,
     var hydration: Double = 100.0,
     var wetness: Double = 0.0,
+    var fracture: Double = 0.0,
     var isSheltered: Boolean = false,
     var isWeatherSheltered: Boolean = false,
     var nearHeatSource: HeatSource? = null,
