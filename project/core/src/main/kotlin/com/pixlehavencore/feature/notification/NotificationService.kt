@@ -58,7 +58,7 @@ object NotificationService {
 
             try {
                 sendRandomAutoNotification()
-            } catch (e: Exception) {
+            } catch (e: RuntimeException) {
                 warning("发送自动通知时发生错误: ${e.message}")
             }
         }

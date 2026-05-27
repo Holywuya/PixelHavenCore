@@ -323,7 +323,7 @@ object PlayerInvService {
                     updateSharedQuota(connection, owner.uniqueId, ownerRecord.sharedQuota - 1)
                     connection.commit()
                     SharedCreateResult.OK
-                } catch (ex: Exception) {
+                } catch (ex: java.sql.SQLException) {
                     runCatching { connection.rollback() }
                     throw ex
                 } finally {

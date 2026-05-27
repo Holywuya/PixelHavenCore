@@ -332,7 +332,10 @@ object AdminGuiService {
             if (!renamed) {
                 throw IllegalStateException("重命名临时文件失败")
             }
-        } catch (ex: Exception) {
+        } catch (ex: java.io.IOException) {
+            tmpFile.delete()
+            throw ex
+        } catch (ex: IllegalStateException) {
             tmpFile.delete()
             throw ex
         }

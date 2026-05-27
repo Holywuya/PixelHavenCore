@@ -21,7 +21,10 @@ object DeathDropUsageStorage {
 
     private val cache = ConcurrentHashMap<String, UsageRecord>()
 
-    data class UsageRecord(var used: Int = 0, var bonus: Int = 0)
+    class UsageRecord(used: Int = 0, bonus: Int = 0) {
+        val used: java.util.concurrent.atomic.AtomicInteger = java.util.concurrent.atomic.AtomicInteger(used)
+        val bonus: java.util.concurrent.atomic.AtomicInteger = java.util.concurrent.atomic.AtomicInteger(bonus)
+    }
 
     fun init() {
         shuttingDown.set(false)
@@ -54,27 +57,25 @@ object DeathDropUsageStorage {
     }
 
     fun getUsedToday(player: UUID): Int {
-        return getRecord(player, todayKey()).used
+        return getRecord(player, todayKey()).used.get()
     }
 
     fun consumeKeep(player: UUID): Int {
         val dateKey = todayKey()
         val record = getRecord(player, dateKey)
-        val newUsed = record.used + 1
-        record.used = newUsed
+        val newUsed = record.used.incrementAndGet()
         saveRecordAsync(player, dateKey, record)
         return newUsed
     }
 
     fun getBonusToday(player: UUID): Int {
-        return getRecord(player, todayKey()).bonus
+        return getRecord(player, todayKey()).bonus.get()
     }
 
     fun addBonusToday(player: UUID, amount: Int): Int {
         val dateKey = todayKey()
         val record = getRecord(player, dateKey)
-        val newBonus = record.bonus + amount
-        record.bonus = newBonus
+        val newBonus = record.bonus.addAndGet(amount)
         saveRecordAsync(player, dateKey, record)
         return newBonus
     }
@@ -82,7 +83,7 @@ object DeathDropUsageStorage {
     fun setBonusToday(player: UUID, amount: Int): Int {
         val dateKey = todayKey()
         val record = getRecord(player, dateKey)
-        record.bonus = amount
+        record.bonus.set(amount)
         saveRecordAsync(player, dateKey, record)
         return amount
     }
@@ -92,13 +93,14 @@ object DeathDropUsageStorage {
         cache[cacheKey]?.let { return it }
         // Folia: 缓存未命中时返回默认值（0次使用/0奖励），异步预热缓存，
         // 避免在 PlayerDeathEvent 实体线程上同步读数据库
-        val placeholder = UsageRecord()
-        cache[cacheKey] = placeholder
+        val newRecord = UsageRecord()
+        val actual = cache.putIfAbsent(cacheKey, newRecord)
+        if (actual != null) return actual
         submitAsync {
             val loaded = loadRecord(player, dateKey)
             cache[cacheKey] = loaded
         }
-        return placeholder
+        return newRecord
     }
 
     private fun loadRecord(player: UUID, dateKey: String): UsageRecord {
@@ -115,8 +117,6 @@ object DeathDropUsageStorage {
     }
 
     private fun saveRecordAsync(player: UUID, dateKey: String, record: UsageRecord) {
-        val cacheKey = cacheKey(player, dateKey)
-        cache[cacheKey] = UsageRecord(record.used, record.bonus)
         val currentHandler = handler ?: return
         if (shuttingDown.get()) {
             saveRecordSync(currentHandler, player, dateKey, record)
@@ -134,8 +134,8 @@ object DeathDropUsageStorage {
 
     private fun saveRecordSync(currentHandler: MultipleHandler, player: UUID, dateKey: String, record: UsageRecord) {
         val user = player.toString()
-        currentHandler.database[user, KEY_USED_PREFIX + dateKey] = record.used.toString()
-        currentHandler.database[user, KEY_BONUS_PREFIX + dateKey] = record.bonus.toString()
+        currentHandler.database[user, KEY_USED_PREFIX + dateKey] = record.used.get().toString()
+        currentHandler.database[user, KEY_BONUS_PREFIX + dateKey] = record.bonus.get().toString()
     }
 
     private fun cacheKey(player: UUID, dateKey: String): String {
