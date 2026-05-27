@@ -125,12 +125,18 @@ object WeatherEngine {
     private fun decideWeather(global: GlobalEnvState) {
         val random = ThreadLocalRandom.current()
         val currentWeather = global.weather
+
+        // 延续逻辑：当前天气有概率持续，仅改变强度（支持同天气不同强度）
         if (currentWeather != WeatherType.CLEAR && random.nextDouble() < WeatherSettings.persistenceChance) {
             global.weatherIntensity = random.nextDouble(0.5, 1.0).coerceIn(0.0, 1.0)
             return
         }
 
-        val weatherWeights = global.season.weatherWeights.filterValues { it > 0.0 }
+        // 切换逻辑：必须切换到不同的天气类型
+        val weatherWeights = global.season.weatherWeights
+            .filterValues { it > 0.0 }
+            .filterKeys { it != currentWeather } // 排除当前天气，确保切换到不同类型
+
         val totalWeight = weatherWeights.values.sum()
         if (totalWeight <= 0.0) {
             setWeather(global, WeatherType.CLEAR, 0.5)
