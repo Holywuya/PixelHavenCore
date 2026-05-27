@@ -2,11 +2,80 @@ package com.pixlehavencore.feature.realworld
 
 import java.util.concurrent.ThreadLocalRandom
 import org.bukkit.Bukkit
+import org.bukkit.entity.Player
 import taboolib.common.platform.function.info
 
 object WeatherEngine {
 
-    fun tick(global: GlobalEnvState, tickIntervalSeconds: Int) {
+    /**
+     * 初始化天气引擎
+     */
+    fun init(worldSeed: Int) {
+        if (RealWorldSettings.localWeatherEnabled) {
+            ChunkWeatherEngine.init(worldSeed, RealWorldSettings.localWeatherNoiseFrequency)
+            WeatherCache.setMaxSize(RealWorldSettings.localWeatherCacheMaxSize)
+            info("[RealWorld] 局部天气引擎已初始化 (频率: ${RealWorldSettings.localWeatherNoiseFrequency})")
+        }
+    }
+
+    /**
+     * 天气系统 tick
+     * 现在只负责更新全局主导天气和极端天气预警
+     */
+    fun tick(global: GlobalEnvState, tickIntervalSeconds: Int, players: List<Player>) {
+        if (!RealWorldSettings.localWeatherEnabled) {
+            // 保留旧的全局天气逻辑作为后备
+            tickGlobalWeather(global, tickIntervalSeconds)
+            return
+        }
+
+        // 更新全局主导天气
+        updateDominantWeather(global, players)
+
+        // 处理极端天气预警（保留原逻辑）
+        tickWarning(global, tickIntervalSeconds.toDouble())
+    }
+
+    /**
+     * 更新全局主导天气
+     * 统计所有玩家周围区块的天气，取最常见的类型
+     */
+    private fun updateDominantWeather(global: GlobalEnvState, players: List<Player>) {
+        if (players.isEmpty()) return
+
+        val weatherCounts = mutableMapOf<WeatherType, Int>()
+
+        // 统计每个玩家所在区块的天气
+        for (player in players) {
+            val weather = WeatherQuery.getWeatherAt(player.location, global)
+            weatherCounts[weather.type] = (weatherCounts[weather.type] ?: 0) + 1
+        }
+
+        // 找出最常见的天气
+        val dominantWeather = weatherCounts.maxByOrNull { it.value }?.key ?: WeatherType.CLEAR
+
+        // 如果主导天气变化，触发事件
+        if (dominantWeather != global.weather) {
+            val previousWeather = global.weather
+            global.weather = dominantWeather
+            global.lastDominantWeather = previousWeather
+
+            Bukkit.getPluginManager().callEvent(
+                RealWorldWeatherChangedEvent(
+                    previousWeather = previousWeather,
+                    previousWeatherIntensity = global.weatherIntensity,
+                    weather = dominantWeather,
+                    intensity = 0.5,  // 主导天气强度取平均值
+                ),
+            )
+            info("[RealWorld] 主导天气切换为: ${dominantWeather.displayName}")
+        }
+    }
+
+    /**
+     * 旧的全局天气逻辑（后备）
+     */
+    private fun tickGlobalWeather(global: GlobalEnvState, tickIntervalSeconds: Int) {
         val safeTickSeconds = tickIntervalSeconds.coerceAtLeast(0).toDouble()
         if (tickWarning(global, safeTickSeconds)) {
             return
@@ -47,7 +116,6 @@ object WeatherEngine {
         val currentWeather = global.weather
         if (currentWeather != WeatherType.CLEAR && random.nextDouble() < RealWorldSettings.weatherPersistenceChance) {
             global.weatherIntensity = random.nextDouble(0.5, 1.0).coerceIn(0.0, 1.0)
-            info("[RealWorld] 天气延续为: ${currentWeather.displayName} (强度: ${"%.1f".format(global.weatherIntensity)})")
             return
         }
 
@@ -61,9 +129,7 @@ object WeatherEngine {
         var roll = random.nextDouble(totalWeight)
         for ((weatherType, weight) in weatherWeights) {
             roll -= weight
-            if (roll > 0.0) {
-                continue
-            }
+            if (roll > 0.0) continue
 
             val intensity = random.nextDouble(0.5, 1.0).coerceIn(0.0, 1.0)
             scheduleOrSetWeather(global, weatherType, intensity)
@@ -76,7 +142,6 @@ object WeatherEngine {
     private fun scheduleOrSetWeather(global: GlobalEnvState, weather: WeatherType, intensity: Double) {
         if (weather == global.weather) {
             global.weatherIntensity = intensity.coerceIn(0.0, 1.0)
-            info("[RealWorld] 天气延续为: ${weather.displayName} (强度: ${"%.1f".format(global.weatherIntensity)})")
             return
         }
 
@@ -93,7 +158,6 @@ object WeatherEngine {
 
         if (global.pendingWeather == weather && global.warningRemainingSeconds > 0.0) {
             global.pendingWeatherIntensity = intensity
-            info("[RealWorld] 极端天气预警延续为: ${weather.displayName} (剩余 ${global.warningRemainingSeconds.toInt()} 秒)")
             return
         }
 
@@ -110,7 +174,6 @@ object WeatherEngine {
                 remainingWarningSeconds = global.warningRemainingSeconds,
             ),
         )
-        info("[RealWorld] 极端天气预警开始: ${weather.displayName} 将在 ${warningSeconds.toInt()} 秒后到来 (强度: ${"%.1f".format(intensity)})")
     }
 
     fun currentVisibilityWeather(global: GlobalEnvState): WeatherType? {
@@ -135,7 +198,6 @@ object WeatherEngine {
                 intensity = global.weatherIntensity,
             ),
         )
-        info("[RealWorld] 天气切换为: ${weather.displayName} (强度: ${"%.1f".format(global.weatherIntensity)})")
     }
 
     private fun clearWarning(global: GlobalEnvState) {

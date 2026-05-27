@@ -385,10 +385,11 @@ object RealWorldService {
             }
 
             val tickSeconds = RealWorldSettings.tickIntervalSeconds
+            val onlinePlayerList = onlinePlayers().mapNotNull { it.cast<Player>() }
             val globalSnapshot = synchronized(globalStateLock) {
                 val state = globalState ?: return@submit
                 SeasonEngine.tick(state, tickSeconds)
-                WeatherEngine.tick(state, tickSeconds)
+                WeatherEngine.tick(state, tickSeconds, onlinePlayerList)
                 state.dayPhase = SeasonEngine.computeDayPhase(Bukkit.getWorlds().firstOrNull()?.time ?: 6000L)
                 syncVanillaWeather(state)
                 RealWorldStorage.markGlobalDirty(state)

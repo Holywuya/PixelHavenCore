@@ -146,6 +146,7 @@ data class GlobalEnvState(
     var warningRemainingSeconds: Double = 0.0,
     var dayPhase: DayPhase = DayPhase.DAY,
     var weatherDecisionTimer: Double = 0.0,
+    var lastDominantWeather: WeatherType? = null,
 )
 
 /**
