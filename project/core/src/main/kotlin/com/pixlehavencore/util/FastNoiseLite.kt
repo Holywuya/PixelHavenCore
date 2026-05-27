@@ -93,10 +93,7 @@ class FastNoiseLite(private var seed: Int = 1337) {
     }
 
     private fun singleOpenSimplex2(seed: Int, x: Float, y: Float, z: Float): Float {
-        var seed = seed
-        var x = x
-        var y = y
-        var z = z
+        var currentSeed = seed
 
         var i = fastRound(x)
         var j = fastRound(y)
@@ -122,26 +119,26 @@ class FastNoiseLite(private var seed: Int = 1337) {
 
         for (c in 0..1) {
             if (attn0 > 0.0f) {
-                value += attn0 * attn0 * attn0 * attn0 * gradCoord(seed, i, j, k, xf0, yf0, zf0)
+                value += attn0 * attn0 * attn0 * attn0 * gradCoord(currentSeed, i, j, k, xf0, yf0, zf0)
             }
 
             if (xd0 >= yd0 && xd0 >= zd0) {
                 val attn = attn0 + xd0 + xd0
                 if (attn > 1.0f) {
                     val attn1 = attn - 1
-                    value += attn1 * attn1 * attn1 * attn1 * gradCoord(seed, i - xri * PRIME_X, j, k, xf0 + xri, yf0, zf0)
+                    value += attn1 * attn1 * attn1 * attn1 * gradCoord(currentSeed, i - xri * PRIME_X, j, k, xf0 + xri, yf0, zf0)
                 }
             } else if (yd0 > xd0 && yd0 >= zd0) {
                 val attn = attn0 + yd0 + yd0
                 if (attn > 1.0f) {
                     val attn1 = attn - 1
-                    value += attn1 * attn1 * attn1 * attn1 * gradCoord(seed, i, j - yri * PRIME_Y, k, xf0, yf0 + yri, zf0)
+                    value += attn1 * attn1 * attn1 * attn1 * gradCoord(currentSeed, i, j - yri * PRIME_Y, k, xf0, yf0 + yri, zf0)
                 }
             } else {
                 val attn = attn0 + zd0 + zd0
                 if (attn > 1.0f) {
                     val attn1 = attn - 1
-                    value += attn1 * attn1 * attn1 * attn1 * gradCoord(seed, i, j, k - zri * PRIME_Z, xf0, yf0, zf0 + zri)
+                    value += attn1 * attn1 * attn1 * attn1 * gradCoord(currentSeed, i, j, k - zri * PRIME_Z, xf0, yf0, zf0 + zri)
                 }
             }
 
@@ -165,7 +162,7 @@ class FastNoiseLite(private var seed: Int = 1337) {
             yri = -yri
             zri = -zri
 
-            seed = seed xor -1
+            currentSeed = currentSeed xor -1
         }
 
         return value * 32.694283f
