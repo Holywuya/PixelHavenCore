@@ -26,6 +26,7 @@ import taboolib.common.platform.function.submit
 import taboolib.common.platform.function.submitAsync
 import taboolib.platform.util.isRightClick
 import taboolib.platform.util.submit as submitOnEntity
+import org.bukkit.GameRules
 
 object RealWorldService {
 
@@ -42,6 +43,7 @@ object RealWorldService {
 
     private var tickTask: Any? = null
     private var autoSaveTask: Any? = null
+    private var timeAdvanceTask: Any? = null
 
     fun init() {
         RealWorldSettings.init()
@@ -63,6 +65,7 @@ object RealWorldService {
         loadOnlinePlayersData()
         FoodCorrosionSettings.init()
         FoodCorrosionService.init()
+        initTimeControl()
         info("[RealWorld] 模块已启动，在线玩家 ${onlinePlayers().size} 人。")
     }
 
@@ -86,6 +89,7 @@ object RealWorldService {
         loadOnlinePlayersData()
         FoodCorrosionSettings.reload()
         FoodCorrosionService.reload()
+        initTimeControl()
         info("[RealWorld] 模块已重载，在线玩家 ${onlinePlayers().size} 人。")
     }
 
@@ -99,6 +103,7 @@ object RealWorldService {
         pendingQuitAt.clear()
         drinkerCooldownUntil.clear()
         stopTasks()
+        stopTimeControl()
         saveOnlinePlayers()
         val globalSnapshot = synchronized(globalStateLock) {
             globalState?.copy()
@@ -121,6 +126,53 @@ object RealWorldService {
         return synchronized(globalStateLock) {
             globalState?.copy()
         }
+    }
+
+    private fun initTimeControl() {
+        if (!RealWorldSettings.timeControlEnabled) {
+            return
+        }
+
+        Bukkit.getWorlds().forEach { world ->
+            world.setGameRule(GameRules.ADVANCE_TIME, false)
+        }
+
+        startTimeAdvanceTask()
+
+        info("[RealWorld] 时间控制已启用：现实 1 小时 = 游戏 1 天")
+    }
+
+    private fun stopTimeControl() {
+        if (!RealWorldSettings.timeControlEnabled) {
+            return
+        }
+
+        stopTimeAdvanceTask()
+
+        Bukkit.getWorlds().forEach { world ->
+            world.setGameRule(GameRules.ADVANCE_TIME, true)
+        }
+
+        info("[RealWorld] 时间控制已禁用，恢复原版时间流速")
+    }
+
+    private fun startTimeAdvanceTask() {
+        val generation = lifecycleGeneration.get()
+
+        timeAdvanceTask = submit(delay = 3, period = 3) {
+            if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
+                return@submit
+            }
+
+            Bukkit.getWorlds().forEach { world ->
+                world.time += 1
+            }
+        }
+    }
+
+    private fun stopTimeAdvanceTask() {
+        timeAdvanceTask.cancelTaskSafely()
+        timeAdvanceTask = null
     }
 
     /**
@@ -391,8 +443,10 @@ object RealWorldService {
     private fun stopTasks() {
         tickTask.cancelTaskSafely()
         autoSaveTask.cancelTaskSafely()
+        timeAdvanceTask.cancelTaskSafely()
         tickTask = null
         autoSaveTask = null
+        timeAdvanceTask = null
     }
 
     private fun loadOnlinePlayersData() {

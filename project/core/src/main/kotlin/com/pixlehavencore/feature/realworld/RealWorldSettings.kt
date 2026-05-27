@@ -12,13 +12,25 @@ object RealWorldSettings {
     var enabled: Boolean = false
         private set
 
+    var timeControlEnabled: Boolean = false
+        private set
+
     var tickIntervalSeconds: Int = 2
         private set
 
-    var seasonDurationTicks: Long = 12096000L
+    var seasonDurationDays: Int = 7
         private set
+
+    val seasonDurationTicks: Long
+        get() {
+            val ticksPerDay = if (timeControlEnabled) 72000L else 24000L
+            return seasonDurationDays.toLong() * ticksPerDay
+        }
+
     var seasonTransitionProgress: Double = 0.1
         private set
+
+    private const val TIME_CONTROL_MULTIPLIER = 3.0
 
     var weatherDecisionIntervalSeconds: Int = 300
         private set
@@ -154,16 +166,24 @@ object RealWorldSettings {
         reload()
     }
 
+    private fun adjustForTimeControl(baseValue: Int): Int {
+        if (!timeControlEnabled) return baseValue
+        return (baseValue * TIME_CONTROL_MULTIPLIER).toInt()
+    }
+
     fun reload() {
         config.reload()
         enabled = config.getBoolean("enabled", false)
 
+        timeControlEnabled = config.getBoolean("time-control.enabled", false)
+
         tickIntervalSeconds = config.getInt("tick-interval-seconds", 2).coerceAtLeast(1)
 
-        seasonDurationTicks = config.getLong("season.duration-ticks", 12096000L).coerceAtLeast(1L)
+        seasonDurationDays = config.getInt("season.duration-days", 7).coerceAtLeast(1)
         seasonTransitionProgress = config.getDouble("season.transition-progress", 0.1).coerceIn(0.0, 1.0)
 
-        weatherDecisionIntervalSeconds = config.getInt("weather.decision-interval-seconds", 300).coerceAtLeast(1)
+        val baseWeatherDecisionInterval = config.getInt("weather.decision-interval-seconds", 300).coerceAtLeast(1)
+        weatherDecisionIntervalSeconds = adjustForTimeControl(baseWeatherDecisionInterval)
         weatherPersistenceChance = config.getDouble("weather.persistence-chance", 0.6).coerceIn(0.0, 1.0)
         extremeWarningSeconds = config.getInt("weather.extreme.warning-seconds", 30).coerceAtLeast(0)
         extremeGracePeriodSeconds = config.getInt("weather.extreme.grace-period-seconds", 10).coerceAtLeast(0)
