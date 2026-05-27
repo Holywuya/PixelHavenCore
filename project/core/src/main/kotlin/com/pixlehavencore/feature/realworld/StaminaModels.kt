@@ -35,6 +35,7 @@ enum class StaminaConsumeSource {
     UNDERWATER,
     HIGH_ALTITUDE,
     ENVIRONMENT,
+    COMMAND,
 }
 
 enum class StaminaRecoverSource {
