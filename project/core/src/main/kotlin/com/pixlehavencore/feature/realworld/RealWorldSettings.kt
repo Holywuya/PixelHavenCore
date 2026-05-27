@@ -53,6 +53,17 @@ object RealWorldSettings {
     var sandstormBlindnessAmplifier: Int = 1
         private set
 
+    var localWeatherEnabled: Boolean = false
+        private set
+    var localWeatherNoiseFrequency: Float = 0.015f
+        private set
+    var localWeatherChangeSpeed: Float = 0.001f
+        private set
+    var localWeatherCacheEnabled: Boolean = true
+        private set
+    var localWeatherCacheMaxSize: Int = 1000
+        private set
+
     var comfortMin: Double = 15.0
         private set
     var comfortMax: Double = 36.0
@@ -193,6 +204,12 @@ object RealWorldSettings {
         fogBlindnessAmplifier = config.getInt("weather.visibility.fog.blindness-amplifier", 0).coerceAtLeast(0)
         blizzardBlindnessAmplifier = config.getInt("weather.visibility.blizzard.blindness-amplifier", 1).coerceAtLeast(0)
         sandstormBlindnessAmplifier = config.getInt("weather.visibility.sandstorm.blindness-amplifier", 2).coerceAtLeast(0)
+
+        localWeatherEnabled = config.getBoolean("weather.local.enabled", false)
+        localWeatherNoiseFrequency = config.getDouble("weather.local.noise-frequency", 0.015).toFloat().coerceIn(0.001f, 0.1f)
+        localWeatherChangeSpeed = config.getDouble("weather.local.change-speed", 0.001).toFloat().coerceIn(0.0001f, 0.01f)
+        localWeatherCacheEnabled = config.getBoolean("weather.local.cache-enabled", true)
+        localWeatherCacheMaxSize = config.getInt("weather.local.cache-max-size", 1000).coerceIn(100, 10000)
 
         comfortMin = config.getDouble("temperature.comfort-min", 15.0)
         comfortMax = config.getDouble("temperature.comfort-max", 36.0)

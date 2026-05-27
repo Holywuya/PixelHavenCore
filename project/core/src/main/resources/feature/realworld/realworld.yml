@@ -45,6 +45,17 @@ weather:
       blindness-amplifier: 1
     sandstorm:
       blindness-amplifier: 2
+  # 局部天气配置
+  local:
+    enabled: true
+    # 噪声频率，值越小天气区域越大（推荐 0.01 ~ 0.02）
+    noise-frequency: 0.015
+    # 天气变化速度系数
+    change-speed: 0.001
+    # 是否启用天气缓存
+    cache-enabled: true
+    # 最大缓存大小
+    cache-max-size: 1000
 
 temperature:
   comfort-min: 15
