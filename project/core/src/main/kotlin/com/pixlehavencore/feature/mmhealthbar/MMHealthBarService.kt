@@ -6,6 +6,8 @@ import com.pixlehavencore.util.cancelTaskSafely
 import net.kyori.adventure.bossbar.BossBar
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
+import org.bukkit.attribute.Attribute
+import org.bukkit.attribute.Attributable
 import org.bukkit.entity.Damageable
 import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
@@ -57,7 +59,8 @@ object MMHealthBarService {
         // 同一怪物 → 更新血量和伤害
         if (existing != null && existing.entityId == entity.uniqueId) {
             existing.expireTask.cancelTaskSafely()
-            updateBar(player, existing.bossBar, mobInfo.displayName, damageable.health, damageable.maxHealth, damage)
+            val maxHealth = (entity as? Attributable)?.getAttribute(Attribute.MAX_HEALTH)?.value ?: 20.0
+            updateBar(player, existing.bossBar, mobInfo.displayName, damageable.health, maxHealth, damage)
             val newExpire = scheduleExpire(player.uniqueId)
             activeBars[player.uniqueId] = existing.copy(expireTask = newExpire, lastDamage = damage)
             return
@@ -69,9 +72,10 @@ object MMHealthBarService {
             player.hideBossBar(it.bossBar)
         }
 
-        val progress = (damageable.health / damageable.maxHealth).coerceIn(0.0, 1.0).toFloat()
+        val maxHealth = (entity as? Attributable)?.getAttribute(Attribute.MAX_HEALTH)?.value ?: 20.0
+        val progress = (damageable.health / maxHealth).coerceIn(0.0, 1.0).toFloat()
         val bossBar = BossBar.bossBar(
-            formatTitle(mobInfo.displayName, damageable.health, damageable.maxHealth, damage),
+            formatTitle(mobInfo.displayName, damageable.health, maxHealth, damage),
             progress,
             MMHealthBarSettings.barColor,
             MMHealthBarSettings.barOverlay,
@@ -120,9 +124,10 @@ object MMHealthBarService {
                     return@submitOnEntity
                 }
                 val damageable = entity as? Damageable ?: return@submitOnEntity
+                val maxHealth = (entity as? Attributable)?.getAttribute(Attribute.MAX_HEALTH)?.value ?: 20.0
                 val mobInfo = MythicMobsBridge.resolveMobInfo(entity)
                 val name = mobInfo?.displayName ?: "Unknown"
-                updateBar(player, entry.bossBar, name, damageable.health, damageable.maxHealth, 0.0)
+                updateBar(player, entry.bossBar, name, damageable.health, maxHealth, 0.0)
                 activeBars[playerUuid] = entry.copy(lastDamage = 0.0)
             }
         }

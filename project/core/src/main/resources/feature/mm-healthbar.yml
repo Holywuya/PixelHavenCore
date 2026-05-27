@@ -1,12 +1,47 @@
 version: 1
 
 # =============================================================================
-# MM 怪物血量 BossBar
+# MythicMobs 怪物血量 BossBar 显示模块
 # =============================================================================
+# 功能说明：
+#   - 为 MythicMobs 怪物创建 BossBar 血量显示
+#   - 当玩家攻击或靠近怪物时，显示血量条
+#   - 支持自定义显示格式和颜色
+#   - 需要安装 MythicMobs 插件作为前置
+
+# 总开关（true=启用，false=禁用）
 enabled: true
+
+# BossBar 颜色设置
+# 可选值: PINK, BLUE, RED, GREEN, YELLOW, PURPLE, WHITE
 bar_color: PURPLE
+
+# BossBar 样式设置
+# 可选值: SOLID(实体), SEGMENTED_6(6段), SEGMENTED_10(10段), SEGMENTED_12(12段), SEGMENTED_20(20段)
 bar_style: PROGRESS
+
+# BossBar 标题格式
+# 占位符:
+#   {name}        - 怪物名称
+#   {health}      - 当前血量（保留一位小数）
+#   {max_health}  - 最大血量（保留一位小数）
+#   {health_int}  - 当前血量（整数）
+#   {max_health_int} - 最大血量（整数）
+# 支持 MiniMessage 格式和颜色代码
 title_format: "<red>{name} <white>{health}/{max_health}</white></red>"
+
+# 伤害数字显示格式
+# 占位符:
+#   {damage} - 本次造成的伤害值（保留一位小数）
+# 设为空字符串 "" 则不显示伤害数字
 damage_format: " <gray>(-{damage})</gray>"
+
+# BossBar 移除延迟（单位：tick，20tick = 1秒）
+# 怪物死亡或离开范围后，延迟指定时间才移除 BossBar
+# 设置较大的值可以避免 BossBar 频繁闪烁
 remove_delay_ticks: 60
+
+# BossBar 更新间隔（单位：tick，20tick = 1秒）
+# 控制血量条刷新频率，数值越小越流畅但性能消耗越高
+# 建议范围: 2-10
 update_interval_ticks: 5

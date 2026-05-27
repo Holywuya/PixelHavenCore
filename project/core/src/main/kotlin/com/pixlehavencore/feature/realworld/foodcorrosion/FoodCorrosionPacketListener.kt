@@ -67,7 +67,8 @@ object FoodCorrosionPacketListener : PacketListener {
         // 记录本次显示的天数
         FoodCorrosionEngine.setDisplayedDays(item, remainingDays)
 
-        val text = FoodCorrosionEngine.buildCorrosionLoreText(remainingDays)
+        val shelfLife = FoodCorrosionEngine.getItemDays(item.type)
+        val text = FoodCorrosionEngine.buildCorrosionLoreText(remainingDays, shelfLife)
 
         // 需要重新获取 lore（setDisplayedDays 修改了 itemMeta）
         val existingLore = TextBridge.getLore(item) ?: emptyList()

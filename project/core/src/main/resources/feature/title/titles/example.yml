@@ -1,49 +1,79 @@
+# =============================================================================
+# 称号定义文件示例
+# =============================================================================
+# 功能说明：
+#   - 定义玩家可获得的称号
+#   - 支持多种稀有度、分类和权限控制
+#   - 支持 MiniMessage 格式和渐变色
+#   - 可设置有效期和权限要求
+
+# 称号列表
 titles:
+  # 青铜会员称号
   vip_bronze:
+    # 称号显示名称（支持 MiniMessage 格式和渐变色）
     display_name: "<gradient:gray:#CD7F32>青铜会员</gradient>"
+    # 称号描述（支持颜色代码，多行文本）
     description:
       - "&7青铜会员专属称号"
       - "&7有效期: 30天"
+    # 称号图标材质（GUI 中显示的物品）
     icon: "GOLD_INGOT"
+    # 称号分类（用于 GUI 分类筛选）
     category: "vip"
+    # 称号稀有度（影响显示颜色）
+    # 可选值: common, uncommon, rare, epic, legendary
     rarity: "common"
+    # 使用权限（为空字符串 "" 则无需权限）
     permission: ""
+    # CraftEngine 自定义显示（设为 null 则使用原版材质）
     craftengine_display: null
 
+  # 黄金会员称号
   vip_gold:
+    # 使用渐变色和粗体
     display_name: "<gradient:yellow:gold><bold>黄金会员</bold></gradient>"
     description:
       - "&6黄金会员专属称号"
       - "&7尊贵的身份象征"
     icon: "DIAMOND"
     category: "vip"
+    # 稀有度为 rare（蓝色显示）
     rarity: "rare"
     permission: ""
     craftengine_display: null
 
+  # 战斗之王称号
   combat_king:
+    # 红金渐变色粗体
     display_name: "<gradient:red:gold><bold>战斗之王</bold></gradient>"
     description:
       - "&6竞技场赛季第一名奖励"
       - "&7拥有此称号者乃真正的强者"
     icon: "DIAMOND_SWORD"
     category: "combat"
+    # 稀有度为 legendary（金色显示）
     rarity: "legendary"
     permission: ""
     craftengine_display: null
 
+  # 彩虹之星称号
   rainbow_star:
+    # 使用彩虹渐变色
     display_name: "<rainbow>彩虹之星</rainbow>"
     description:
       - "&7特殊活动限定称号"
       - "&7拥有彩虹般绚烂的光芒"
     icon: "NETHER_STAR"
     category: "event"
+    # 稀有度为 epic（紫色显示）
     rarity: "epic"
     permission: ""
     craftengine_display: null
 
+  # 新手冒险家称号
   new_player:
+    # 简单绿色文本
     display_name: "<green>新手冒险家</green>"
     description:
       - "&7欢迎来到服务器！"
@@ -54,7 +84,9 @@ titles:
     permission: ""
     craftengine_display: null
 
+  # 爱心捐赠者称号
   donor:
+    # 使用斜体和浅紫色
     display_name: "<light_purple><italic>爱心捐赠者</italic></light_purple>"
     description:
       - "&d感谢你的支持与贡献"
@@ -62,5 +94,6 @@ titles:
     icon: "HEART_OF_THE_SEA"
     category: "special"
     rarity: "rare"
+    # 需要此权限才能使用
     permission: "title.donor"
     craftengine_display: null

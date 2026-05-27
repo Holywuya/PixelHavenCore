@@ -63,10 +63,10 @@ object VanishListener {
     // ------------------------------------------------------------------
 
     private fun suppressJoinMessage(event: PlayerJoinEvent) {
-        event.joinMessage = null
+        event.joinMessage(null as net.kyori.adventure.text.Component?)
     }
 
     private fun suppressQuitMessage(event: PlayerQuitEvent) {
-        event.quitMessage = null
+        event.quitMessage(null as net.kyori.adventure.text.Component?)
     }
 }

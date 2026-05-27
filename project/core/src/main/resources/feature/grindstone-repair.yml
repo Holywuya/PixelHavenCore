@@ -1,38 +1,77 @@
 version: 2
 
 # =============================================================================
-# 砂轮修复配置
+# 砂轮修复模块配置
 # =============================================================================
-grindstoneRepair: # 砂轮修复
-  enabled: true # 总开关在 
-  requireSneak: false # 是否需要潜行
-  permission: "" # 为空则不限制权限
-  restorePerItem: 100 # 默认每个材料恢复的耐久值
-  restorePercent: 0.0 # 默认按最大耐久百分比恢复，0 表示不启用
-  chance: 1.0 # 修复成功概率
+# 功能说明：
+#   - 扩展砂轮的修复功能
+#   - 支持自定义修复材料和修复量
+#   - 支持原版物品和自定义物品（通过 BaiKiruto/CraftEngine）
+#   - 支持概率修复和权限控制
+
+# 砂轮修复配置
+grindstoneRepair:
+  # 总开关（true=启用，false=禁用）
+  enabled: true
+  # 是否需要潜行才能触发修复（true=需要，false=不需要）
+  requireSneak: false
+  # 使用权限（为空字符串 "" 则不限制权限）
+  permission: ""
+  # 默认每个材料恢复的耐久值（当 restorePercent 为 0 时使用）
+  restorePerItem: 100
+  # 默认按最大耐久百分比恢复（范围: 0.0-1.0）
+  # 设为 0.0 则使用固定恢复量 restorePerItem
+  restorePercent: 0.0
+  # 修复成功概率（范围: 0.0-1.0）
+  # 1.0 表示 100% 成功
+  chance: 1.0
+  # 消息配置
   messages:
+    # 修复成功消息（占位符: {amount} - 恢复的耐久值）
     success: "&a修复了 +{amount} 耐久度。"
+    # 修复失败消息
     failed: "&c修复失败。"
-  # 新版规则：主手与材料都支持原版物品、bai:<id> 或 ce:<namespace:id>
+  # 修复规则配置
+  # 每条规则定义一种物品的修复方式
+  # 支持原版物品、bai:<id>（BaiKiruto）或 ce:<namespace:id>（CraftEngine）
   rules:
+    # 钻石镐修复规则（原版物品）
     diamond_pickaxe:
+      # 主手物品（需要修复的物品）
       main: DIAMOND_PICKAXE
+      # 修复材料
       material: DIAMOND
+      # 固定恢复量
       restore: 100
+      # 百分比恢复（0.0 表示不使用百分比）
       restorePercent: 0.0
+    # 自定义镐修复规则（BaiKiruto 自定义物品）
     custom_pickaxe:
+      # 主手物品（BaiKiruto 自定义物品 ID）
       main: bai:custom_pickaxe
+      # 多种修复材料配置
       materials:
+        # 第一种材料
         first:
+          # 材料规格（BaiKiruto 自定义物品 ID）
           spec: bai:repair_core
+          # 消耗数量
           amount: 2
+        # 第二种材料
         second:
+          # 材料规格（原版物品）
           spec: DIAMOND
+          # 消耗数量
           amount: 1
+      # 固定恢复量
       restore: 250
+      # 百分比恢复
       restorePercent: 0.0
+    # 自定义鞘翅修复规则
     custom_elytra:
+      # 主手物品
       main: bai:custom_elytra
+      # 修复材料配置
       materials:
         first:
           spec: bai:phantom_membrane_plus
@@ -40,7 +79,9 @@ grindstoneRepair: # 砂轮修复
         second:
           spec: PHANTOM_MEMBRANE
           amount: 4
+      # 固定恢复量（设为 0 表示不使用固定恢复）
       restore: 0
+      # 百分比恢复（0.2 表示恢复最大耐久的 20%）
       restorePercent: 0.2
 
   # materials 支持多个候选材料；amount 表示该候选材料单次消耗数量

@@ -1,34 +1,50 @@
 version: 1
 
 # =============================================================================
-# 在线时长统计配置
+# 在线时长统计模块配置
 # =============================================================================
+# 功能说明：
+#   - 统计玩家的在线时长
+#   - 支持 PlaceholderAPI 变量输出
+#   - 提供排行榜功能
+#   - 支持数据清理和统计重置
+
+# 总开关（true=启用，false=禁用）
 enabled: true
 
-# 自动保存间隔（tick），20tick = 1秒
+# 自动保存间隔（单位：tick，20tick = 1秒）
+# 默认 200 tick = 10 秒
 autoSaveTicks: 200
 
 # PlaceholderAPI 配置
 papi:
+  # 是否启用 PlaceholderAPI 变量（true=启用，false=禁用）
   enabled: true
-  # 默认输出格式: readable / seconds / minutes / hours
+  # 默认输出格式
+  # 可选值:
+#   readable - 可读格式（如: 1天 2小时 30分钟）
+#   seconds  - 总秒数
+#   minutes  - 总分钟数
+#   hours    - 总小时数
   defaultFormat: readable
 
 # 排行榜配置
 leaderboard:
+  # 排行榜最大显示数量
   maxLimit: 100
+  # 默认显示数量
   defaultLimit: 10
 
 # 数据清理配置
 cleanup:
   # 默认清理天数（最后登出超过此天数的玩家数据将被清理）
   defaultDays: 90
-  # 批量删除大小
+  # 批量删除大小（每次清理的数据条数）
   batchSize: 50
 
-# 统计重置调度
+# 统计重置调度配置
 resetSchedule:
-  # 每日重置时间（HH:mm，24小时制）
+  # 每日重置时间（HH:mm 格式，24小时制）
   daily: "00:00"
   # 每周重置（星期几，1=周一，7=周日）
   weeklyDay: 1

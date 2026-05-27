@@ -171,7 +171,7 @@ object AdminGuiListener {
         }
         // 在 GUI 区域内（0-44）：允许放入/取出，不取消事件
         if (slot in 0..44) {
-            if (event.cursor != null && !event.cursor.type.isAir) {
+            if (!event.cursor.type.isAir) {
                 return
             }
         }
@@ -190,7 +190,7 @@ object AdminGuiListener {
         }
         // 在 GUI 区域内（0-17）：允许放入/取出，不取消事件
         if (slot in 0..17) {
-            if (event.cursor != null && !event.cursor.type.isAir) {
+            if (!event.cursor.type.isAir) {
                 return
             }
         }

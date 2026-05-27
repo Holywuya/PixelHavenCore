@@ -26,5 +26,6 @@ package.json
 gradle.properties
 ### Temp ###
 nul
+*.bak
 ### TabooLib runtime ###
 taboolib/
