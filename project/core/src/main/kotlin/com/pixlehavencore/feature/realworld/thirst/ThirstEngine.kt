@@ -2,10 +2,10 @@ package com.pixlehavencore.feature.realworld.thirst
 
 import com.pixlehavencore.feature.realworld.GlobalEnvState
 import com.pixlehavencore.feature.realworld.PlayerEnvState
-import com.pixlehavencore.feature.realworld.RealWorldSettings
-import com.pixlehavencore.feature.realworld.season.SeasonEngine
 import com.pixlehavencore.feature.realworld.ThirstPhase
 import com.pixlehavencore.feature.realworld.WeatherType
+import com.pixlehavencore.feature.realworld.season.SeasonEngine
+import com.pixlehavencore.feature.realworld.temperature.TemperatureSettings
 import java.util.concurrent.ThreadLocalRandom
 import org.bukkit.Material
 import org.bukkit.block.Block
@@ -39,8 +39,8 @@ object ThirstEngine {
             isInWater(player) -> settings.submergeMultiplier
             else -> 1.0
         }
-        val altitudeMultiplier = if (player.location.blockY > settings.thirstAltitudeThresholdY) {
-            settings.thirstAltitudeMultiplier
+        val altitudeMultiplier = if (player.location.blockY > settings.altitudeThresholdY) {
+            settings.altitudeMultiplier
         } else {
             1.0
         }
@@ -143,8 +143,8 @@ object ThirstEngine {
 
     private fun computeTemperatureDeviation(temperature: Double): Double {
         return when {
-            temperature < RealWorldSettings.comfortMin -> RealWorldSettings.comfortMin - temperature
-            temperature > RealWorldSettings.comfortMax -> temperature - RealWorldSettings.comfortMax
+            temperature < TemperatureSettings.comfortMin -> TemperatureSettings.comfortMin - temperature
+            temperature > TemperatureSettings.comfortMax -> temperature - TemperatureSettings.comfortMax
             else -> 0.0
         }
     }

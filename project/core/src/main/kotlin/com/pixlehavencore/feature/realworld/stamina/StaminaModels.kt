@@ -1,4 +1,4 @@
-package com.pixlehavencore.feature.realworld
+package com.pixlehavencore.feature.realworld.stamina
 
 import org.bukkit.entity.Player
 import org.bukkit.event.Cancellable

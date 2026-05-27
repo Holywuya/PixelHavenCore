@@ -1,0 +1,75 @@
+# =============================================================================
+# 体温系统配置
+# =============================================================================
+
+comfort-min: 15
+comfort-max: 36
+altitude-threshold-y: 80
+altitude-drop-per-block: 0.5
+scan-interval-seconds: 5
+max-change-per-tick: 0.5
+
+shelter:
+  # 室内/保温遮蔽仍使用偏宽松判定；以下开关主要影响天气暴露判定。
+  # 天气遮蔽默认接受完整实体顶、半砖顶、楼梯顶；玻璃/树叶由下列开关决定。
+  glass-counts-as-shelter: false
+  leaves-counts-as-shelter: false
+  horizontal-radius: 1
+
+armor-bonus:
+  leather: 5
+  netherite: 10
+
+thresholds:
+  severe-heat: 42.0
+  heat: 36.0
+  cold-mild: 15.0
+  cold: 5.0
+  severe-cold: -5.0
+
+# 霜冻遮罩 — 低温时向客户端发送伪装的 frozenTicks metadata，
+# 触发原生冰霜覆盖全屏效果。数值越大霜冻越重，最大 299。
+# >= 300 会触发服务端冻伤减速，因此上限锁定在 299。
+frost-overlay:
+  cold-intensity: 100
+  severe-cold-intensity: 250
+
+# 高温红屏 — 通过 WorldBorder 的 warningDistance 实现全屏红色叠加。
+# 范围 0.0~1.0，0 表示关闭。
+heat-overlay:
+  heat-intensity: 0.3
+  severe-intensity: 0.8
+
+# 潮湿度 — 玩家在水中/雨中会变潮，降低保暖效果。
+# 潮湿度 0~1，高湿度会让体温更难维持。
+wetness:
+  # 每秒浸水增加量
+  rate-submerge: 0.05
+  # 每秒雨中增加量（需暴露在露天）
+  rate-rain: 0.01
+  # 每秒自然干燥量（气温>30°C 时自动翻倍）
+  dry-rate: 0.005
+
+# 温度方块 — 周围方块对局部温度的距离加权影响。
+# 温度值为绝对摄氏度，与环境温度之差形成偏移。
+# 权重: 1 / max(0.5, 距离²)，扫描半径 5 格。
+temperature-blocks:
+  BLUE_ICE: -25
+  PACKED_ICE: -20
+  POWDER_SNOW: -20
+  SNOW_BLOCK: -15
+  ICE: -10
+  SNOW: -8
+  GLOWSTONE: 30
+  SOUL_TORCH: 40
+  SOUL_CAMPFIRE: 55
+  SOUL_LANTERN: 50
+  JACK_O_LANTERN: 45
+  LANTERN: 50
+  TORCH: 55
+  MAGMA_BLOCK: 65
+  FURNACE: 60
+  BLAST_FURNACE: 60
+  SMOKER: 60
+  CAMPFIRE: 80
+  LAVA: 120

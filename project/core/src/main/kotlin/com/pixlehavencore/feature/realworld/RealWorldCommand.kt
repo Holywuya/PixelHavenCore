@@ -3,6 +3,8 @@ package com.pixlehavencore.feature.realworld
 import com.pixlehavencore.feature.realworld.foodcorrosion.FoodCorrosionCommand
 import com.pixlehavencore.feature.realworld.fracture.FractureEngine
 import com.pixlehavencore.feature.realworld.fracture.FractureSeverity
+import com.pixlehavencore.feature.realworld.stamina.StaminaEngine
+import com.pixlehavencore.feature.realworld.stamina.StaminaSettings
 import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission

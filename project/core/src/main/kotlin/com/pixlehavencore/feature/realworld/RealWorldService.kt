@@ -7,6 +7,8 @@ import com.pixlehavencore.feature.realworld.fracture.FractureEngine
 import com.pixlehavencore.feature.realworld.fracture.FractureSettings
 import com.pixlehavencore.feature.realworld.fracture.FractureTreatment
 import com.pixlehavencore.feature.realworld.season.SeasonEngine
+import com.pixlehavencore.feature.realworld.stamina.StaminaEngine
+import com.pixlehavencore.feature.realworld.stamina.StaminaSettings
 import com.pixlehavencore.feature.realworld.temperature.TemperatureEngine
 import com.pixlehavencore.feature.realworld.thirst.ThirstEngine
 import com.pixlehavencore.feature.realworld.weather.WeatherEngine
@@ -383,8 +385,8 @@ object RealWorldService {
         val heldItem = event.item
         if (heldItem != null && !heldItem.type.isAir) {
             val treatment = when (heldItem.type) {
-                FractureSettings.fractureBandageMaterial -> FractureTreatment.BANDAGE
-                FractureSettings.fractureCastMaterial -> FractureTreatment.CAST
+                FractureSettings.bandageMaterial -> FractureTreatment.BANDAGE
+                FractureSettings.castMaterial -> FractureTreatment.CAST
                 else -> null
             }
             if (treatment != null) {

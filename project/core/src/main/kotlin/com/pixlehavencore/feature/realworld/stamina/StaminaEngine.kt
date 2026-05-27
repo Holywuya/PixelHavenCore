@@ -1,6 +1,12 @@
-package com.pixlehavencore.feature.realworld
+package com.pixlehavencore.feature.realworld.stamina
 
 import com.pixlehavencore.bridge.TextBridge
+import com.pixlehavencore.feature.realworld.GlobalEnvState
+import com.pixlehavencore.feature.realworld.PlayerEnvState
+import com.pixlehavencore.feature.realworld.RealWorldService
+import com.pixlehavencore.feature.realworld.RealWorldStorage
+import com.pixlehavencore.feature.realworld.Season
+import com.pixlehavencore.feature.realworld.TemperaturePhase
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -102,16 +108,15 @@ object StaminaEngine {
         if (playerState.staminaPhase == StaminaPhase.DEPLETED) {
             playerState.staminaChatWarnCooldown -= elapsed
             if (playerState.staminaChatWarnCooldown <= 0.0) {
-                playerState.staminaChatWarnCooldown = StaminaSettings.messageDepletedReminderCooldownSeconds.toDouble()
-                TextBridge.sendActionBar(player, StaminaSettings.messageDepletedReminder)
+                playerState.staminaChatWarnCooldown = StaminaSettings.depletedReminderCooldownSeconds
+                player.sendMessage(StaminaSettings.msgDepletedReminder.replace("&", "§").replace("{stamina}", (playerState.stamina / max * 100).toInt().toString()))
             }
         }
     }
 
     fun checkIdle(player: Player, playerState: PlayerEnvState, deltaSeconds: Double) {
-        if (!StaminaSettings.enabled || !StaminaSettings.recoveryIdleEnabled) return
+        if (!StaminaSettings.enabled || !StaminaSettings.idleEnabled) return
 
-        // 检查是否可以休息恢复
         if (!canIdleRecover(player, playerState)) {
             playerState.staminaIdleTimer = 0.0
             return
@@ -124,19 +129,17 @@ object StaminaEngine {
         }
 
         playerState.staminaIdleTimer += deltaSeconds
-        if (playerState.staminaIdleTimer < StaminaSettings.recoveryIdleDelaySeconds) return
+        if (playerState.staminaIdleTimer < StaminaSettings.idleDelaySeconds) return
 
         val max = getMaxStamina(playerState)
         if (playerState.stamina >= max) return
 
-        var recoveryRate = StaminaSettings.baseRecoveryRate * StaminaSettings.recoveryIdleMultiplier
+        var recoveryRate = StaminaSettings.baseRecoveryRate * StaminaSettings.idleMultiplier
 
-        // 联动：口渴 < 30 时恢复减半
         if (StaminaSettings.integrationThirstEnabled && playerState.hydration < StaminaSettings.integrationThirstDehydrationThreshold) {
             recoveryRate *= StaminaSettings.integrationThirstRecoveryMultiplier
         }
 
-        // 联动：饱食度满时恢复加成
         if (StaminaSettings.integrationFoodEnabled && player.foodLevel >= 20) {
             recoveryRate *= StaminaSettings.integrationFoodFullSaturationBonus
         }
@@ -164,30 +167,30 @@ object StaminaEngine {
     }
 
     fun onEat(player: Player, playerState: PlayerEnvState, hungerRestored: Int) {
-        if (!StaminaSettings.enabled || !StaminaSettings.recoveryFoodEnabled) return
+        if (!StaminaSettings.enabled || !StaminaSettings.foodEnabled) return
         if (playerState.staminaRecoveryCooldown > 0) return
 
         val max = getMaxStamina(playerState)
         if (playerState.stamina >= max) return
 
-        val recovery = hungerRestored * StaminaSettings.recoveryFoodHungerToStaminaRatio
+        val recovery = hungerRestored * StaminaSettings.hungerToStaminaRatio
         if (recovery > 0) {
             val event = StaminaRecoverEvent(player, StaminaRecoverSource.FOOD, recovery)
             Bukkit.getPluginManager().callEvent(event)
             if (!event.isCancelled) {
                 playerState.stamina = (playerState.stamina + recovery).coerceIn(0.0, max)
-                playerState.staminaRecoveryCooldown = StaminaSettings.recoveryFoodCooldownSeconds.toDouble()
+                playerState.staminaRecoveryCooldown = StaminaSettings.foodCooldownSeconds
             }
         }
     }
 
     fun onDrink(player: Player, playerState: PlayerEnvState, hydrationRestored: Double) {
-        if (!StaminaSettings.enabled || !StaminaSettings.recoveryDrinkEnabled) return
+        if (!StaminaSettings.enabled || !StaminaSettings.drinkEnabled) return
 
         val max = getMaxStamina(playerState)
         if (playerState.stamina >= max) return
 
-        val recovery = hydrationRestored * StaminaSettings.recoveryDrinkHydrationToStaminaRatio
+        val recovery = hydrationRestored * StaminaSettings.hydrationToStaminaRatio
         if (recovery > 0) {
             val event = StaminaRecoverEvent(player, StaminaRecoverSource.DRINK, recovery)
             Bukkit.getPluginManager().callEvent(event)
@@ -198,16 +201,15 @@ object StaminaEngine {
     }
 
     fun onSleep(player: Player, playerState: PlayerEnvState, isOutdoor: Boolean) {
-        if (!StaminaSettings.enabled || !StaminaSettings.recoverySleepEnabled) return
+        if (!StaminaSettings.enabled || !StaminaSettings.sleepEnabled) return
 
-        // 极端温度下禁止睡觉恢复
-        if (StaminaSettings.recoverySleepBlockedInExtremeTemperature) {
+        if (StaminaSettings.sleepBlockedInExtremeTemp) {
             val phase = playerState.temperaturePhase
             if (phase == TemperaturePhase.SEVERE_HEAT || phase == TemperaturePhase.SEVERE_COLD) return
         }
 
         val max = getMaxStamina(playerState)
-        val recovery = if (isOutdoor) max * StaminaSettings.recoverySleepOutdoorRecoveryPercent else max
+        val recovery = if (isOutdoor) max * (StaminaSettings.outdoorRecoveryPercent / 100.0) else max
 
         if (recovery > 0) {
             val event = StaminaRecoverEvent(player, StaminaRecoverSource.SLEEP, recovery)
@@ -219,9 +221,9 @@ object StaminaEngine {
     }
 
     fun onSpecialItem(player: Player, playerState: PlayerEnvState, material: Material) {
-        if (!StaminaSettings.enabled || !StaminaSettings.recoverySpecialItemsEnabled) return
+        if (!StaminaSettings.enabled || !StaminaSettings.specialItemsEnabled) return
 
-        val ratio = StaminaSettings.recoverySpecialItems[material] ?: return
+        val ratio = StaminaSettings.specialItems[material] ?: return
         val max = getMaxStamina(playerState)
         if (playerState.stamina >= max) return
 
@@ -320,7 +322,6 @@ object StaminaEngine {
     private fun computeEnvironmentMultiplier(player: Player, state: PlayerEnvState, global: GlobalEnvState): Double {
         var multiplier = 1.0
 
-        // 极端温度
         if (StaminaSettings.integrationTemperatureEnabled) {
             val phase = state.temperaturePhase
             if (phase == TemperaturePhase.SEVERE_HEAT || phase == TemperaturePhase.SEVERE_COLD) {
@@ -330,17 +331,14 @@ object StaminaEngine {
             }
         }
 
-        // 骨折
         if (StaminaSettings.integrationFractureEnabled && state.fracture > StaminaSettings.integrationFractureThreshold) {
             multiplier *= StaminaSettings.integrationFractureConsumptionMultiplier
         }
 
-        // 潮湿
         if (StaminaSettings.integrationWetnessEnabled && state.wetness > StaminaSettings.integrationWetnessThreshold) {
             multiplier *= StaminaSettings.integrationWetnessConsumptionMultiplier
         }
 
-        // 极端天气
         if (StaminaSettings.integrationWeatherEnabled && !state.isWeatherSheltered) {
             val weather = global.weather
             if (weather.isExtreme) {
@@ -348,7 +346,6 @@ object StaminaEngine {
             }
         }
 
-        // 季节
         if (StaminaSettings.integrationSeasonEnabled) {
             when (global.season) {
                 Season.WINTER -> multiplier *= StaminaSettings.integrationSeasonWinterMultiplier
@@ -361,76 +358,69 @@ object StaminaEngine {
     }
 
     private fun computeIntegrationMultiplier(state: PlayerEnvState, global: GlobalEnvState): Double {
-        // 此方法用于 tick 中的整体倍率叠加，返回基础 1.0
-        // 环境倍率已在 computeEnvironmentMultiplier 中处理
         return 1.0
     }
 
     private fun canIdleRecover(player: Player, state: PlayerEnvState): Boolean {
-        // 极端温度下禁止休息
-        if (StaminaSettings.recoveryIdleBlockedInExtremeTemperature) {
+        if (StaminaSettings.idleBlockedInExtremeTemp) {
             val phase = state.temperaturePhase
             if (phase == TemperaturePhase.SEVERE_HEAT || phase == TemperaturePhase.SEVERE_COLD) return false
         }
 
-        // 水下禁止休息
-        if (StaminaSettings.recoveryIdleBlockedUnderwater && isUnderwater(player)) return false
+        if (StaminaSettings.idleBlockedUnderwater && isUnderwater(player)) return false
 
         return true
     }
 
     private fun applyPenalties(player: Player, state: PlayerEnvState) {
         val phase = state.staminaPhase
-        val durationTicks = StaminaSettings.penaltyEffectDurationSeconds * 20 + 10
+        val durationTicks = StaminaSettings.effectDurationSeconds * 20 + 10
 
         when (phase) {
             StaminaPhase.FULL -> {
-                // 无惩罚，恢复默认速度
                 resetWalkSpeed(player)
             }
             StaminaPhase.TIRED -> {
-                val targetSpeed = 0.2f * StaminaSettings.penaltyTiredSpeedMultiplier.toFloat()
+                val targetSpeed = 0.2f * StaminaSettings.tiredSpeedMultiplier.toFloat()
                 if (player.walkSpeed != targetSpeed) {
                     player.walkSpeed = targetSpeed
                 }
             }
             StaminaPhase.EXHAUSTED -> {
-                val targetSpeed = 0.2f * StaminaSettings.penaltyExhaustedSpeedMultiplier.toFloat()
+                val targetSpeed = 0.2f * StaminaSettings.exhaustedSpeedMultiplier.toFloat()
                 if (player.walkSpeed != targetSpeed) {
                     player.walkSpeed = targetSpeed
                 }
                 player.isSprinting = false
                 PotionEffectType.MINING_FATIGUE?.let {
-                    player.addPotionEffect(PotionEffect(it, durationTicks, StaminaSettings.penaltyExhaustedMiningFatigueAmplifier, false, false, false))
+                    player.addPotionEffect(PotionEffect(it, durationTicks, StaminaSettings.exhaustedMiningFatigueAmplifier, false, false, false))
                 }
                 PotionEffectType.WEAKNESS?.let {
-                    player.addPotionEffect(PotionEffect(it, durationTicks, StaminaSettings.penaltyExhaustedWeaknessAmplifier, false, false, false))
+                    player.addPotionEffect(PotionEffect(it, durationTicks, StaminaSettings.exhaustedWeaknessAmplifier, false, false, false))
                 }
             }
             StaminaPhase.DEPLETED -> {
-                val targetSpeed = 0.2f * StaminaSettings.penaltyDepletedSpeedMultiplier.toFloat()
+                val targetSpeed = 0.2f * StaminaSettings.depletedSpeedMultiplier.toFloat()
                 if (player.walkSpeed != targetSpeed) {
                     player.walkSpeed = targetSpeed
                 }
                 player.isSprinting = false
                 PotionEffectType.MINING_FATIGUE?.let {
-                    player.addPotionEffect(PotionEffect(it, durationTicks, StaminaSettings.penaltyDepletedMiningFatigueAmplifier, false, false, false))
+                    player.addPotionEffect(PotionEffect(it, durationTicks, StaminaSettings.depletedMiningFatigueAmplifier, false, false, false))
                 }
                 PotionEffectType.WEAKNESS?.let {
-                    player.addPotionEffect(PotionEffect(it, durationTicks, StaminaSettings.penaltyDepletedWeaknessAmplifier, false, false, false))
+                    player.addPotionEffect(PotionEffect(it, durationTicks, StaminaSettings.depletedWeaknessAmplifier, false, false, false))
                 }
             }
         }
     }
 
     private fun resetWalkSpeed(player: Player) {
-        // 仅在体力为 FULL 且其他系统未修改速度时重置
-        // 简单策略：如果当前速度是体力系统设置的减速值，则重置
         val currentSpeed = player.walkSpeed
         val expectedSpeeds = listOf(
-            0.2f * StaminaSettings.penaltyTiredSpeedMultiplier.toFloat(),
-            0.2f * StaminaSettings.penaltyExhaustedSpeedMultiplier.toFloat(),
-            0.2f * StaminaSettings.penaltyDepletedSpeedMultiplier.toFloat(),
+            0.2f * StaminaSettings.tiredSpeedMultiplier.toFloat(),
+            0.2f * StaminaSettings.exhaustedSpeedMultiplier.toFloat(),
+            0.2f * StaminaSettings.depletedSpeedMultiplier.toFloat(),
         )
         if (currentSpeed in expectedSpeeds) {
             player.walkSpeed = 0.2f
@@ -438,27 +428,25 @@ object StaminaEngine {
     }
 
     private fun sendPhaseChangeMessage(player: Player, state: PlayerEnvState, oldPhase: StaminaPhase, newPhase: StaminaPhase) {
-        // 进入更低阶段的提醒
         val enterMessage = when (newPhase) {
-            StaminaPhase.TIRED -> if (oldPhase == StaminaPhase.FULL) StaminaSettings.messageEnterTired else null
-            StaminaPhase.EXHAUSTED -> if (oldPhase.ordinal < StaminaPhase.EXHAUSTED.ordinal) StaminaSettings.messageEnterExhausted else null
-            StaminaPhase.DEPLETED -> if (oldPhase.ordinal < StaminaPhase.DEPLETED.ordinal) StaminaSettings.messageEnterDepleted else null
+            StaminaPhase.TIRED -> if (oldPhase == StaminaPhase.FULL) StaminaSettings.msgEnterTired else null
+            StaminaPhase.EXHAUSTED -> if (oldPhase.ordinal < StaminaPhase.EXHAUSTED.ordinal) StaminaSettings.msgEnterExhausted else null
+            StaminaPhase.DEPLETED -> if (oldPhase.ordinal < StaminaPhase.DEPLETED.ordinal) StaminaSettings.msgEnterDepleted else null
             StaminaPhase.FULL -> null
         }
 
-        // 恢复到更高阶段的提醒
         val recoverMessage = when (oldPhase) {
-            StaminaPhase.TIRED -> if (newPhase == StaminaPhase.FULL) StaminaSettings.messageRecoveredFromTired else null
-            StaminaPhase.EXHAUSTED -> if (newPhase.ordinal < StaminaPhase.EXHAUSTED.ordinal) StaminaSettings.messageRecoveredFromExhausted else null
-            StaminaPhase.DEPLETED -> if (newPhase.ordinal < StaminaPhase.DEPLETED.ordinal) StaminaSettings.messageRecoveredFromDepleted else null
+            StaminaPhase.TIRED -> if (newPhase == StaminaPhase.FULL) StaminaSettings.msgRecoveredFromTired else null
+            StaminaPhase.EXHAUSTED -> if (newPhase.ordinal < StaminaPhase.EXHAUSTED.ordinal) StaminaSettings.msgRecoveredFromExhausted else null
+            StaminaPhase.DEPLETED -> if (newPhase.ordinal < StaminaPhase.DEPLETED.ordinal) StaminaSettings.msgRecoveredFromDepleted else null
             StaminaPhase.FULL -> null
         }
 
         val message = enterMessage ?: recoverMessage ?: return
         val max = getMaxStamina(state)
         val percent = (state.stamina / max * 100.0).toInt()
-        val formatted = message.replace("{stamina}", percent.toString())
-        TextBridge.sendActionBar(player, formatted)
+        val formatted = message.replace("&", "§").replace("{stamina}", percent.toString())
+        player.sendMessage(formatted)
     }
 
     private fun isSwimming(player: Player): Boolean {

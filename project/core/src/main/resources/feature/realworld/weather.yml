@@ -1,0 +1,35 @@
+# =============================================================================
+# 天气系统配置
+# =============================================================================
+
+decision-interval-seconds: 300
+persistence-chance: 0.6
+
+extreme:
+  # 命中 BLIZZARD / SANDSTORM / ACID_RAIN 时，先进入预警倒计时；<= 0 则直接切换。
+  warning-seconds: 30
+  grace-period-seconds: 10
+  damage-interval-seconds: 3
+  base-damage-hearts: 2.0
+
+visibility:
+  # 视觉效果使用短持续药水并自动续期，避免主动清除其他系统来源效果。
+  effect-duration-seconds: 3
+  fog:
+    blindness-amplifier: 0
+  blizzard:
+    blindness-amplifier: 1
+  sandstorm:
+    blindness-amplifier: 2
+
+# 局部天气配置
+local:
+  enabled: true
+  # 噪声频率，值越小天气区域越大（推荐 0.01 ~ 0.02）
+  noise-frequency: 0.015
+  # 天气变化速度系数
+  change-speed: 0.001
+  # 是否启用天气缓存
+  cache-enabled: true
+  # 最大缓存大小
+  cache-max-size: 1000

@@ -1,0 +1,28 @@
+# =============================================================================
+# 口渴系统配置
+# =============================================================================
+
+base-rate-per-minute: 0.5
+sprint-multiplier: 2.0
+submerge-multiplier: 0.1
+altitude-threshold-y: 100
+altitude-multiplier: 1.2
+temperature-deviation-percent-per-degree: 2.0
+
+thresholds:
+  full: 60.0
+  thirsty: 30.0
+  severe: 10.0
+
+water-sources:
+  water-bottle: 30.0
+  right-click-source: 20.0
+  drinker: 40.0
+  rain-per-minute: 2.0
+  sea-water: 10.0
+
+drinker-cooldown-seconds: 2
+
+water-quality:
+  river-nausea-chance: 0.1
+  sea-water-nausea-chance: 1.0

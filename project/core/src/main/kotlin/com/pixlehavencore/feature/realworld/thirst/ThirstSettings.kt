@@ -14,20 +14,18 @@ object ThirstSettings {
         private set
     var submergeMultiplier: Double = 0.1
         private set
-    var thirstAltitudeThresholdY: Int = 100
+    var altitudeThresholdY: Int = 100
         private set
-    var thirstAltitudeMultiplier: Double = 1.2
+    var altitudeMultiplier: Double = 1.2
         private set
     var tempDeviationPercentPerDegree: Double = 2.0
         private set
-
     var thirstFull: Double = 60.0
         private set
     var thirstThirsty: Double = 30.0
         private set
     var thirstSevere: Double = 10.0
         private set
-
     var waterBottleRestore: Double = 30.0
         private set
     var waterSourceRestore: Double = 20.0
@@ -51,18 +49,15 @@ object ThirstSettings {
 
     fun reload() {
         config.reload()
-
         baseThirstRatePerMinute = config.getDouble("base-rate-per-minute", 0.5).coerceAtLeast(0.0)
         sprintMultiplier = config.getDouble("sprint-multiplier", 2.0).coerceAtLeast(0.0)
         submergeMultiplier = config.getDouble("submerge-multiplier", 0.1).coerceAtLeast(0.0)
-        thirstAltitudeThresholdY = config.getInt("altitude-threshold-y", 100)
-        thirstAltitudeMultiplier = config.getDouble("altitude-multiplier", 1.2).coerceAtLeast(0.0)
+        altitudeThresholdY = config.getInt("altitude-threshold-y", 100)
+        altitudeMultiplier = config.getDouble("altitude-multiplier", 1.2).coerceAtLeast(0.0)
         tempDeviationPercentPerDegree = config.getDouble("temperature-deviation-percent-per-degree", 2.0).coerceAtLeast(0.0)
-
         thirstFull = config.getDouble("thresholds.full", 60.0)
         thirstThirsty = config.getDouble("thresholds.thirsty", 30.0)
         thirstSevere = config.getDouble("thresholds.severe", 10.0)
-
         waterBottleRestore = config.getDouble("water-sources.water-bottle", 30.0).coerceAtLeast(0.0)
         waterSourceRestore = config.getDouble("water-sources.right-click-source", 20.0).coerceAtLeast(0.0)
         drinkerRestore = config.getDouble("water-sources.drinker", 40.0).coerceAtLeast(0.0)
