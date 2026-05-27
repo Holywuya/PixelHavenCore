@@ -1,5 +1,6 @@
 package com.pixlehavencore.feature.security
 
+import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.requirePlayer
@@ -21,7 +22,7 @@ object SecurityCommand {
         dynamic(comment = "player") {
             suggestPlayers()
             execute<ProxyCommandSender> { sender, _, argument ->
-                if (!sender.requirePermission("phcore.admin")) return@execute
+                if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                 val viewer = sender.requirePlayer()?.cast<Player>() ?: return@execute
                 val targetName = argument.toString().trim()
                 val target = resolveOfflinePlayer(targetName) ?: run {
@@ -40,7 +41,7 @@ object SecurityCommand {
         dynamic(comment = "player") {
             suggestPlayers()
             execute<ProxyCommandSender> { sender, _, argument ->
-                if (!sender.requirePermission("phcore.admin")) return@execute
+                if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                 val viewer = sender.requirePlayer()?.cast<Player>() ?: return@execute
                 val targetName = argument.toString().trim()
                 val target = resolveOfflinePlayer(targetName) ?: run {
@@ -57,7 +58,7 @@ object SecurityCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.admin")) return@execute
+            if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             SecurityService.reload()
             sender.msg("&a安全模块配置已重载。")
         }

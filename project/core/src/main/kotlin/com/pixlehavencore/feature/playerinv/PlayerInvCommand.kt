@@ -1,5 +1,6 @@
 package com.pixlehavencore.feature.playerinv
 
+import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission
@@ -68,7 +69,7 @@ object PlayerInvCommand {
                     return@execute
                 }
                 val viewer = sender.requirePlayer() ?: return@execute
-                if (!sender.requirePermission("phcore.admin")) {
+                if (!sender.requirePermission(ADMIN_PERMISSION)) {
                     return@execute
                 }
                 val targetName = argument.toString().trim()
@@ -99,7 +100,7 @@ object PlayerInvCommand {
                         sender.msg(PlayerInvSettings.disabledMessage)
                         return@execute
                     }
-                    if (!sender.requirePermission("phcore.admin")) {
+                    if (!sender.requirePermission(ADMIN_PERMISSION)) {
                         return@execute
                     }
                     val targetName = context.getOrNull("player") ?: run {
@@ -313,7 +314,7 @@ object PlayerInvCommand {
                 suggestPlayers()
                 dynamic(comment = "amount") {
                     execute<ProxyCommandSender> { sender, context, argument ->
-                        if (!sender.requirePermission("phcore.admin")) {
+                        if (!sender.requirePermission(ADMIN_PERMISSION)) {
                             return@execute
                         }
                         val targetName = context.getOrNull("player") ?: run {
@@ -351,7 +352,7 @@ object PlayerInvCommand {
         literal("admin-open") {
             dynamic(comment = "name") {
                 execute<ProxyCommandSender> { sender, _, argument ->
-                    if (!sender.requirePermission("phcore.admin")) {
+                    if (!sender.requirePermission(ADMIN_PERMISSION)) {
                         return@execute
                     }
                     val player = sender.requirePlayer() ?: return@execute
@@ -371,7 +372,7 @@ object PlayerInvCommand {
             dynamic(comment = "player") {
                 suggestPlayers()
                 execute<ProxyCommandSender> { sender, _, argument ->
-                    if (!sender.requirePermission("phcore.admin")) {
+                    if (!sender.requirePermission(ADMIN_PERMISSION)) {
                         return@execute
                     }
                     val targetName = argument.toString().trim()
@@ -399,7 +400,7 @@ object PlayerInvCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.admin")) {
+            if (!sender.requirePermission(ADMIN_PERMISSION)) {
                 return@execute
             }
             PlayerInvService.reload()

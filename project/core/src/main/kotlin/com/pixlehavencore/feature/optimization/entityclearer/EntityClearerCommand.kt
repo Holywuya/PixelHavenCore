@@ -1,5 +1,6 @@
 package com.pixlehavencore.feature.optimization.entityclearer
 
+import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.requirePlayer
@@ -25,7 +26,7 @@ object EntityClearerCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.admin")) return@execute
+            if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             EntityClearerService.reload()
             sender.msg("&a实体清理配置已重载。")
         }

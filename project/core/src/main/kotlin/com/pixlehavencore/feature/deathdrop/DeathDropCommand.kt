@@ -1,5 +1,6 @@
 package com.pixlehavencore.feature.deathdrop
 
+import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.resolveOfflinePlayer
@@ -28,7 +29,7 @@ object DeathDropCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.admin")) return@execute
+            if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             DeathDropSettings.init()
             DeathDropUsageStorage.init()
             sender.msg("&a死亡掉落配置已重载。")
@@ -41,7 +42,7 @@ object DeathDropCommand {
             suggestPlayers()
             dynamic(comment = "count") {
                 execute<ProxyCommandSender> { sender, context, argument ->
-                    if (!sender.requirePermission("phcore.admin")) return@execute
+                    if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                     val targetName = context.getOrNull("player") ?: return@execute
                     val target = resolveOfflinePlayer(targetName) ?: run {
                         sender.msg("&c未找到玩家: $targetName")
@@ -65,7 +66,7 @@ object DeathDropCommand {
             suggestPlayers()
             dynamic(comment = "count") {
                 execute<ProxyCommandSender> { sender, context, argument ->
-                    if (!sender.requirePermission("phcore.admin")) return@execute
+                    if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                     val targetName = context.getOrNull("player") ?: return@execute
                     val target = resolveOfflinePlayer(targetName) ?: run {
                         sender.msg("&c未找到玩家: $targetName")

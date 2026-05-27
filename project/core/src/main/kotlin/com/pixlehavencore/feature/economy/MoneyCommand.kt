@@ -1,6 +1,7 @@
 package com.pixlehavencore.feature.economy
 
 import com.pixlehavencore.util.EconomyUtils
+import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.requirePlayer
@@ -104,7 +105,7 @@ object MoneyCommand {
         dynamic(comment = "player") {
             suggestPlayers()
             execute<ProxyCommandSender> { sender, context, _ ->
-                if (!sender.requirePermission("phcore.admin")) return@execute
+                if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                 val targetName = context.getOrNull("player") ?: return@execute
                 val target = resolveOfflinePlayer(targetName) ?: run {
                     sender.msg("&c未找到玩家: $targetName")
@@ -116,7 +117,7 @@ object MoneyCommand {
             }
             dynamic(comment = "currency") {
                 execute<ProxyCommandSender> { sender, context, argument ->
-                    if (!sender.requirePermission("phcore.admin")) return@execute
+                    if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                     val targetName = context.getOrNull("player") ?: return@execute
                     val target = resolveOfflinePlayer(targetName) ?: run {
                         sender.msg("&c未找到玩家: $targetName")
@@ -136,12 +137,12 @@ object MoneyCommand {
             suggestPlayers()
             dynamic(comment = "amount") {
                 execute<ProxyCommandSender> { sender, context, _ ->
-                    if (!sender.requirePermission("phcore.admin")) return@execute
+                    if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                     mutateBalance(sender, context.getOrNull("player"), context.getOrNull("amount"), EconomySettings.defaultCurrency, Mode.ADD)
                 }
                 dynamic(comment = "currency") {
                     execute<ProxyCommandSender> { sender, context, argument ->
-                        if (!sender.requirePermission("phcore.admin")) return@execute
+                        if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                         mutateBalance(sender, context.getOrNull("player"), context.getOrNull("amount"), argument.toString(), Mode.ADD)
                     }
                 }
@@ -155,7 +156,7 @@ object MoneyCommand {
             suggestPlayers()
             dynamic(comment = "amount") {
                 execute<ProxyCommandSender> { sender, context, _ ->
-                    if (!sender.requirePermission("phcore.admin")) return@execute
+                    if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                     giveFromCentralBank(sender, context.getOrNull("player"), context.getOrNull("amount"))
                 }
             }
@@ -168,12 +169,12 @@ object MoneyCommand {
             suggestPlayers()
             dynamic(comment = "amount") {
                 execute<ProxyCommandSender> { sender, context, _ ->
-                    if (!sender.requirePermission("phcore.admin")) return@execute
+                    if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                     mutateBalance(sender, context.getOrNull("player"), context.getOrNull("amount"), EconomySettings.defaultCurrency, Mode.REMOVE)
                 }
                 dynamic(comment = "currency") {
                     execute<ProxyCommandSender> { sender, context, argument ->
-                        if (!sender.requirePermission("phcore.admin")) return@execute
+                        if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                         mutateBalance(sender, context.getOrNull("player"), context.getOrNull("amount"), argument.toString(), Mode.REMOVE)
                     }
                 }
@@ -187,12 +188,12 @@ object MoneyCommand {
             suggestPlayers()
             dynamic(comment = "amount") {
                 execute<ProxyCommandSender> { sender, context, _ ->
-                    if (!sender.requirePermission("phcore.admin")) return@execute
+                    if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                     mutateBalance(sender, context.getOrNull("player"), context.getOrNull("amount"), EconomySettings.defaultCurrency, Mode.SET)
                 }
                 dynamic(comment = "currency") {
                     execute<ProxyCommandSender> { sender, context, argument ->
-                        if (!sender.requirePermission("phcore.admin")) return@execute
+                        if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                         mutateBalance(sender, context.getOrNull("player"), context.getOrNull("amount"), argument.toString(), Mode.SET)
                     }
                 }
@@ -203,7 +204,7 @@ object MoneyCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.admin")) return@execute
+            if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             EconomyProvider.reload()
             sender.msg("&a经济系统配置已重载。")
         }
@@ -394,7 +395,7 @@ object MoneyCommand {
     }
 
     private fun requireAdmin(sender: ProxyCommandSender, errorMsg: String): Boolean {
-        if (sender.hasPermission("phcore.admin")) return true
+        if (sender.hasPermission(ADMIN_PERMISSION)) return true
         sender.msg(errorMsg)
         return false
     }

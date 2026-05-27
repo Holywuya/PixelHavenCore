@@ -3,6 +3,7 @@ package com.pixlehavencore.feature.playerinv
 import com.google.gson.reflect.TypeToken
 import com.pixlehavencore.bridge.TextBridge
 import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
+import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.DatabaseUtils
 import com.pixlehavencore.util.EconomyUtils
 import com.pixlehavencore.util.InventoryUtils
@@ -344,7 +345,7 @@ object PlayerInvService {
         return runCatching {
             withConnection { connection ->
                 val shared = findSharedByName(connection, name) ?: return@withConnection SharedOpenResult.NOT_FOUND
-                val isAdmin = viewer.hasPermission("phcore.admin")
+                val isAdmin = viewer.hasPermission(ADMIN_PERMISSION)
                 // 公开仓库跳过成员检查，私有仓库才需要验role
                 val hasAccess = isAdmin || forceAdmin || shared.isPublic ||
                     getSharedRole(connection, shared.id, viewer.uniqueId) != null
@@ -384,7 +385,7 @@ object PlayerInvService {
             return
         }
         val viewerId = viewer.uniqueId
-        val isAdmin = viewer.hasPermission("phcore.admin")
+        val isAdmin = viewer.hasPermission(ADMIN_PERMISSION)
 
         submit(async = true) {
             val prepared = runCatching {
@@ -776,7 +777,7 @@ object PlayerInvService {
     }
 
     private fun openSharedManage(player: Player, owner: UUID, sharedId: UUID?, sharedName: String) {
-        if (owner != player.uniqueId && !player.hasPermission("phcore.admin")) {
+        if (owner != player.uniqueId && !player.hasPermission(ADMIN_PERMISSION)) {
             player.sendMessage(TextUtils.parse(PlayerInvSettings.sharedManageNoPermission))
             return
         }
@@ -1323,7 +1324,7 @@ object PlayerInvService {
     }
 
     private fun canManageShared(connection: Connection, operator: Player, shared: SharedRecord): Boolean {
-        if (operator.hasPermission("phcore.admin")) return true
+        if (operator.hasPermission(ADMIN_PERMISSION)) return true
         return getSharedRole(connection, shared.id, operator.uniqueId) == SharedRole.OWNER
     }
 

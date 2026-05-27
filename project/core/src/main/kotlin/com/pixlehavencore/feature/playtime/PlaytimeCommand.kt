@@ -1,5 +1,6 @@
 package com.pixlehavencore.feature.playtime
 
+import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.requirePlayer
@@ -76,19 +77,19 @@ object PlaytimeCommand {
     @CommandBody
     val cleanup = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.admin")) return@execute
+            if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             val days = PlaytimeSettings.cleanupDefaultDays
             showCleanupPreview(sender, days)
         }
         dynamic(comment = "days") {
             execute<ProxyCommandSender> { sender, context, _ ->
-                if (!sender.requirePermission("phcore.admin")) return@execute
+                if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                 val days = context.getOrNull("days")?.toString()?.toIntOrNull() ?: PlaytimeSettings.cleanupDefaultDays
                 showCleanupPreview(sender, days)
             }
             literal("confirm") {
                 execute<ProxyCommandSender> { sender, context, _ ->
-                    if (!sender.requirePermission("phcore.admin")) return@execute
+                    if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                     val days = context.getOrNull("days")?.toString()?.toIntOrNull() ?: PlaytimeSettings.cleanupDefaultDays
                     sender.msg("&7正在清理超过 $days 天未登录的玩家数据...")
                     PlaytimeService.cleanupExecute(days) { count ->
@@ -102,7 +103,7 @@ object PlaytimeCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.admin")) return@execute
+            if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             PlaytimeSettings.reload()
             PlaytimeStorage.reload()
             PlaytimeService.reload()

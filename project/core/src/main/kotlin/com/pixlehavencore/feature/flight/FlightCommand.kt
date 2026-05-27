@@ -1,6 +1,7 @@
 package com.pixlehavencore.feature.flight
 
 import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
+import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.requirePlayer
@@ -81,7 +82,7 @@ object FlightCommand {
             suggestPlayers()
             dynamic(comment = "time") {
                 execute<ProxyCommandSender> { sender, context, argument ->
-                    if (!sender.requirePermission("phcore.admin")) return@execute
+                    if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                     val targetName = context.getOrNull("player") ?: return@execute
                     val target = Bukkit.getPlayerExact(targetName) ?: run {
                         sender.msg(FlightSettings.msgPlayerNotFound.resolvePlaceholders("{player}" to targetName))
@@ -108,7 +109,7 @@ object FlightCommand {
             suggestPlayers()
             dynamic(comment = "time") {
                 execute<ProxyCommandSender> { sender, context, argument ->
-                    if (!sender.requirePermission("phcore.admin")) return@execute
+                    if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                     val targetName = context.getOrNull("player") ?: return@execute
                     val target = Bukkit.getPlayerExact(targetName) ?: run {
                         sender.msg(FlightSettings.msgPlayerNotFound.resolvePlaceholders("{player}" to targetName))
@@ -134,7 +135,7 @@ object FlightCommand {
         dynamic(comment = "player") {
             suggestPlayers()
             execute<ProxyCommandSender> { sender, _, argument ->
-                if (!sender.requirePermission("phcore.admin")) return@execute
+                if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                 val targetName = argument.toString().trim()
                 val target = Bukkit.getPlayerExact(targetName) ?: run {
                     sender.msg(FlightSettings.msgPlayerNotFound.resolvePlaceholders("{player}" to targetName))
@@ -149,7 +150,7 @@ object FlightCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.admin")) return@execute
+            if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             FlightService.reload()
             sender.msg(FlightSettings.msgReloadSuccess)
         }

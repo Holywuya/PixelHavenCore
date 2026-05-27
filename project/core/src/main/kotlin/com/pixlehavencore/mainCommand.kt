@@ -22,6 +22,7 @@ import com.pixlehavencore.feature.playtime.PlaytimeSettings
 import com.pixlehavencore.feature.playtime.PlaytimeStorage
 import com.pixlehavencore.feature.playtime.PlaytimeService
 import com.pixlehavencore.feature.realworld.RealWorldService
+import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission
 import taboolib.common.platform.ProxyCommandSender
@@ -39,7 +40,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 @CommandHeader(name = "phc", aliases = ["phcore"], permissionDefault = PermissionDefault.TRUE)
 object MainCommand {
 
-    private const val RELOAD_PERMISSION = "phcore.admin"
     private val reloading = AtomicBoolean(false)
 
     @CommandBody
@@ -53,7 +53,7 @@ object MainCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission(RELOAD_PERMISSION)) {
+            if (!sender.requirePermission(ADMIN_PERMISSION)) {
                 return@execute
             }
             if (!reloading.compareAndSet(false, true)) {

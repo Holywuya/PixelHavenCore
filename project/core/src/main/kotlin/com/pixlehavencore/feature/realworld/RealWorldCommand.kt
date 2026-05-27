@@ -1,6 +1,7 @@
 package com.pixlehavencore.feature.realworld
 
 import com.pixlehavencore.feature.realworld.foodcorrosion.FoodCorrosionCommand
+import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission
 import org.bukkit.Bukkit
@@ -17,8 +18,6 @@ import taboolib.common.platform.function.submit
 
 @CommandHeader(name = "realworld", aliases = ["rw"], permissionDefault = PermissionDefault.TRUE)
 object RealWorldCommand {
-
-    private const val ADMIN_PERMISSION = "phcore.admin"
 
     @CommandBody
     val main = mainCommand {

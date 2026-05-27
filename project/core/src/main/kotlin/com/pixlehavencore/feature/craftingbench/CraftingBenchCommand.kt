@@ -2,6 +2,7 @@ package com.pixlehavencore.feature.craftingbench
 
 import com.pixlehavencore.util.CraftEngineItemsUtil
 import com.pixlehavencore.util.msg
+import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.requirePlayer
 import org.bukkit.Bukkit
@@ -112,7 +113,7 @@ object CraftingBenchCommand {
             suggestPlayers()
             dynamic(comment = "tier") {
                 execute<ProxyCommandSender> { sender, context, argument ->
-                    if (!sender.requirePermission("phcore.admin")) {
+                    if (!sender.requirePermission(ADMIN_PERMISSION)) {
                         return@execute
                     }
                     val targetName = context.getOrNull("player")?.toString()?.trim().orEmpty()
@@ -146,7 +147,7 @@ object CraftingBenchCommand {
             suggestPlayers()
             dynamic(comment = "tier") {
                 execute<ProxyCommandSender> { sender, context, argument ->
-                    if (!sender.requirePermission("phcore.admin")) {
+                    if (!sender.requirePermission(ADMIN_PERMISSION)) {
                         return@execute
                     }
                     val targetName = context.getOrNull("player")?.toString()?.trim().orEmpty()
@@ -198,7 +199,7 @@ object CraftingBenchCommand {
                 CraftingBenchService.getAllRecipeIds()
             }
             execute<ProxyCommandSender> { sender, _, argument ->
-                if (!sender.requirePermission("phcore.admin")) return@execute
+                if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                 val player = sender.requirePlayer() ?: return@execute
                 val recipeId = argument.toString().trim()
                 val bukkitPlayer = Bukkit.getPlayer(player.uniqueId) ?: return@execute
@@ -216,7 +217,7 @@ object CraftingBenchCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.admin")) {
+            if (!sender.requirePermission(ADMIN_PERMISSION)) {
                 return@execute
             }
             submit(async = true) {

@@ -1,6 +1,7 @@
 package com.pixlehavencore.feature.craftingbench
 
 import com.pixlehavencore.feature.playerinv.PlayerInvService
+import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.ItemUtils
 import com.pixlehavencore.util.cancelTaskSafely
 import org.bukkit.Bukkit
@@ -92,7 +93,7 @@ object CraftingBenchService {
             .filter { recipe ->
                 recipe.requiredBenchTier.isNotBlank() &&
                     CraftingBenchSettings.isTierAllowed(recipe.requiredBenchTier, tier) &&
-                    (recipe.unlockPermission.isBlank() || player.hasPermission(recipe.unlockPermission) || player.hasPermission("phcore.admin"))
+                    (recipe.unlockPermission.isBlank() || player.hasPermission(recipe.unlockPermission) || player.hasPermission(ADMIN_PERMISSION))
             }
             .sortedBy { it.id }
             .map { recipe ->
@@ -158,13 +159,13 @@ object CraftingBenchService {
         }
         val finalCount = craftCount.coerceAtLeast(1)
         val recipe = recipes[recipeId] ?: return SubmitResult(false, "配方不存在。")
-        if (!CraftingBenchSettings.canUseTier(player::hasPermission, tier) && !player.hasPermission("phcore.admin")) {
+        if (!CraftingBenchSettings.canUseTier(player::hasPermission, tier) && !player.hasPermission(ADMIN_PERMISSION)) {
             return SubmitResult(false, "你没有使用该工作台的权限。")
         }
         if (!CraftingBenchSettings.isTierAllowed(recipe.requiredBenchTier, tier)) {
             return SubmitResult(false, "当前工作台等级不足。")
         }
-        if (recipe.unlockPermission.isNotBlank() && !player.hasPermission(recipe.unlockPermission) && !player.hasPermission("phcore.admin")) {
+        if (recipe.unlockPermission.isNotBlank() && !player.hasPermission(recipe.unlockPermission) && !player.hasPermission(ADMIN_PERMISSION)) {
             return SubmitResult(false, "你尚未解锁这个配方。")
         }
         val queue = queues.computeIfAbsent(player.uniqueId) { mutableListOf() }
@@ -234,7 +235,7 @@ object CraftingBenchService {
 
     private fun canCraft(player: Player, tier: BenchTier, recipe: CraftingRecipe): Boolean {
         return CraftingBenchSettings.canUseTier(player::hasPermission, tier) &&
-            (recipe.unlockPermission.isBlank() || player.hasPermission(recipe.unlockPermission) || player.hasPermission("phcore.admin")) &&
+            (recipe.unlockPermission.isBlank() || player.hasPermission(recipe.unlockPermission) || player.hasPermission(ADMIN_PERMISSION)) &&
             hasMaterials(player, recipe, countAllInventoryMaterials(player, recipe.materials.map { it.item }), loadWarehouseCounts(player, recipe.materials.map { it.item }), 1)
     }
 

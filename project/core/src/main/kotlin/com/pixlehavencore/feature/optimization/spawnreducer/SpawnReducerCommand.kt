@@ -1,5 +1,6 @@
 package com.pixlehavencore.feature.optimization.spawnreducer
 
+import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission
 import taboolib.common.platform.ProxyCommandSender
@@ -23,7 +24,7 @@ object SpawnReducerCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.admin")) return@execute
+            if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             SpawnReducerService.reload()
             sender.msg("&a自然生成削减配置已重载。")
         }

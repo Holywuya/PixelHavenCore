@@ -1,6 +1,7 @@
 package com.pixlehavencore.feature.flight
 
 import com.pixlehavencore.bridge.TextBridge
+import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import com.pixlehavencore.util.TextUtils
 import com.pixlehavencore.util.cancelTaskSafely
@@ -60,7 +61,7 @@ object FlightService {
     fun isBypass(player: Player): Boolean {
         return player.gameMode == GameMode.CREATIVE ||
             player.isOp ||
-            player.hasPermission("phcore.admin")
+            player.hasPermission(ADMIN_PERMISSION)
     }
 
     // ========== 玩家生命周期 ==========

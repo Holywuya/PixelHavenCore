@@ -1,5 +1,6 @@
 package com.pixlehavencore.feature.vanish
 
+import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission
@@ -42,7 +43,7 @@ object VanishCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.admin")) return@execute
+            if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             VanishSettings.init()
             sender.msg("&a隐身模块配置已重载。")
         }
@@ -63,7 +64,7 @@ object VanishListCommand {
                 sender.msg("&c隐身模块当前已禁用。")
                 return@execute
             }
-            if (!sender.requirePermission("phcore.admin")) return@execute
+            if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             val vanished = VanishService.getNormalVanishedPlayers()
             if (vanished.isEmpty()) {
                 sender.msg(VanishSettings.msgNoVanishedPlayers)
@@ -94,7 +95,7 @@ object VanishShowCommand {
                 sender.msg("&c隐身模块当前已禁用。")
                 return@execute
             }
-            if (!sender.requirePermission("phcore.admin")) return@execute
+            if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             val player = sender.requirePlayer() ?: return@execute
             val observer = player.cast<Player>()
             val arg = argument.toString().trim()

@@ -3,6 +3,7 @@ package com.pixlehavencore.feature.craftingbench
 import com.pixlehavencore.util.BaikirutoItemsUtil
 import com.pixlehavencore.util.CraftEngineItemsUtil
 import com.pixlehavencore.util.ItemUtils
+import com.pixlehavencore.util.ADMIN_PERMISSION
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -17,7 +18,6 @@ import java.util.UUID
 
 object AdminGuiService {
 
-    private const val ADMIN_PERMISSION = "phcore.admin"
     private const val CHAT_INPUT_TIMEOUT_MS = 30_000L
 
     private val editSessions = PlayerSessionMap<RecipeEditSession>({ throw IllegalStateException() })

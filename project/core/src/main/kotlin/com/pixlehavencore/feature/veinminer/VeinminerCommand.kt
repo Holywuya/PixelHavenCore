@@ -1,5 +1,6 @@
 package com.pixlehavencore.feature.veinminer
 
+import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.requirePlayer
@@ -33,7 +34,7 @@ object VeinminerCommand {
     @CommandBody
     val toggle = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.admin")) return@execute
+            if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             val newState = !VeinminerSettings.enabled
             VeinminerSettings.toggle(newState)
             if (newState) {
@@ -52,7 +53,7 @@ object VeinminerCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!sender.requirePermission("phcore.admin")) return@execute
+            if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             VeinminerSettings.init()
             sender.msg("&a连锁挖掘配置已重载。")
         }
@@ -107,7 +108,7 @@ object VeinminerCommand {
     }
 
     private fun handleRemainingMutation(sender: ProxyCommandSender, targetName: String?, amountText: String, mutation: Mutation) {
-        if (!sender.requirePermission("phcore.admin")) return
+        if (!sender.requirePermission(ADMIN_PERMISSION)) return
         val cleanTarget = targetName?.trim().orEmpty()
         if (cleanTarget.isBlank()) {
             sender.msg("&c请输入目标玩家。")
