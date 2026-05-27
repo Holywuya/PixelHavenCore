@@ -360,6 +360,8 @@ object TradeService {
     }
 
     private fun completeTrade(session: TradeSession) {
+        if (!session.tryStartCompleting()) return
+
         val left = Bukkit.getPlayer(session.left) ?: return abort(session, true)
         val right = Bukkit.getPlayer(session.right) ?: return abort(session, true)
 
@@ -368,28 +370,49 @@ object TradeService {
         if (!canFit(right, leftItems) || !canFit(left, rightItems)) {
             left.sendMessage(TextBridge.toLegacy(TextUtils.parse(TradeSettings.inventoryFullMessage)))
             right.sendMessage(TextBridge.toLegacy(TextUtils.parse(TradeSettings.inventoryFullMessage)))
+            session.completing.set(false)
+            session.resetConfirm()
             return
         }
 
         val leftMoney = session.moneyOffers[session.left] ?: BigDecimal.ZERO
         val rightMoney = session.moneyOffers[session.right] ?: BigDecimal.ZERO
-        if (leftMoney > BigDecimal.ZERO && !EconomyUtils.withdraw(left, leftMoney)) {
-            left.sendMessage(TextBridge.toLegacy(TextUtils.parse("&c你的余额不足，交易取消。")))
-            return abort(session, true)
-        }
-        if (rightMoney > BigDecimal.ZERO && !EconomyUtils.withdraw(right, rightMoney)) {
-            if (leftMoney > BigDecimal.ZERO) EconomyUtils.depositInternal(left, leftMoney)
-            right.sendMessage(TextBridge.toLegacy(TextUtils.parse("&c你的余额不足，交易取消。")))
-            return abort(session, true)
+
+        val leftInsufficient = leftMoney > BigDecimal.ZERO && !EconomyUtils.has(left, leftMoney)
+        val rightInsufficient = rightMoney > BigDecimal.ZERO && !EconomyUtils.has(right, rightMoney)
+        if (leftInsufficient || rightInsufficient) {
+            val failedPlayer = if (leftInsufficient) left else right
+            failedPlayer.sendMessage(TextBridge.toLegacy(TextUtils.parse("&c你的余额不足，交易取消。")))
+            session.completing.set(false)
+            session.resetConfirm()
+            return
         }
 
-        if (rightMoney > BigDecimal.ZERO && !EconomyUtils.deposit(left, rightMoney)) {
-            rollbackMoney(left, right, leftMoney, rightMoney)
-            return abort(session, true)
-        }
-        if (leftMoney > BigDecimal.ZERO && !EconomyUtils.deposit(right, leftMoney)) {
-            if (rightMoney > BigDecimal.ZERO) EconomyUtils.withdraw(left, rightMoney)
-            rollbackMoney(left, right, leftMoney, rightMoney)
+        var leftWithdrawn = false
+        var rightWithdrawn = false
+        var leftDeposited = false
+
+        try {
+            if (leftMoney > BigDecimal.ZERO) {
+                if (!EconomyUtils.withdraw(left, leftMoney)) throw TradeRollbackException("左侧扣款失败")
+                leftWithdrawn = true
+            }
+            if (rightMoney > BigDecimal.ZERO) {
+                if (!EconomyUtils.withdraw(right, rightMoney)) throw TradeRollbackException("右侧扣款失败")
+                rightWithdrawn = true
+            }
+            if (rightMoney > BigDecimal.ZERO) {
+                if (!EconomyUtils.deposit(left, rightMoney)) throw TradeRollbackException("左侧存款失败")
+                leftDeposited = true
+            }
+            if (leftMoney > BigDecimal.ZERO) {
+                if (!EconomyUtils.deposit(right, leftMoney)) throw TradeRollbackException("右侧存款失败")
+            }
+        } catch (ex: TradeRollbackException) {
+            if (leftDeposited && leftMoney > BigDecimal.ZERO) EconomyUtils.withdraw(left, rightMoney)
+            if (rightWithdrawn) EconomyUtils.depositInternal(right, rightMoney)
+            if (leftWithdrawn) EconomyUtils.depositInternal(left, leftMoney)
+            taboolib.common.platform.function.warning("[Trade] 交易资金操作失败，已回滚: ${ex.message}")
             return abort(session, true)
         }
 
@@ -402,6 +425,8 @@ object TradeService {
         left.sendMessage(TextBridge.toLegacy(TextUtils.parse(TradeSettings.tradeCompletedMessage)))
         right.sendMessage(TextBridge.toLegacy(TextUtils.parse(TradeSettings.tradeCompletedMessage)))
     }
+
+    private class TradeRollbackException(message: String) : RuntimeException(message)
 
     private fun abort(session: TradeSession, closeInventory: Boolean) {
         val left = Bukkit.getPlayer(session.left)
@@ -648,6 +673,7 @@ object TradeService {
         }
         val leftConfirmed: AtomicBoolean = AtomicBoolean(false)
         val rightConfirmed: AtomicBoolean = AtomicBoolean(false)
+        val completing: AtomicBoolean = AtomicBoolean(false)
 
         fun confirm(player: UUID) {
             if (player == left) leftConfirmed.set(true)
@@ -662,5 +688,7 @@ object TradeService {
         fun isLocked(player: UUID): Boolean {
             return if (player == left) leftConfirmed.get() else rightConfirmed.get()
         }
+
+        fun tryStartCompleting(): Boolean = completing.compareAndSet(false, true)
     }
 }
