@@ -25,7 +25,11 @@ object TemperatureEngine {
 
         val seasonModifier = SeasonEngine.getTemperatureModifier(global)
         val timeModifier = SeasonEngine.getTimeTemperatureModifier(worldTime)
-        val weatherModifier = global.weather.temperatureModifier
+        val weatherModifier = if (RealWorldSettings.localWeatherEnabled) {
+            WeatherQuery.getTemperatureModifierAt(player.location, global)
+        } else {
+            global.weather.temperatureModifier
+        }
         val altitudeModifier = computeAltitudeModifier(location.blockY)
 
         state.isSheltered = isSheltered(player)
