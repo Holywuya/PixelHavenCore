@@ -1,7 +1,6 @@
 package com.pixlehavencore.util
 
-import kotlin.math.abs
-import kotlin.math.sqrt
+
 
 /**
  * FastNoiseLite 噪声生成器
@@ -24,7 +23,7 @@ class FastNoiseLite(private var seed: Int = 1337) {
      * @return 噪声值范围 [-1, 1]
      */
     fun getNoise(x: Float, y: Float): Float {
-        return singleSimplex(seed, x * frequency, y * frequency)
+        return singleOpenSimplex2(seed, x * frequency, y * frequency)
     }
 
     /**
@@ -35,7 +34,7 @@ class FastNoiseLite(private var seed: Int = 1337) {
         return singleOpenSimplex2(seed, x * frequency, y * frequency, z * frequency)
     }
 
-    private fun singleSimplex(seed: Int, x: Float, y: Float): Float {
+    private fun singleOpenSimplex2(seed: Int, x: Float, y: Float): Float {
         val f1 = 1.7320508f
         val f2 = 0.21132487f
 
@@ -174,11 +173,10 @@ class FastNoiseLite(private var seed: Int = 1337) {
 
     private fun gradCoord(seed: Int, xPrimed: Int, yPrimed: Int, xd: Float, yd: Float): Float {
         var hash = seed xor xPrimed xor yPrimed
-        hash *= 0x27D4EB2D
+        hash *= 668265261
         hash = hash xor (hash shr 15)
-        hash = hash and 0x7FFFFFFF
-        val index = (hash and 0x3FC) shr 1
-        return xd * GRAD_2D[index] + yd * GRAD_2D[index + 1]
+        hash = hash and 0xFE
+        return xd * GRAD_2D[hash] + yd * GRAD_2D[hash or 1]
     }
 
     private fun gradCoord(seed: Int, xPrimed: Int, yPrimed: Int, zPrimed: Int, xd: Float, yd: Float, zd: Float): Float {
@@ -256,18 +254,6 @@ class FastNoiseLite(private var seed: Int = 1337) {
             -0.9914449f, 0.13052619f, -0.9238795f, 0.38268343f,
             -0.7933533f, 0.6087614f, -0.6087614f, 0.7933533f,
             -0.38268343f, 0.9238795f, -0.13052619f, 0.9914449f,
-            0.13052619f, 0.9914449f, 0.38268343f, 0.9238795f,
-            0.6087614f, 0.7933533f, 0.7933533f, 0.6087614f,
-            0.9238795f, 0.38268343f, 0.9914449f, 0.13052619f,
-            0.9914449f, -0.13052619f, 0.9238795f, -0.38268343f,
-            0.7933533f, -0.6087614f, 0.6087614f, -0.7933533f,
-            0.38268343f, -0.9238795f, 0.13052619f, -0.9914449f,
-            -0.13052619f, -0.9914449f, -0.38268343f, -0.9238795f,
-            -0.6087614f, -0.7933533f, -0.7933533f, -0.6087614f,
-            -0.9238795f, -0.38268343f, -0.9914449f, -0.13052619f,
-            -0.9914449f, 0.13052619f, -0.9238795f, 0.38268343f,
-            -0.7933533f, 0.6087614f, -0.6087614f, 0.7933533f,
-            -0.38268343f, 0.9238795f, -0.13052619f, 0.9914449f,
             0.38268343f, 0.9238795f, 0.9238795f, 0.38268343f,
             0.9238795f, -0.38268343f, 0.38268343f, -0.9238795f,
             -0.38268343f, -0.9238795f, -0.9238795f, -0.38268343f,
@@ -275,36 +261,6 @@ class FastNoiseLite(private var seed: Int = 1337) {
         )
 
         private val GRAD_3D = floatArrayOf(
-            0.0f, 1.0f, 1.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,
-            0.0f, 1.0f, -1.0f, 0.0f, 0.0f, -1.0f, -1.0f, 0.0f,
-            1.0f, 0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-            1.0f, 0.0f, -1.0f, 0.0f, -1.0f, 0.0f, -1.0f, 0.0f,
-            1.0f, 1.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f,
-            1.0f, -1.0f, 0.0f, 0.0f, -1.0f, -1.0f, 0.0f, 0.0f,
-            0.0f, 1.0f, 1.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,
-            0.0f, 1.0f, -1.0f, 0.0f, 0.0f, -1.0f, -1.0f, 0.0f,
-            1.0f, 0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-            1.0f, 0.0f, -1.0f, 0.0f, -1.0f, 0.0f, -1.0f, 0.0f,
-            1.0f, 1.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f,
-            1.0f, -1.0f, 0.0f, 0.0f, -1.0f, -1.0f, 0.0f, 0.0f,
-            0.0f, 1.0f, 1.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,
-            0.0f, 1.0f, -1.0f, 0.0f, 0.0f, -1.0f, -1.0f, 0.0f,
-            1.0f, 0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-            1.0f, 0.0f, -1.0f, 0.0f, -1.0f, 0.0f, -1.0f, 0.0f,
-            1.0f, 1.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f,
-            1.0f, -1.0f, 0.0f, 0.0f, -1.0f, -1.0f, 0.0f, 0.0f,
-            0.0f, 1.0f, 1.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,
-            0.0f, 1.0f, -1.0f, 0.0f, 0.0f, -1.0f, -1.0f, 0.0f,
-            1.0f, 0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-            1.0f, 0.0f, -1.0f, 0.0f, -1.0f, 0.0f, -1.0f, 0.0f,
-            1.0f, 1.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f,
-            1.0f, -1.0f, 0.0f, 0.0f, -1.0f, -1.0f, 0.0f, 0.0f,
-            0.0f, 1.0f, 1.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,
-            0.0f, 1.0f, -1.0f, 0.0f, 0.0f, -1.0f, -1.0f, 0.0f,
-            1.0f, 0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-            1.0f, 0.0f, -1.0f, 0.0f, -1.0f, 0.0f, -1.0f, 0.0f,
-            1.0f, 1.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f,
-            1.0f, -1.0f, 0.0f, 0.0f, -1.0f, -1.0f, 0.0f, 0.0f,
             0.0f, 1.0f, 1.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,
             0.0f, 1.0f, -1.0f, 0.0f, 0.0f, -1.0f, -1.0f, 0.0f,
             1.0f, 0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,
