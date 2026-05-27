@@ -1,318 +1,44 @@
+# =============================================================================
+# RealWorld 核心配置
+# =============================================================================
+# 此文件仅包含模块全局设置和 HUD 显示配置
+# 各子系统配置已拆分到独立文件：temperature.yml / thirst.yml / weather.yml / season.yml / fracture.yml / stamina.yml
+
+# 是否启用 RealWorld 模块（总开关）
+# 关闭后所有子系统停止工作，玩家数据保留但不再更新
 enabled: true
 
-# =============================================================================
-# 时间控制
-# =============================================================================
-# 功能说明：
-#   - 自定义游戏时间流速，实现"现实1小时 = 游戏1天"的效果
-#   - 原版 Minecraft：游戏1天 = 20分钟（现实时间）
-#   - 启用后：游戏1天 = 60分钟（现实时间），时间流速变为 1/3
-#   - 影响：昼夜循环、光照变化、怪物刷新等与时间相关的游戏机制
-#
-# 工作原理：
-#   - 禁用原版 GameRules.ADVANCE_TIME 游戏规则
-#   - 每 3 个服务器 tick 推进 1 个游戏 tick（1/3 倍率）
-#   - 无浮点数精度问题，时间准确无偏差
-time-control:
-  # 是否启用自定义时间流速（true=启用，false=使用原版时间流速）
-  enabled: true
-
+# 每隔多少秒执行一次生存状态计算（体温、口渴、体力等）
+# 值越小越精确，但性能开销越大（推荐 1~3 秒）
 tick-interval-seconds: 2
 
-season:
-  # 季节持续游戏天数
-  # 默认 7 天
-  # 启用时间控制时：7 天 = 现实 7 小时
-  # 原版时间流速：7 天 = 现实 140 分钟
-  duration-days: 7
-  transition-progress: 0.1
+# 自动保存间隔（分钟）
+# 玩家生存数据每隔多久持久化到数据库
+auto-save-interval-minutes: 5
 
-weather:
-  decision-interval-seconds: 300
-  persistence-chance: 0.6
-  extreme:
-    # 命中 BLIZZARD / SANDSTORM / ACID_RAIN 时，先进入预警倒计时；<= 0 则直接切换。
-    warning-seconds: 30
-    grace-period-seconds: 10
-    damage-interval-seconds: 3
-    base-damage-hearts: 2.0
-  visibility:
-    # 视觉效果使用短持续药水并自动续期，避免主动清除其他系统来源效果。
-    effect-duration-seconds: 3
-    fog:
-      blindness-amplifier: 0
-    blizzard:
-      blindness-amplifier: 1
-    sandstorm:
-      blindness-amplifier: 2
-  # 局部天气配置
-  local:
-    enabled: true
-    # 噪声频率，值越小天气区域越大（推荐 0.01 ~ 0.02）
-    noise-frequency: 0.015
-    # 天气变化速度系数
-    change-speed: 0.001
-    # 是否启用天气缓存
-    cache-enabled: true
-    # 最大缓存大小
-    cache-max-size: 1000
-
-temperature:
-  comfort-min: 15
-  comfort-max: 36
-  altitude-threshold-y: 80
-  altitude-drop-per-block: 0.5
-  scan-interval-seconds: 5
-  max-change-per-tick: 0.5
-  shelter:
-    # 室内/保温遮蔽仍使用偏宽松判定；以下开关主要影响天气暴露判定。
-    # 天气遮蔽默认接受完整实体顶、半砖顶、楼梯顶；玻璃/树叶由下列开关决定。
-    glass-counts-as-shelter: false
-    leaves-count-as-shelter: false
-    horizontal-radius: 1
-  armor-bonus:
-    leather: 5
-    netherite: 10
-  thresholds:
-    severe-heat: 42.0
-    heat: 36.0
-    cold-mild: 15.0
-    cold: 5.0
-    severe-cold: -5.0
-
-thirst:
-  base-rate-per-minute: 0.5
-  sprint-multiplier: 2.0
-  submerge-multiplier: 0.1
-  altitude-threshold-y: 100
-  altitude-multiplier: 1.2
-  temperature-deviation-percent-per-degree: 2.0
-  thresholds:
-    full: 60.0
-    thirsty: 30.0
-    severe: 10.0
-  water-sources:
-    water-bottle: 30.0
-    right-click-source: 20.0
-    drinker: 40.0
-    rain-per-minute: 2.0
-    sea-water: 10.0
-  drinker-cooldown-seconds: 2
-  water-quality:
-    river-nausea-chance: 0.1
-    sea-water-nausea-chance: 1.0
+# =============================================================================
+# HUD 显示配置
+# =============================================================================
+# 控制玩家屏幕上显示的生存信息
 
 hud:
+  # ActionBar 格式（屏幕底部中央）
+  # 可用变量：{temp} 体温 / {hydration} 口渴 / {wetness} 潮湿度 / {sheltered} 遮蔽状态 / {weather} 天气 / {season} 季节
   actionbar-format: "&c🌡 {temp}°C  &b💧 {hydration}/100  &9💦 {wetness}%  {sheltered}  &f{weather}  &a{season}"
+
+  # 遮蔽状态指示器（玩家在室内时显示）
   sheltered-indicator: "&a🏠"
+  # 未遮蔽状态指示器（玩家在室外时显示）
   unsheltered-indicator: "&7☁"
+
+  # ActionBar 刷新间隔（秒）
   refresh-interval-seconds: 2
+
+  # BossBar 警告（极端状态时显示在屏幕顶部）
   bossbar-enabled: true
+  # 严重过热警告文案
   bossbar-title-heat: "&c严重过热！寻找阴凉处！"
+  # 严重过冷警告文案
   bossbar-title-cold: "&b严重过冷！寻找热源！"
+  # 严重脱水警告文案
   bossbar-title-thirst: "&e严重脱水！寻找水源！"
-
-# 霜冻遮罩 — 低温时向客户端发送伪装的 frozenTicks metadata，
-# 触发原生冰霜覆盖全屏效果。数值越大霜冻越重，最大 299。
-# >= 300 会触发服务端冻伤减速，因此上限锁定在 299。
-frost-overlay:
-  cold-intensity: 100
-  severe-cold-intensity: 250
-
-# 高温红屏 — 通过 WorldBorder 的 warningDistance 实现全屏红色叠加。
-# 范围 0.0~1.0，0 表示关闭。
-heat-overlay:
-  heat-intensity: 0.3
-  severe-intensity: 0.8
-
-# 潮湿度 — 玩家在水中/雨中会变潮，降低保暖效果。
-# 潮湿度 0~1，高湿度会让体温更难维持。
-wetness:
-  # 每秒浸水增加量
-  rate-submerge: 0.05
-  # 每秒雨中增加量（需暴露在露天）
-  rate-rain: 0.01
-  # 每秒自然干燥量（气温>30°C 时自动翻倍）
-  dry-rate: 0.005
-
-# 温度方块 — 周围方块对局部温度的距离加权影响。
-# 温度值为绝对摄氏度，与环境温度之差形成偏移。
-# 权重: 1 / max(0.5, 距离²)，扫描半径 5 格。
-temperature-blocks:
-  BLUE_ICE: -25
-  PACKED_ICE: -20
-  POWDER_SNOW: -20
-  SNOW_BLOCK: -15
-  ICE: -10
-  SNOW: -8
-  GLOWSTONE: 30
-  SOUL_TORCH: 40
-  SOUL_CAMPFIRE: 55
-  SOUL_LANTERN: 50
-  JACK_O_LANTERN: 45
-  LANTERN: 50
-  TORCH: 55
-  MAGMA_BLOCK: 65
-  FURNACE: 60
-  BLAST_FURNACE: 60
-  SMOKER: 60
-  CAMPFIRE: 80
-  LAVA: 120
-
-# 骨折系统配置
-# 高处坠落会导致骨折，影响移动速度
-# 骨折值范围：0-100
-# 恢复方式：自然恢复或使用治疗物品（绷带/石膏）
-fracture:
-  # 是否启用骨折系统
-  enabled: true
-
-  # 坠落伤害阈值：低于此值的坠落不会导致骨折
-  # 原版 Minecraft 中，3 格高度坠落造成 1 点伤害（0.5 心）
-  # 默认值 4.0 相当于从 6 格高度坠落
-  min-fall-damage: 4.0
-
-  # 伤害转换为骨折值的倍率
-  # 公式：骨折值增加 = (坠落伤害 - 阈值) * 倍率
-  # 例如：10 点伤害，阈值 4，倍率 5 → 增加 30 点骨折值
-  damage-multiplier: 5.0
-
-  # 自然恢复速率（每分钟恢复的骨折值）
-  # 中度及以上骨折时，恢复速率减半
-  recovery-rate: 2.0
-
-  # 绷带治疗的骨折值
-  bandage-heal-amount: 30.0
-
-  # 绷带材料（用于制作治疗物品）
-  bandage-material: PAPER
-
-  # 石膏材料（完全治愈）
-  cast-material: CLAY_BALL
-
-  # 骨折等级阈值
-  thresholds:
-    # 轻微骨折：移动速度降低 20%
-    mild: 20.0
-    # 中度骨折：移动速度降低 50%，禁止疾跑
-    moderate: 50.0
-    # 严重骨折：移动速度降低 80%，禁止疾跑
-    severe: 80.0
-
-storage:
-  auto-save-interval-minutes: 5
-
-# =============================================================================
-# 体力系统配置
-# =============================================================================
-stamina:
-  enabled: true
-
-  max-stamina: 100.0
-  base-consumption-rate: 0.05
-  base-recovery-rate: 0.3
-  max-multiplier: 5.0
-
-  continuous:
-    sprint-multiplier: 2.0
-    swim-multiplier: 2.5
-    climb-multiplier: 2.0
-
-  actions:
-    attack-cost: 0.15
-    mine-cost: 0.075
-    use-tool-cost: 0.1
-
-  special:
-    underwater-multiplier: 4.0
-    high-altitude-multiplier: 2.0
-    high-altitude-y: 120
-
-  recovery:
-    idle:
-      enabled: true
-      delay-seconds: 3.0
-      multiplier: 1.0
-      blocked-in-extreme-temperature: true
-      blocked-underwater: true
-      blocked-when-attacked: true
-    food:
-      enabled: true
-      hunger-to-stamina-ratio: 2.0
-      rotten-food-penalty: 0.5
-      cooldown-seconds: 1.0
-    drink:
-      enabled: true
-      hydration-to-stamina-ratio: 0.5
-    sleep:
-      enabled: true
-      outdoor-recovery-percent: 50.0
-      blocked-in-extreme-temperature: true
-    special-items:
-      enabled: true
-      items:
-        GOLDEN_APPLE: 50.0
-        ENCHANTED_GOLDEN_APPLE: 100.0
-
-  penalties:
-    tired:
-      threshold: 60.0
-      speed-multiplier: 0.85
-    exhausted:
-      threshold: 30.0
-      speed-multiplier: 0.70
-      mining-fatigue-amplifier: 0
-      weakness-amplifier: 0
-    depleted:
-      threshold: 10.0
-      speed-multiplier: 0.50
-      mining-fatigue-amplifier: 1
-      weakness-amplifier: 1
-    effect-duration-seconds: 3
-
-  messages:
-    enter-tired: "&e⚡ 你感到有些疲劳了... (体力: {stamina}%)"
-    enter-exhausted: "&c⚡ 你筋疲力尽了！无法疾跑！ (体力: {stamina}%)"
-    enter-depleted: "&4⚡ 体力耗尽！你几乎无法行动！ (体力: {stamina}%)"
-    depleted-reminder: "&4⚡ 你需要休息或进食来恢复体力！ (体力: {stamina}%)"
-    recovered-from-tired: "&a⚡ 你感觉好多了。 (体力: {stamina}%)"
-    recovered-from-exhausted: "&a⚡ 你恢复了一些精力。 (体力: {stamina}%)"
-    recovered-from-depleted: "&a⚡ 你终于缓过来了。 (体力: {stamina}%)"
-    depleted-reminder-cooldown-seconds: 30
-
-  hud:
-    bossbar-enabled: true
-    bossbar-title-exhausted: "&e⚡ 体力不足！寻找食物或休息！"
-    bossbar-title-depleted: "&4⚡ 体力耗尽！你几乎无法行动！"
-    bossbar-color-exhausted: "YELLOW"
-    bossbar-color-depleted: "RED"
-    bossbar-style: "SOLID"
-
-  integration:
-    temperature:
-      enabled: true
-      extreme-multiplier: 1.5
-      mild-multiplier: 1.2
-    fracture:
-      enabled: true
-      threshold: 20.0
-      consumption-multiplier: 1.3
-      max-stamina-reduction: 30.0
-    thirst:
-      enabled: true
-      dehydration-threshold: 30.0
-      recovery-multiplier: 0.5
-    wetness:
-      enabled: true
-      threshold: 0.7
-      consumption-multiplier: 1.2
-    food:
-      enabled: true
-      full-saturation-bonus: 1.25
-    weather:
-      enabled: true
-      extreme-multiplier: 1.3
-    season:
-      enabled: true
-      winter-multiplier: 1.1
-      summer-multiplier: 1.05
