@@ -1,5 +1,11 @@
-package com.pixlehavencore.feature.realworld
+package com.pixlehavencore.feature.realworld.thirst
 
+import com.pixlehavencore.feature.realworld.GlobalEnvState
+import com.pixlehavencore.feature.realworld.PlayerEnvState
+import com.pixlehavencore.feature.realworld.RealWorldSettings
+import com.pixlehavencore.feature.realworld.season.SeasonEngine
+import com.pixlehavencore.feature.realworld.ThirstPhase
+import com.pixlehavencore.feature.realworld.WeatherType
 import java.util.concurrent.ThreadLocalRandom
 import org.bukkit.Material
 import org.bukkit.block.Block
@@ -20,7 +26,7 @@ object ThirstEngine {
         global: GlobalEnvState,
         tickIntervalSeconds: Int,
     ) {
-        val settings = RealWorldSettings
+        val settings = ThirstSettings
         val intervalSeconds = tickIntervalSeconds.coerceAtLeast(0)
         val baseConsumption = settings.baseThirstRatePerMinute / 60.0 * intervalSeconds
         val seasonMultiplier = SeasonEngine.getHydrationMultiplier(global)
@@ -58,7 +64,7 @@ object ThirstEngine {
     }
 
     fun onWaterBottleConsume(state: PlayerEnvState) {
-        restoreHydration(state, RealWorldSettings.waterBottleRestore)
+        restoreHydration(state, ThirstSettings.waterBottleRestore)
     }
 
     fun isNaturalWaterSource(block: Block): Boolean {
@@ -67,7 +73,7 @@ object ThirstEngine {
 
     fun onRightClickNaturalWaterSource(player: Player, state: PlayerEnvState, block: Block): Boolean {
         val sourceType = resolveNaturalWaterSourceType(block) ?: return false
-        val settings = RealWorldSettings
+        val settings = ThirstSettings
         val restore = when (sourceType) {
             NaturalWaterSourceType.FRESH_WATER -> settings.waterSourceRestore
             NaturalWaterSourceType.SEA_WATER -> settings.seaWaterRestore
@@ -93,7 +99,7 @@ object ThirstEngine {
         if (!isDrinker(block)) {
             return false
         }
-        return restoreHydration(state, RealWorldSettings.drinkerRestore)
+        return restoreHydration(state, ThirstSettings.drinkerRestore)
     }
 
     private fun resolveNaturalWaterSourceType(block: Block): NaturalWaterSourceType? {
@@ -166,9 +172,9 @@ object ThirstEngine {
 
     fun classifyThirst(hydration: Double): ThirstPhase {
         return when {
-            hydration >= RealWorldSettings.thirstFull -> ThirstPhase.FULL
-            hydration >= RealWorldSettings.thirstThirsty -> ThirstPhase.THIRSTY
-            hydration >= RealWorldSettings.thirstSevere -> ThirstPhase.SEVERE_THIRST
+            hydration >= ThirstSettings.thirstFull -> ThirstPhase.FULL
+            hydration >= ThirstSettings.thirstThirsty -> ThirstPhase.THIRSTY
+            hydration >= ThirstSettings.thirstSevere -> ThirstPhase.SEVERE_THIRST
             else -> ThirstPhase.DEHYDRATED
         }
     }

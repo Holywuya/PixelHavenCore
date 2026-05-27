@@ -1,5 +1,10 @@
-package com.pixlehavencore.feature.realworld
+package com.pixlehavencore.feature.realworld.weather
 
+import com.pixlehavencore.feature.realworld.GlobalEnvState
+import com.pixlehavencore.feature.realworld.RealWorldWeatherChangedEvent
+import com.pixlehavencore.feature.realworld.RealWorldWeatherWarningStartedEvent
+import com.pixlehavencore.feature.realworld.WeatherState
+import com.pixlehavencore.feature.realworld.WeatherType
 import java.util.concurrent.ThreadLocalRandom
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
@@ -11,10 +16,10 @@ object WeatherEngine {
      * 初始化天气引擎
      */
     fun init(worldSeed: Int) {
-        if (RealWorldSettings.localWeatherEnabled) {
-            ChunkWeatherEngine.init(worldSeed, RealWorldSettings.localWeatherNoiseFrequency)
-            WeatherCache.setMaxSize(RealWorldSettings.localWeatherCacheMaxSize)
-            info("[RealWorld] 局部天气引擎已初始化 (频率: ${RealWorldSettings.localWeatherNoiseFrequency})")
+        if (WeatherSettings.localEnabled) {
+            ChunkWeatherEngine.init(worldSeed, WeatherSettings.localNoiseFrequency)
+            WeatherCache.setMaxSize(WeatherSettings.localCacheMaxSize)
+            info("[RealWorld] 局部天气引擎已初始化 (频率: ${WeatherSettings.localNoiseFrequency})")
         }
     }
 
@@ -23,7 +28,7 @@ object WeatherEngine {
      * 现在只负责更新全局主导天气和极端天气预警
      */
     fun tick(global: GlobalEnvState, tickIntervalSeconds: Int, players: List<Player>) {
-        if (!RealWorldSettings.localWeatherEnabled) {
+        if (!WeatherSettings.localEnabled) {
             // 保留旧的全局天气逻辑作为后备
             tickGlobalWeather(global, tickIntervalSeconds)
             return
@@ -93,7 +98,7 @@ object WeatherEngine {
         }
 
         decideWeather(global)
-        val interval = RealWorldSettings.weatherDecisionIntervalSeconds.toDouble()
+        val interval = WeatherSettings.decisionIntervalSeconds.toDouble()
         while (global.weatherDecisionTimer <= 0.0) {
             global.weatherDecisionTimer += interval
         }
@@ -113,14 +118,14 @@ object WeatherEngine {
         val targetIntensity = global.pendingWeatherIntensity
         clearWarning(global)
         setWeather(global, targetWeather, targetIntensity)
-        global.weatherDecisionTimer = RealWorldSettings.weatherDecisionIntervalSeconds.toDouble()
+        global.weatherDecisionTimer = WeatherSettings.decisionIntervalSeconds.toDouble()
         return true
     }
 
     private fun decideWeather(global: GlobalEnvState) {
         val random = ThreadLocalRandom.current()
         val currentWeather = global.weather
-        if (currentWeather != WeatherType.CLEAR && random.nextDouble() < RealWorldSettings.weatherPersistenceChance) {
+        if (currentWeather != WeatherType.CLEAR && random.nextDouble() < WeatherSettings.persistenceChance) {
             global.weatherIntensity = random.nextDouble(0.5, 1.0).coerceIn(0.0, 1.0)
             return
         }
@@ -156,7 +161,7 @@ object WeatherEngine {
             return
         }
 
-        val warningSeconds = RealWorldSettings.extremeWarningSeconds.toDouble()
+        val warningSeconds = WeatherSettings.extremeWarningSeconds.toDouble()
         if (warningSeconds <= 0.0) {
             setWeather(global, weather, intensity)
             return

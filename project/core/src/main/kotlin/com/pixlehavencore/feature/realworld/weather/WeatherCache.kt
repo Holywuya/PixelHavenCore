@@ -1,5 +1,7 @@
-package com.pixlehavencore.feature.realworld
+package com.pixlehavencore.feature.realworld.weather
 
+import com.pixlehavencore.feature.realworld.Season
+import com.pixlehavencore.feature.realworld.WeatherState
 import java.util.concurrent.ConcurrentHashMap
 
 /**

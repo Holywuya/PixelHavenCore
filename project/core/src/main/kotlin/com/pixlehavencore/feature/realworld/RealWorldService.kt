@@ -1,10 +1,15 @@
 package com.pixlehavencore.feature.realworld
 
 import com.pixlehavencore.feature.realworld.foodcorrosion.FoodCorrosionEngine
-import com.pixlehavencore.feature.realworld.temperature.TemperatureEngine
-import com.pixlehavencore.feature.realworld.weather.WeatherEngine
 import com.pixlehavencore.feature.realworld.foodcorrosion.FoodCorrosionService
 import com.pixlehavencore.feature.realworld.foodcorrosion.FoodCorrosionSettings
+import com.pixlehavencore.feature.realworld.fracture.FractureEngine
+import com.pixlehavencore.feature.realworld.fracture.FractureSettings
+import com.pixlehavencore.feature.realworld.fracture.FractureTreatment
+import com.pixlehavencore.feature.realworld.season.SeasonEngine
+import com.pixlehavencore.feature.realworld.temperature.TemperatureEngine
+import com.pixlehavencore.feature.realworld.thirst.ThirstEngine
+import com.pixlehavencore.feature.realworld.weather.WeatherEngine
 import com.pixlehavencore.util.cancelTaskSafely
 import org.bukkit.Bukkit
 import org.bukkit.Material
@@ -378,8 +383,8 @@ object RealWorldService {
         val heldItem = event.item
         if (heldItem != null && !heldItem.type.isAir) {
             val treatment = when (heldItem.type) {
-                RealWorldSettings.fractureBandageMaterial -> FractureTreatment.BANDAGE
-                RealWorldSettings.fractureCastMaterial -> FractureTreatment.CAST
+                FractureSettings.fractureBandageMaterial -> FractureTreatment.BANDAGE
+                FractureSettings.fractureCastMaterial -> FractureTreatment.CAST
                 else -> null
             }
             if (treatment != null) {

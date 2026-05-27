@@ -1,5 +1,8 @@
-package com.pixlehavencore.feature.realworld
+package com.pixlehavencore.feature.realworld.weather
 
+import com.pixlehavencore.feature.realworld.GlobalEnvState
+import com.pixlehavencore.feature.realworld.WeatherState
+import com.pixlehavencore.feature.realworld.WeatherType
 import org.bukkit.Chunk
 import org.bukkit.Location
 import org.bukkit.World

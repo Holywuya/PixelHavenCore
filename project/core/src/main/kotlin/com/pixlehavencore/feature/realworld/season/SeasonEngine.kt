@@ -1,5 +1,9 @@
-package com.pixlehavencore.feature.realworld
+package com.pixlehavencore.feature.realworld.season
 
+import com.pixlehavencore.feature.realworld.DayPhase
+import com.pixlehavencore.feature.realworld.GlobalEnvState
+import com.pixlehavencore.feature.realworld.RealWorldSeasonChangedEvent
+import com.pixlehavencore.feature.realworld.Season
 import kotlin.math.cos
 import org.bukkit.Bukkit
 import taboolib.common.platform.function.info
@@ -7,7 +11,7 @@ import taboolib.common.platform.function.info
 object SeasonEngine {
 
     fun tick(global: GlobalEnvState, tickIntervalSeconds: Int) {
-        val seasonDurationTicks = RealWorldSettings.seasonDurationTicks
+        val seasonDurationTicks = SeasonSettings.seasonDurationTicks
         if (seasonDurationTicks <= 0L) {
             return
         }
@@ -69,7 +73,7 @@ object SeasonEngine {
 
     private fun interpolateSeasonValue(global: GlobalEnvState, selector: (Season) -> Double): Double {
         val currentSeason = global.season
-        val transitionProgress = RealWorldSettings.seasonTransitionProgress.coerceIn(0.0, 1.0)
+        val transitionProgress = SeasonSettings.transitionProgress.coerceIn(0.0, 1.0)
         if (transitionProgress <= 0.0) {
             return selector(currentSeason)
         }

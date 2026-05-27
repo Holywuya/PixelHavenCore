@@ -1,5 +1,7 @@
 package com.pixlehavencore.feature.realworld
 
+import com.pixlehavencore.feature.realworld.weather.WeatherQuery
+import com.pixlehavencore.feature.realworld.weather.WeatherSettings
 import org.bukkit.Particle
 import org.bukkit.entity.Player
 import org.bukkit.potion.PotionEffect
@@ -122,7 +124,7 @@ object SurvivalEffectApplier {
         state: PlayerEnvState,
         global: GlobalEnvState,
     ) {
-        val visibilityWeather = if (RealWorldSettings.localWeatherEnabled) {
+        val visibilityWeather = if (WeatherSettings.localEnabled) {
             WeatherQuery.getVisibilityWeatherAt(player.location, global)
         } else {
             global.weather.takeIf { it.affectsVisibility }

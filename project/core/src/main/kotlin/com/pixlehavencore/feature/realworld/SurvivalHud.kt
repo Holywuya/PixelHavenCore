@@ -1,6 +1,8 @@
 package com.pixlehavencore.feature.realworld
 
 import com.pixlehavencore.bridge.TextBridge
+import com.pixlehavencore.feature.realworld.fracture.FractureEngine
+import com.pixlehavencore.feature.realworld.fracture.FractureSeverity
 import com.pixlehavencore.feature.realworld.temperature.FrostOverlay
 import com.pixlehavencore.feature.realworld.temperature.HeatOverlay
 import com.pixlehavencore.feature.realworld.weather.WeatherEngine
