@@ -1,7 +1,6 @@
 package com.pixlehavencore
 
 import com.pixlehavencore.config.ConfigAlignService
-import com.pixlehavencore.config.ConfigMigrationService
 import com.pixlehavencore.feature.base.BaseCommandSettings
 import com.pixlehavencore.feature.craftingbench.CraftingBenchService
 import com.pixlehavencore.feature.durability.DurabilityService
@@ -53,7 +52,6 @@ import taboolib.common.platform.function.info
 object PixleHavenCore : Plugin() {
 
     override fun onEnable() {
-        ConfigMigrationService.updateAll()
         ConfigAlignService.alignAll()
         PixleHavenSettings.init()
         VeinminerSettings.init()

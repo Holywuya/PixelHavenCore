@@ -111,8 +111,15 @@ object ConfigAlignService {
      */
     private fun alignResource(resourcePath: String): Boolean {
         val target = File(getDataFolder(), resourcePath)
-        // 如果服务器上该文件不存在，由 ConfigMigrationService 负责释放，此处跳过
-        if (!target.exists()) return false
+        target.parentFile?.mkdirs()
+
+        // 文件不存在时从 JAR 释放
+        if (!target.exists()) {
+            val stream = javaClass.classLoader.getResourceAsStream(resourcePath) ?: return false
+            stream.use { input -> target.outputStream().use { output -> input.copyTo(output) } }
+            info("[Config] 已释放新配置文件: $resourcePath")
+            return true
+        }
 
         val template = loadResourceYaml(resourcePath) ?: return false
         val current = YamlConfiguration.loadConfiguration(target)
