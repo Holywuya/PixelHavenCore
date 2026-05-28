@@ -13,12 +13,16 @@ object ItemUtils {
     private val headCache = ConcurrentHashMap<String, ItemStack>()
 
     fun looksLikeLibrarySpec(spec: String): Boolean {
-        return CraftEngineItemsUtil.looksLikeCeSpec(spec) || BaikirutoItemsUtil.looksLikeBkSpec(spec)
+        return CraftEngineItemsUtil.looksLikeCeSpec(spec)
+            || BaikirutoItemsUtil.looksLikeBkSpec(spec)
+            || MythicItemsUtil.looksLikeMmSpec(spec)
     }
 
     fun getItemBySpec(spec: String, player: Player? = null): ItemStack? {
         CraftEngineItemsUtil.getItemBySpec(spec, player)?.let { return it }
-        return BaikirutoItemsUtil.getItemBySpec(spec)
+        BaikirutoItemsUtil.getItemBySpec(spec)?.let { return it }
+        MythicItemsUtil.getItemBySpec(spec)?.let { return it }
+        return null
     }
 
     fun resolveMaterialOrLibrary(spec: String, player: Player? = null): ItemStack? {
@@ -31,6 +35,7 @@ object ItemUtils {
     fun getNamespacedItemIdBySpec(spec: String): String? {
         CraftEngineItemsUtil.getItemIdBySpec(spec)?.let { return "ce:$it" }
         BaikirutoItemsUtil.getItemIdBySpec(spec)?.let { return "bai:$it" }
+        MythicItemsUtil.getItemIdBySpec(spec)?.let { return "mm:$it" }
         return null
     }
 
