@@ -16,6 +16,7 @@ object TemperatureEngine {
 
     private const val TEMPERATURE_SCAN_RANGE = 5
     private const val SHELTER_CACHE_SECONDS = 5.0
+    private const val BLOCK_DAMPING_FACTOR = 5.0
 
     private val temperatureScanOffsets = buildList {
         for (x in -TEMPERATURE_SCAN_RANGE..TEMPERATURE_SCAN_RANGE) {
@@ -58,10 +59,7 @@ object TemperatureEngine {
         // 温度方块：距离加权扫描
         state.heatSourceScanTimer -= tickIntervalSeconds.coerceAtLeast(0)
         if (state.heatSourceScanTimer <= 0.0) {
-            val ambientBaseline = biomeBaseTemperature +
-                seasonModifier + timeModifier + weatherModifier +
-                altitudeModifier + armorModifier
-            val scanResult = scanTemperatureBlocks(player, ambientBaseline)
+            val scanResult = scanTemperatureBlocks(player)
             state.nearHeatSource = scanResult.first
             state.temperatureBlockModifier = scanResult.second
             val interval = TemperatureSettings.heatSourceScanIntervalSeconds.toDouble()
@@ -264,12 +262,12 @@ object TemperatureEngine {
 
     /**
      * 距离加权扫描周围温度方块。
-     * 返回 (最近热源枚举, 加权平均温度偏移量)。
-     * 偏移量 = 加权平均方块温度 - 环境基准温度，
-     * 正值加热、负值降温。
+     * 返回 (最近热源枚举, 辐射加热偏移量)。
+     * 偏移量 = (加权平均方块温度 - 参考温度) / 衰减系数，
+     * 参考温度取舒适区中点 25.5°C，衰减系数 5。
      * 权重公式: 1 / max(0.5, distance²)
      */
-    private fun scanTemperatureBlocks(player: Player, ambientBaseline: Double): Pair<HeatSource?, Double> {
+    private fun scanTemperatureBlocks(player: Player): Pair<HeatSource?, Double> {
         val playerLocation = player.location
         val originBlock = playerLocation.block
         val temperatureBlocks = TemperatureSettings.temperatureBlocks
@@ -302,8 +300,12 @@ object TemperatureEngine {
             }
         }
 
-        val weightedAvg = if (totalWeight > 0.0) weightedSum / totalWeight else ambientBaseline
-        return nearestSource to (weightedAvg - ambientBaseline)
+        if (totalWeight <= 0.0) return nearestSource to 0.0
+
+        val weightedAvg = weightedSum / totalWeight
+        val referenceTemp = (TemperatureSettings.comfortMin + TemperatureSettings.comfortMax) / 2.0
+        val blockModifier = (weightedAvg - referenceTemp) / BLOCK_DAMPING_FACTOR
+        return nearestSource to blockModifier
     }
 
     private fun isBlockActive(block: Block): Boolean {
