@@ -133,7 +133,18 @@ object TemperatureEngine {
         }
     }
 
-    fun getBiomeWaterTemp(biomeName: String): Double {
+    fun getBiomeWaterTemp(location: Location, biomeName: String): Double {
+        location.world?.let { world ->
+            try {
+                val nativeTemp = world.getTemperature(location.blockX, location.blockY, location.blockZ)
+                // 原生温度 0.0~2.0 映射到水温 2~24°C
+                // 0.0(冰冻)→2°C, 0.5(海洋)→12°C, 0.95(丛林)→22°C, 2.0(下界)→24°C(上限)
+                return (2.0 + nativeTemp * 11.0).coerceIn(2.0, 24.0)
+            } catch (e: Exception) {
+                // fallback
+            }
+        }
+
         val normalizedName = biomeName.lowercase()
         return when {
             normalizedName.contains("jungle") || normalizedName.contains("bamboo") -> 24.0
@@ -153,7 +164,7 @@ object TemperatureEngine {
         }
 
         val biomeName = player.location.block.biome.toString().lowercase()
-        val biomeWaterTemp = getBiomeWaterTemp(biomeName)
+        val biomeWaterTemp = getBiomeWaterTemp(player.location, biomeName)
 
         val previousSeason = getPreviousSeason(global.season)
         val seasonLag = previousSeason.temperatureModifier * TemperatureSettings.waterSeasonLagRatio
