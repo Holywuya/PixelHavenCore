@@ -42,7 +42,7 @@ object TemperatureEngine {
         state.biomeTemperature = biomeBaseTemperature
 
         val seasonModifier = SeasonEngine.getTemperatureModifier(global)
-        val timeModifier = SeasonEngine.getTimeTemperatureModifier(worldTime, biomeName)
+        val timeModifier = SeasonEngine.getTimeTemperatureModifier(worldTime, biomeName, location)
         val weatherModifier = if (WeatherSettings.localEnabled) {
             WeatherQuery.getTemperatureModifierAt(player.location, global)
         } else {
@@ -194,7 +194,18 @@ object TemperatureEngine {
         return maxY
     }
 
-    fun getBiomeDayNightFactor(biomeName: String): Double {
+    fun getBiomeDayNightFactor(location: Location, biomeName: String): Double {
+        location.world?.let { world ->
+            try {
+                val nativeTemp = world.getTemperature(location.blockX, location.blockY, location.blockZ)
+                // 干燥/炎热群系温差大，潮湿/水域群系温差小
+                // nativeTemp 0.0~2.0 映射到因子 0.5~1.5
+                return (0.5 + nativeTemp * 0.5).coerceIn(0.5, 1.5)
+            } catch (e: Exception) {
+                // fallback
+            }
+        }
+
         val normalizedName = biomeName.lowercase()
         return when {
             normalizedName.contains("desert") || normalizedName.contains("badlands") -> 1.5

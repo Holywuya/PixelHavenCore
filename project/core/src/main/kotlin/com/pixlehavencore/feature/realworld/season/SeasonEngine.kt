@@ -58,11 +58,11 @@ object SeasonEngine {
         }
     }
 
-    fun getTimeTemperatureModifier(worldTime: Long, biomeName: String = ""): Double {
+    fun getTimeTemperatureModifier(worldTime: Long, biomeName: String = "", location: org.bukkit.Location? = null): Double {
         val normalizedTime = ((worldTime % 24000L) + 24000L) % 24000L
         val radians = 2.0 * Math.PI * (normalizedTime - 6000.0) / 24000.0
-        val biomeFactor = if (biomeName.isNotEmpty()) {
-            TemperatureEngine.getBiomeDayNightFactor(biomeName)
+        val biomeFactor = if (location != null) {
+            TemperatureEngine.getBiomeDayNightFactor(location, biomeName)
         } else {
             1.0
         }
