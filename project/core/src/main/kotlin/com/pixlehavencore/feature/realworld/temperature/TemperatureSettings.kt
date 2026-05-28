@@ -77,6 +77,8 @@ object TemperatureSettings {
         private set
     var shelterLeavesCountAsCanopy: Boolean = true
         private set
+    var blockDecayFactor: Double = 0.5
+        private set
 
     private const val MAX_SHELTER_HORIZONTAL_RADIUS = 2
 
@@ -135,5 +137,6 @@ object TemperatureSettings {
         shelterCanopyBonus = config.getDouble("shelter.canopy-bonus", 2.0)
         shelterBuildingBonus = config.getDouble("shelter.building-bonus", 8.0)
         shelterLeavesCountAsCanopy = config.getBoolean("shelter.leaves-count-as-canopy", true)
+        blockDecayFactor = config.getDouble("temperature-blocks.decay-factor", 0.5).coerceIn(0.1, 0.9)
     }
 }

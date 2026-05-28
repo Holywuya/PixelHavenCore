@@ -144,30 +144,34 @@ water:
 # 温度方块配置
 # =============================================================================
 # 周围方块对局部温度的辐射加热/冷却效果
-# 温度值为辐射源参考温度（°C），使用参考温度法计算偏移：
-#   偏移 = (方块温度 - 舒适中点25.5°C) / 衰减系数5
-# 权重公式：1 / max(0.5, 距离²)，扫描半径 5 格
-# 示例：篝火80°C在1格距离产生 (80-25.5)/5 = +10.9°C 的体感加热
+# 使用衰减叠加模型：modifier = Σ (方块温度 - 环境温度) × 衰减因子^距离
+# 衰减因子默认 0.5，每远 1 格效果减半
+# 多热源可叠加但有自然衰减，不会无限累加
+# 示例：篝火45°C在环境20°C、距离1格时产生 (45-20) × 0.5^1 = +12.5°C
 
 temperature-blocks:
+  # 衰减因子（0.1-0.9，越小衰减越快）
+  decay-factor: 0.5
+
   # 制冷方块（负值 = 降温）
-  BLUE_ICE: -25
-  PACKED_ICE: -20
-  POWDER_SNOW: -20
-  SNOW_BLOCK: -15
-  ICE: -10
-  SNOW: -8
+  BLUE_ICE: -15
+  PACKED_ICE: -12
+  POWDER_SNOW: -10
+  SNOW_BLOCK: -8
+  ICE: -8
+  SNOW: -5
+
   # 制热方块（正值 = 升温）
-  GLOWSTONE: 30
-  SOUL_TORCH: 40
-  SOUL_CAMPFIRE: 55
-  SOUL_LANTERN: 50
-  JACK_O_LANTERN: 45
-  LANTERN: 50
-  TORCH: 55
-  MAGMA_BLOCK: 65
-  FURNACE: 60
-  BLAST_FURNACE: 60
-  SMOKER: 60
-  CAMPFIRE: 80
-  LAVA: 120
+  GLOWSTONE: 28
+  SOUL_TORCH: 32
+  SOUL_CAMPFIRE: 40
+  SOUL_LANTERN: 38
+  JACK_O_LANTERN: 35
+  LANTERN: 30
+  TORCH: 32
+  MAGMA_BLOCK: 45
+  FURNACE: 40
+  BLAST_FURNACE: 40
+  SMOKER: 40
+  CAMPFIRE: 45
+  LAVA: 65

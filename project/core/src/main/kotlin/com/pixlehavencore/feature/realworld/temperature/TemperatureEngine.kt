@@ -16,7 +16,6 @@ object TemperatureEngine {
 
     private const val TEMPERATURE_SCAN_RANGE = 5
     private const val SHELTER_CACHE_SECONDS = 5.0
-    private const val BLOCK_DAMPING_FACTOR = 5.0
 
     private val temperatureScanOffsets = buildList {
         for (x in -TEMPERATURE_SCAN_RANGE..TEMPERATURE_SCAN_RANGE) {
@@ -56,10 +55,10 @@ object TemperatureEngine {
         // 潮湿度
         computeWetness(player, state, global, tickIntervalSeconds)
 
-        // 温度方块：距离加权扫描
+        // 温度方块：衰减叠加扫描
         state.heatSourceScanTimer -= tickIntervalSeconds.coerceAtLeast(0)
         if (state.heatSourceScanTimer <= 0.0) {
-            val scanResult = scanTemperatureBlocks(player)
+            val scanResult = scanTemperatureBlocks(player, biomeBaseTemperature)
             state.nearHeatSource = scanResult.first
             state.temperatureBlockModifier = scanResult.second
             val interval = TemperatureSettings.heatSourceScanIntervalSeconds.toDouble()
@@ -261,13 +260,13 @@ object TemperatureEngine {
     }
 
     /**
-     * 距离加权扫描周围温度方块。
+     * 衰减叠加扫描周围温度方块。
      * 返回 (最近热源枚举, 辐射加热偏移量)。
-     * 偏移量 = (加权平均方块温度 - 参考温度) / 衰减系数，
-     * 参考温度取舒适区中点 25.5°C，衰减系数 5。
-     * 权重公式: 1 / max(0.5, distance²)
+     * 公式: modifier = Σ (方块温度 - 环境温度) × 衰减因子^距离
+     * 衰减因子默认 0.5，每远 1 格效果减半。
+     * 多热源可叠加但有自然衰减，不会无限累加。
      */
-    private fun scanTemperatureBlocks(player: Player): Pair<HeatSource?, Double> {
+    private fun scanTemperatureBlocks(player: Player, ambientTemp: Double): Pair<HeatSource?, Double> {
         val playerLocation = player.location
         val originBlock = playerLocation.block
         val temperatureBlocks = TemperatureSettings.temperatureBlocks
@@ -276,8 +275,8 @@ object TemperatureEngine {
         val baseCenterOffsetX = originBlock.x + 0.5 - playerLocation.x
         val baseCenterOffsetY = originBlock.y + 0.5 - (playerLocation.y + 0.5)
         val baseCenterOffsetZ = originBlock.z + 0.5 - playerLocation.z
-        var weightedSum = 0.0
-        var totalWeight = 0.0
+        val decayFactor = TemperatureSettings.blockDecayFactor
+        var blockModifier = 0.0
         var nearestSource: HeatSource? = null
         var nearestDistSq = Int.MAX_VALUE
 
@@ -290,9 +289,9 @@ object TemperatureEngine {
             val dy = offset.y + baseCenterOffsetY
             val dz = offset.z + baseCenterOffsetZ
             val distSq = dx * dx + dy * dy + dz * dz
-            val weight = 1.0 / maxOf(0.5, distSq)
-            weightedSum += temp * weight
-            totalWeight += weight
+            val distance = kotlin.math.sqrt(distSq)
+            val contribution = (temp - ambientTemp) * Math.pow(decayFactor, distance)
+            blockModifier += contribution
 
             if (offset.distSqInt < nearestDistSq) {
                 nearestDistSq = offset.distSqInt
@@ -300,11 +299,6 @@ object TemperatureEngine {
             }
         }
 
-        if (totalWeight <= 0.0) return nearestSource to 0.0
-
-        val weightedAvg = weightedSum / totalWeight
-        val referenceTemp = (TemperatureSettings.comfortMin + TemperatureSettings.comfortMax) / 2.0
-        val blockModifier = (weightedAvg - referenceTemp) / BLOCK_DAMPING_FACTOR
         return nearestSource to blockModifier
     }
 
