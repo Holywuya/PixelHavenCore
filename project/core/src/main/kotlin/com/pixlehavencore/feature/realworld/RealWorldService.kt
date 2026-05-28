@@ -691,7 +691,7 @@ object RealWorldService {
     }
 
     private fun syncVanillaWeather(state: GlobalEnvState) {
-        val hasStorm = state.weather != WeatherType.CLEAR
+        val hasStorm = state.weather != WeatherType.CLEAR && state.weather != WeatherType.FOG
         val hasThunder = state.weather == WeatherType.THUNDER
         Bukkit.getWorlds().forEach { world ->
             if (world.hasStorm() != hasStorm) {

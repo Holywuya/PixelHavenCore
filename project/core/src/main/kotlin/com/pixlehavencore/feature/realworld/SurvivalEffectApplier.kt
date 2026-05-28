@@ -2,6 +2,7 @@ package com.pixlehavencore.feature.realworld
 
 import com.pixlehavencore.feature.realworld.weather.WeatherQuery
 import com.pixlehavencore.feature.realworld.weather.WeatherSettings
+import org.bukkit.Location
 import org.bukkit.Particle
 import org.bukkit.entity.Player
 import org.bukkit.potion.PotionEffect
@@ -155,7 +156,7 @@ object SurvivalEffectApplier {
         global: GlobalEnvState,
         tickIntervalSeconds: Int,
     ) {
-        val weather = currentDamagingWeather(global, state) ?: run {
+        val weather = currentDamagingWeather(player.location, global, state) ?: run {
             resetWeatherExposure(state)
             clearWeatherExposureEffects(player)
             return
@@ -176,12 +177,16 @@ object SurvivalEffectApplier {
         state.weatherExposureDamageTimer = RealWorldSettings.extremeDamageIntervalSeconds.toDouble()
     }
 
-    private fun currentDamagingWeather(global: GlobalEnvState, state: PlayerEnvState): WeatherType? {
-        val weather = global.weather
-        if (!weather.hasDamageEffect || !weather.isExtreme) {
+    private fun currentDamagingWeather(location: Location, global: GlobalEnvState, state: PlayerEnvState): WeatherType? {
+        if (state.isWeatherSheltered) {
             return null
         }
-        if (state.isWeatherSheltered) {
+        val weather = if (WeatherSettings.localEnabled) {
+            WeatherQuery.getWeatherAt(location, global).type
+        } else {
+            global.weather
+        }
+        if (!weather.hasDamageEffect || !weather.isExtreme) {
             return null
         }
         return weather
@@ -230,6 +235,8 @@ object SurvivalEffectApplier {
                     addEffect(player, PotionEffectType.POISON, 0, tickIntervalSeconds)
                 }
                 spawnWeatherParticles(player, Particle.FALLING_WATER, 25, 0.6, 1.0, 0.6, 0.2)
+                val loc = player.location.add(0.0, 1.0, 0.0)
+                player.world.spawnParticle(Particle.ENTITY_EFFECT, loc, 15, 0.5, 0.8, 0.5, 0.0)
             }
             else -> Unit
         }
