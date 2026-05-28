@@ -7,6 +7,7 @@ import com.pixlehavencore.feature.realworld.weather.WeatherSettings
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.Tag
+import org.bukkit.block.Biome
 import org.bukkit.block.Block
 import org.bukkit.block.data.Lightable
 import org.bukkit.entity.Player
@@ -37,7 +38,7 @@ object TemperatureEngine {
         val biomeName = location.block.biome.toString().lowercase()
         val worldTime = location.world?.time ?: 6000L
 
-        val biomeBaseTemperature = getBiomeBaseTemperature(biomeName)
+        val biomeBaseTemperature = getBiomeBaseTemperature(location, biomeName)
         state.biomeTemperature = biomeBaseTemperature
 
         val seasonModifier = SeasonEngine.getTemperatureModifier(global)
@@ -98,7 +99,20 @@ object TemperatureEngine {
         state.temperaturePhase = classifyTemperature(state.temperature)
     }
 
-    fun getBiomeBaseTemperature(biomeName: String): Double {
+    fun getBiomeBaseTemperature(location: Location, biomeName: String): Double {
+        // 优先使用 Bukkit API 从世界获取原生温度
+        location.world?.let { world ->
+            try {
+                val nativeTemp = world.getTemperature(location.blockX, location.blockY, location.blockZ)
+                // Minecraft 原生温度范围：-0.5 到 2.0
+                // 转换为摄氏度：-0.5 → -12.5°C, 0.0 → 0°C, 1.0 → 25°C, 2.0 → 50°C
+                return nativeTemp * 25.0
+            } catch (e: Exception) {
+                // API 调用失败，fallback 到名称匹配
+            }
+        }
+
+        // Fallback：基于名称的硬编码映射（保留用于兼容）
         val normalizedName = biomeName.lowercase()
         return when {
             normalizedName.contains("nether") || normalizedName.contains("basalt") || normalizedName.contains("crimson") || normalizedName.contains("warped") -> 40.0
