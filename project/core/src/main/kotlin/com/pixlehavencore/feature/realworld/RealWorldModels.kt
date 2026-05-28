@@ -10,7 +10,7 @@ enum class Season(
 ) {
     SPRING(
         "春",
-        5.0,
+        3.0,
         1.0,
         mapOf(
             WeatherType.CLEAR to 3.0,
@@ -20,7 +20,7 @@ enum class Season(
     ),
     SUMMER(
         "夏",
-        15.0,
+        10.0,
         1.5,
         mapOf(
             WeatherType.CLEAR to 5.0,
@@ -41,7 +41,7 @@ enum class Season(
     ),
     WINTER(
         "冬",
-        -15.0,
+        -20.0,
         0.6,
         mapOf(
             WeatherType.CLEAR to 3.0,
@@ -102,6 +102,12 @@ enum class DayPhase {
     NIGHT,
 }
 
+enum class ShelterType {
+    NONE,
+    CANOPY,
+    BUILDING,
+}
+
 enum class TemperaturePhase {
     SEVERE_HEAT,
     HEAT,
@@ -123,7 +129,7 @@ data class PlayerEnvState(
     var hydration: Double = 100.0,
     var wetness: Double = 0.0,
     var fracture: Double = 0.0,
-    var isSheltered: Boolean = false,
+    var shelterType: ShelterType = ShelterType.NONE,
     var isWeatherSheltered: Boolean = false,
     var nearHeatSource: HeatSource? = null,
     var temperatureBlockModifier: Double = 0.0,

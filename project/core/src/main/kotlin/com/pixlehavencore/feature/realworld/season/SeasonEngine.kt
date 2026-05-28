@@ -4,6 +4,8 @@ import com.pixlehavencore.feature.realworld.DayPhase
 import com.pixlehavencore.feature.realworld.GlobalEnvState
 import com.pixlehavencore.feature.realworld.RealWorldSeasonChangedEvent
 import com.pixlehavencore.feature.realworld.Season
+import com.pixlehavencore.feature.realworld.temperature.TemperatureEngine
+import com.pixlehavencore.feature.realworld.temperature.TemperatureSettings
 import kotlin.math.cos
 import org.bukkit.Bukkit
 import taboolib.common.platform.function.info
@@ -56,10 +58,15 @@ object SeasonEngine {
         }
     }
 
-    fun getTimeTemperatureModifier(worldTime: Long): Double {
+    fun getTimeTemperatureModifier(worldTime: Long, biomeName: String = ""): Double {
         val normalizedTime = ((worldTime % 24000L) + 24000L) % 24000L
         val radians = 2.0 * Math.PI * (normalizedTime - 6000.0) / 24000.0
-        return 5.0 * cos(radians)
+        val biomeFactor = if (biomeName.isNotEmpty()) {
+            TemperatureEngine.getBiomeDayNightFactor(biomeName)
+        } else {
+            1.0
+        }
+        return TemperatureSettings.dayNightScale * biomeFactor * cos(radians)
     }
 
     fun computeDayPhase(worldTime: Long): DayPhase {

@@ -57,6 +57,26 @@ object TemperatureSettings {
         private set
     var temperatureBlocks: Map<Material, Double> = emptyMap()
         private set
+    var wetnessCoolingFactor: Double = 8.0
+        private set
+    var dayNightScale: Double = 10.0
+        private set
+    var waterEnabled: Boolean = true
+        private set
+    var waterConductivityMultiplier: Double = 4.0
+        private set
+    var waterDepthCoolPer10Blocks: Double = 1.0
+        private set
+    var waterMaxDepthCool: Double = 5.0
+        private set
+    var waterSeasonLagRatio: Double = 0.3
+        private set
+    var shelterCanopyBonus: Double = 2.0
+        private set
+    var shelterBuildingBonus: Double = 8.0
+        private set
+    var shelterLeavesCountAsCanopy: Boolean = true
+        private set
 
     private const val MAX_SHELTER_HORIZONTAL_RADIUS = 2
 
@@ -104,5 +124,16 @@ object TemperatureSettings {
         coldMildThreshold = coldMildThreshold.coerceAtMost(heatThreshold)
         coldThreshold = coldThreshold.coerceAtMost(coldMildThreshold)
         severeColdThreshold = severeColdThreshold.coerceAtMost(coldThreshold)
+
+        wetnessCoolingFactor = config.getDouble("feels-like.wetness-cooling", 8.0).coerceAtLeast(0.0)
+        dayNightScale = config.getDouble("time.day-night-scale", 10.0).coerceAtLeast(0.0)
+        waterEnabled = config.getBoolean("water.enabled", true)
+        waterConductivityMultiplier = config.getDouble("water.conductivity-multiplier", 4.0).coerceAtLeast(1.0)
+        waterDepthCoolPer10Blocks = config.getDouble("water.depth-cool-per-10-blocks", 1.0).coerceAtLeast(0.0)
+        waterMaxDepthCool = config.getDouble("water.max-depth-cool", 5.0).coerceAtLeast(0.0)
+        waterSeasonLagRatio = config.getDouble("water.season-lag-ratio", 0.3).coerceIn(0.0, 1.0)
+        shelterCanopyBonus = config.getDouble("shelter.canopy-bonus", 2.0)
+        shelterBuildingBonus = config.getDouble("shelter.building-bonus", 8.0)
+        shelterLeavesCountAsCanopy = config.getBoolean("shelter.leaves-count-as-canopy", true)
     }
 }

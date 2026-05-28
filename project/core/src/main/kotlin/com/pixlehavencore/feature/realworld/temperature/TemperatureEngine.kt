@@ -41,7 +41,7 @@ object TemperatureEngine {
         state.biomeTemperature = biomeBaseTemperature
 
         val seasonModifier = SeasonEngine.getTemperatureModifier(global)
-        val timeModifier = SeasonEngine.getTimeTemperatureModifier(worldTime)
+        val timeModifier = SeasonEngine.getTimeTemperatureModifier(worldTime, biomeName)
         val weatherModifier = if (WeatherSettings.localEnabled) {
             WeatherQuery.getTemperatureModifierAt(player.location, global)
         } else {
@@ -50,16 +50,17 @@ object TemperatureEngine {
         val altitudeModifier = computeAltitudeModifier(location.blockY)
 
         updateShelterState(player, state, tickIntervalSeconds)
-        val shelteredModifier = if (state.isSheltered) 5.0 else 0.0
         val armorModifier = getArmorTemperatureBonus(player)
 
-        val ambientBaseline = biomeBaseTemperature +
-            seasonModifier + timeModifier + weatherModifier +
-            altitudeModifier + shelteredModifier + armorModifier
+        // 潮湿度
+        computeWetness(player, state, global, tickIntervalSeconds)
 
         // 温度方块：距离加权扫描
         state.heatSourceScanTimer -= tickIntervalSeconds.coerceAtLeast(0)
         if (state.heatSourceScanTimer <= 0.0) {
+            val ambientBaseline = biomeBaseTemperature +
+                seasonModifier + timeModifier + weatherModifier +
+                altitudeModifier + armorModifier
             val scanResult = scanTemperatureBlocks(player, ambientBaseline)
             state.nearHeatSource = scanResult.first
             state.temperatureBlockModifier = scanResult.second
@@ -69,23 +70,32 @@ object TemperatureEngine {
             }
         }
 
-        // 潮湿度
-        computeWetness(player, state, global, tickIntervalSeconds)
-        val insulationMultiplier = (1.0 - state.wetness * 0.8).coerceIn(0.2, 1.0)
-
-        val rawTarget = ambientBaseline + state.temperatureBlockModifier
-
-        val comfortableMid = (TemperatureSettings.comfortMin + TemperatureSettings.comfortMax) / 2.0
-        val targetTemperature = comfortableMid + (rawTarget - comfortableMid) * insulationMultiplier
+        // 体感温度：浸水时直接替换为水温，否则计算空气体感温度
+        val feelsLike = if (player.isInWater && TemperatureSettings.waterEnabled) {
+            calculateWaterTemp(player, global)
+        } else {
+            calculateAirFeelsLike(
+                player = player,
+                state = state,
+                global = global,
+                biomeBaseTemperature = biomeBaseTemperature,
+                seasonModifier = seasonModifier,
+                timeModifier = timeModifier,
+                weatherModifier = weatherModifier,
+                altitudeModifier = altitudeModifier,
+                armorModifier = armorModifier,
+            )
+        }
 
         val maxChangePerTick = TemperatureSettings.maxChangePerTick.coerceAtLeast(0.0)
-        val temperatureDifference = targetTemperature - state.temperature
-        val change = when {
-            maxChangePerTick <= 0.0 -> 0.0
-            abs(temperatureDifference) <= maxChangePerTick -> temperatureDifference
-            temperatureDifference > 0.0 -> maxChangePerTick
-            else -> -maxChangePerTick
+        val changeRate = if (player.isInWater && TemperatureSettings.waterEnabled) {
+            TemperatureSettings.waterConductivityMultiplier
+        } else {
+            1.0
         }
+
+        val delta = (feelsLike - state.temperature) * changeRate
+        val change = delta.coerceIn(-maxChangePerTick, maxChangePerTick)
 
         state.temperature += change
         state.temperaturePhase = classifyTemperature(state.temperature)
@@ -112,8 +122,96 @@ object TemperatureEngine {
         }
     }
 
-    fun isSheltered(player: Player): Boolean {
-        return hasAnyOverheadCover(player.eyeLocation)
+    fun getBiomeWaterTemp(biomeName: String): Double {
+        val normalizedName = biomeName.lowercase()
+        return when {
+            normalizedName.contains("jungle") || normalizedName.contains("bamboo") -> 24.0
+            normalizedName.contains("swamp") || normalizedName.contains("mangrove") -> 22.0
+            normalizedName.contains("desert") || normalizedName.contains("badlands") -> 20.0
+            normalizedName.contains("plains") || normalizedName.contains("forest") || normalizedName.contains("beach") -> 16.0
+            normalizedName.contains("ocean") || normalizedName.contains("river") -> 14.0
+            normalizedName.contains("taiga") || normalizedName.contains("dark_forest") -> 10.0
+            normalizedName.contains("snow") || normalizedName.contains("ice") || normalizedName.contains("frozen") -> 2.0
+            else -> 14.0
+        }
+    }
+
+    fun calculateWaterTemp(player: Player, global: GlobalEnvState): Double {
+        if (!TemperatureSettings.waterEnabled) {
+            return 14.0
+        }
+
+        val biomeName = player.location.block.biome.toString().lowercase()
+        val biomeWaterTemp = getBiomeWaterTemp(biomeName)
+
+        val previousSeason = getPreviousSeason(global.season)
+        val seasonLag = previousSeason.temperatureModifier * TemperatureSettings.waterSeasonLagRatio
+
+        val waterSurfaceY = findWaterSurfaceY(player.location)
+        val waterDepth = (waterSurfaceY - player.location.blockY).coerceAtLeast(0)
+        val depthModifier = -(waterDepth / 10.0).coerceAtMost(TemperatureSettings.waterMaxDepthCool) *
+            TemperatureSettings.waterDepthCoolPer10Blocks
+
+        return biomeWaterTemp + seasonLag + depthModifier
+    }
+
+    private fun getPreviousSeason(currentSeason: Season): Season {
+        val previousIndex = (currentSeason.ordinal - 1 + Season.entries.size) % Season.entries.size
+        return Season.entries[previousIndex]
+    }
+
+    private fun findWaterSurfaceY(location: Location): Int {
+        val world = location.world ?: return location.blockY
+        val maxY = world.maxHeight - 1
+        for (y in location.blockY + 1..maxY) {
+            val block = world.getBlockAt(location.blockX, y, location.blockZ)
+            if (block.type != Material.WATER) {
+                return y
+            }
+        }
+        return maxY
+    }
+
+    fun getBiomeDayNightFactor(biomeName: String): Double {
+        val normalizedName = biomeName.lowercase()
+        return when {
+            normalizedName.contains("desert") || normalizedName.contains("badlands") -> 1.5
+            normalizedName.contains("jungle") || normalizedName.contains("bamboo") -> 0.5
+            normalizedName.contains("swamp") || normalizedName.contains("mangrove") -> 0.5
+            normalizedName.contains("ocean") || normalizedName.contains("river") -> 0.7
+            else -> 1.0
+        }
+    }
+
+    fun calculateAirFeelsLike(
+        player: Player,
+        state: PlayerEnvState,
+        global: GlobalEnvState,
+        biomeBaseTemperature: Double,
+        seasonModifier: Double,
+        timeModifier: Double,
+        weatherModifier: Double,
+        altitudeModifier: Double,
+        armorModifier: Double,
+    ): Double {
+        val shelterModifier = when (state.shelterType) {
+            ShelterType.NONE -> 0.0
+            ShelterType.CANOPY -> TemperatureSettings.shelterCanopyBonus
+            ShelterType.BUILDING -> TemperatureSettings.shelterBuildingBonus
+        }
+
+        val blockModifier = state.temperatureBlockModifier
+
+        val wetnessModifier = if (player.isInWater) {
+            0.0
+        } else {
+            -state.wetness * TemperatureSettings.wetnessCoolingFactor
+        }
+
+        return biomeBaseTemperature +
+            seasonModifier + timeModifier + weatherModifier +
+            altitudeModifier + shelterModifier + armorModifier +
+            blockModifier + wetnessModifier
     }
 
     fun isUnderSolidRoof(location: Location): Boolean {
@@ -148,12 +246,20 @@ object TemperatureEngine {
             return
         }
 
-        state.isSheltered = hasAnyOverheadCover(player.eyeLocation)
+        state.shelterType = classifyShelter(player)
         state.isWeatherSheltered = isWeatherSheltered(player.eyeLocation)
         state.shelterCacheBlockX = eyeBlock.x
         state.shelterCacheBlockY = eyeBlock.y
         state.shelterCacheBlockZ = eyeBlock.z
         state.shelterCacheTimer = SHELTER_CACHE_SECONDS
+    }
+
+    private fun classifyShelter(player: Player): ShelterType {
+        val hasOverhead = hasAnyOverheadCover(player.eyeLocation)
+        if (!hasOverhead) return ShelterType.NONE
+
+        val hasCompleteRoof = hasWeatherTopCoverage(player.eyeLocation)
+        return if (hasCompleteRoof) ShelterType.BUILDING else ShelterType.CANOPY
     }
 
     /**

@@ -78,10 +78,10 @@ object SurvivalHud {
         } else {
             global.weather
         }
-        val shelterText = if (state.isWeatherSheltered) {
-            RealWorldSettings.hudShelteredIndicator
-        } else {
-            RealWorldSettings.hudUnshelteredIndicator
+        val shelterText = when (state.shelterType) {
+            ShelterType.NONE -> RealWorldSettings.hudUnshelteredIndicator
+            ShelterType.CANOPY -> "🌳"
+            ShelterType.BUILDING -> RealWorldSettings.hudShelteredIndicator
         }
 
         val fractureSeverity = FractureEngine.classifyFracture(state.fracture)
