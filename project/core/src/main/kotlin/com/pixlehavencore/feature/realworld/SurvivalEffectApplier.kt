@@ -28,8 +28,8 @@ object SurvivalEffectApplier {
         }
 
         if (state.graceTimer <= 0.0 && state.damageTimer <= 0.0) {
-            state.graceTimer = RealWorldSettings.extremeGracePeriodSeconds.toDouble()
-            state.damageTimer = RealWorldSettings.extremeDamageIntervalSeconds.toDouble()
+            state.graceTimer = WeatherSettings.extremeGracePeriodSeconds.toDouble()
+            state.damageTimer = WeatherSettings.extremeDamageIntervalSeconds.toDouble()
             clearDamagingEffects(player)
             applyTemperatureEffects(player, state, tickIntervalSeconds, false)
             applyThirstEffects(player, state, tickIntervalSeconds, false)
@@ -59,8 +59,8 @@ object SurvivalEffectApplier {
             return
         }
 
-        player.damage(RealWorldSettings.extremeBaseDamageHearts * 2.0)
-        state.damageTimer = RealWorldSettings.extremeDamageIntervalSeconds.toDouble()
+        player.damage(WeatherSettings.extremeBaseDamageHearts * 2.0)
+        state.damageTimer = WeatherSettings.extremeDamageIntervalSeconds.toDouble()
     }
 
     private fun applyTemperatureEffects(
@@ -131,19 +131,19 @@ object SurvivalEffectApplier {
             global.weather.takeIf { it.affectsVisibility }
         }
         val weather = visibilityWeather ?: return
-        val visibilityDurationSeconds = RealWorldSettings.visibilityEffectDurationSeconds
+        val visibilityDurationSeconds = WeatherSettings.visibilityEffectDurationSeconds
         when (weather) {
             WeatherType.FOG -> {
-                addEffect(player, PotionEffectType.BLINDNESS, RealWorldSettings.fogBlindnessAmplifier, visibilityDurationSeconds)
+                addEffect(player, PotionEffectType.BLINDNESS, WeatherSettings.fogBlindnessAmplifier, visibilityDurationSeconds)
             }
             WeatherType.BLIZZARD -> {
                 if (!state.isWeatherSheltered) {
-                    addEffect(player, PotionEffectType.BLINDNESS, RealWorldSettings.blizzardBlindnessAmplifier, visibilityDurationSeconds)
+                    addEffect(player, PotionEffectType.BLINDNESS, WeatherSettings.blizzardBlindnessAmplifier, visibilityDurationSeconds)
                 }
             }
             WeatherType.SANDSTORM -> {
                 if (!state.isWeatherSheltered) {
-                    addEffect(player, PotionEffectType.BLINDNESS, RealWorldSettings.sandstormBlindnessAmplifier, visibilityDurationSeconds)
+                    addEffect(player, PotionEffectType.BLINDNESS, WeatherSettings.sandstormBlindnessAmplifier, visibilityDurationSeconds)
                 }
             }
             else -> Unit
@@ -174,7 +174,7 @@ object SurvivalEffectApplier {
         }
 
         player.damage(computeWeatherExposureDamage(global, weather))
-        state.weatherExposureDamageTimer = RealWorldSettings.extremeDamageIntervalSeconds.toDouble()
+        state.weatherExposureDamageTimer = WeatherSettings.extremeDamageIntervalSeconds.toDouble()
     }
 
     private fun currentDamagingWeather(location: Location, global: GlobalEnvState, state: PlayerEnvState): WeatherType? {
@@ -200,8 +200,8 @@ object SurvivalEffectApplier {
         val switchedWeather = state.weatherExposureSource != weather
         if (switchedWeather) {
             state.weatherExposureSource = weather
-            state.weatherExposureGraceTimer = RealWorldSettings.extremeGracePeriodSeconds.toDouble()
-            state.weatherExposureDamageTimer = RealWorldSettings.extremeDamageIntervalSeconds.toDouble()
+            state.weatherExposureGraceTimer = WeatherSettings.extremeGracePeriodSeconds.toDouble()
+            state.weatherExposureDamageTimer = WeatherSettings.extremeDamageIntervalSeconds.toDouble()
         }
 
         if (state.weatherExposureGraceTimer > 0.0) {
@@ -268,7 +268,7 @@ object SurvivalEffectApplier {
             WeatherType.ACID_RAIN -> 1.35
             else -> 1.0
         }
-        val scaledHearts = RealWorldSettings.extremeBaseDamageHearts * severityMultiplier * (0.5 + intensity)
+        val scaledHearts = WeatherSettings.extremeBaseDamageHearts * severityMultiplier * (0.5 + intensity)
         return scaledHearts.coerceAtLeast(0.0) * 2.0
     }
 

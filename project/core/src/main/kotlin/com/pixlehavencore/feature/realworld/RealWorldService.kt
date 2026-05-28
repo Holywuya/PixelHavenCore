@@ -2,44 +2,29 @@ package com.pixlehavencore.feature.realworld
 
 import com.pixlehavencore.feature.realworld.foodcorrosion.FoodCorrosionEngine
 import com.pixlehavencore.feature.realworld.foodcorrosion.FoodCorrosionService
-import com.pixlehavencore.feature.realworld.foodcorrosion.FoodCorrosionSettings
 import com.pixlehavencore.feature.realworld.fracture.FractureEngine
-import com.pixlehavencore.feature.realworld.fracture.FractureSettings
-import com.pixlehavencore.feature.realworld.fracture.FractureTreatment
 import com.pixlehavencore.feature.realworld.season.SeasonEngine
 import com.pixlehavencore.feature.realworld.stamina.StaminaEngine
-import com.pixlehavencore.feature.realworld.stamina.StaminaSettings
 import com.pixlehavencore.feature.realworld.temperature.TemperatureEngine
 import com.pixlehavencore.feature.realworld.thirst.ThirstEngine
 import com.pixlehavencore.feature.realworld.weather.WeatherEngine
 import com.pixlehavencore.util.cancelTaskSafely
 import org.bukkit.Bukkit
-import org.bukkit.Material
+import org.bukkit.GameRules
 import org.bukkit.entity.Player
-import org.bukkit.event.player.PlayerItemConsumeEvent
-import org.bukkit.event.player.PlayerInteractEvent
-import org.bukkit.event.entity.EntityDamageEvent
-import org.bukkit.event.entity.EntityDamageByEntityEvent
-import org.bukkit.event.block.BlockBreakEvent
-import org.bukkit.event.world.WorldLoadEvent
-import taboolib.common.platform.event.EventPriority
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
-import org.bukkit.inventory.EquipmentSlot
-import org.bukkit.inventory.meta.PotionMeta
-import org.bukkit.potion.PotionType
-import taboolib.platform.util.PlayerSessionMap
-import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicLong
+import org.bukkit.event.world.WorldLoadEvent
 import taboolib.common.platform.event.SubscribeEvent
 import taboolib.common.platform.function.info
 import taboolib.common.platform.function.onlinePlayers
 import taboolib.common.platform.function.submit
 import taboolib.common.platform.function.submitAsync
-import taboolib.platform.util.isRightClick
+import taboolib.platform.util.PlayerSessionMap
 import taboolib.platform.util.submit as submitOnEntity
-import org.bukkit.GameRules
+import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 
 object RealWorldService {
 
@@ -50,9 +35,10 @@ object RealWorldService {
     private var globalState: GlobalEnvState? = null
 
     private val globalStateLock = Any()
-    private val lifecycleGeneration = AtomicLong(0L)
+    private val _lifecycleGeneration = AtomicLong(0L)
+    internal val lifecycleGeneration: Long get() = _lifecycleGeneration.get()
     private val pendingQuitAt = ConcurrentHashMap<UUID, Long>()
-    private val drinkerCooldownUntil = PlayerSessionMap<Long>({ 0L })
+    internal val drinkerCooldownUntil = PlayerSessionMap<Long>({ 0L })
 
     private var tickTask: Any? = null
     private var autoSaveTask: Any? = null
@@ -60,13 +46,12 @@ object RealWorldService {
 
     fun init() {
         RealWorldSettings.init()
-        StaminaEngine.init()
         stop()
         if (!RealWorldSettings.enabled) {
             return
         }
 
-        lifecycleGeneration.incrementAndGet()
+        _lifecycleGeneration.incrementAndGet()
         shuttingDown = false
         pendingQuitAt.clear()
         drinkerCooldownUntil.clear()
@@ -77,7 +62,6 @@ object RealWorldService {
         startTickTask()
         startAutoSaveTask()
         loadOnlinePlayersData()
-        FoodCorrosionSettings.init()
         FoodCorrosionService.init()
         WeatherEngine.init(Bukkit.getWorlds().first().seed.toInt())
         initTimeControl()
@@ -86,13 +70,12 @@ object RealWorldService {
 
     fun reload() {
         RealWorldSettings.reload()
-        StaminaEngine.reload()
         stopInternal()
         if (!RealWorldSettings.enabled) {
             return
         }
 
-        lifecycleGeneration.incrementAndGet()
+        _lifecycleGeneration.incrementAndGet()
         shuttingDown = false
         pendingQuitAt.clear()
         drinkerCooldownUntil.clear()
@@ -103,7 +86,6 @@ object RealWorldService {
         startTickTask()
         startAutoSaveTask()
         loadOnlinePlayersData()
-        FoodCorrosionSettings.reload()
         FoodCorrosionService.reload()
         WeatherEngine.init(Bukkit.getWorlds().first().seed.toInt())
         initTimeControl()
@@ -116,7 +98,7 @@ object RealWorldService {
 
     private fun stopInternal() {
         shuttingDown = true
-        lifecycleGeneration.incrementAndGet()
+        _lifecycleGeneration.incrementAndGet()
         pendingQuitAt.clear()
         drinkerCooldownUntil.clear()
         stopTasks()
@@ -134,6 +116,10 @@ object RealWorldService {
         synchronized(globalStateLock) {
             globalState = null
         }
+    }
+
+    internal fun isActive(generation: Long): Boolean {
+        return !shuttingDown && generation == _lifecycleGeneration.get() && RealWorldSettings.enabled
     }
 
     internal fun getGlobalStateSnapshot(): GlobalEnvState? {
@@ -174,10 +160,10 @@ object RealWorldService {
     }
 
     private fun startTimeAdvanceTask() {
-        val generation = lifecycleGeneration.get()
+        val generation = _lifecycleGeneration.get()
 
         timeAdvanceTask = submit(delay = 3, period = 3) {
-            if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
+            if (shuttingDown || generation != _lifecycleGeneration.get() || !RealWorldSettings.enabled) {
                 return@submit
             }
 
@@ -296,16 +282,16 @@ object RealWorldService {
 
         val player = event.player
         val uuid = player.uniqueId
-        val generation = lifecycleGeneration.get()
+        val generation = _lifecycleGeneration.get()
         val quitMark = System.currentTimeMillis()
         pendingQuitAt[uuid] = quitMark
         SurvivalHud.onPlayerQuit(player)
         submitAsync {
-            if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
+            if (shuttingDown || generation != _lifecycleGeneration.get() || !RealWorldSettings.enabled) {
                 return@submitAsync
             }
             RealWorldStorage.savePlayer(uuid)
-            if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
+            if (shuttingDown || generation != _lifecycleGeneration.get() || !RealWorldSettings.enabled) {
                 return@submitAsync
             }
             if (pendingQuitAt[uuid] != quitMark) {
@@ -316,197 +302,11 @@ object RealWorldService {
         }
     }
 
-    @SubscribeEvent(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onPlayerItemConsume(event: PlayerItemConsumeEvent) {
-        if (!RealWorldSettings.enabled) {
-            return
-        }
-        if (!isWaterBottle(event.item.type, event.item.itemMeta as? PotionMeta)) {
-            return
-        }
-
-        val player = event.player
-        val uuid = player.uniqueId
-        val generation = lifecycleGeneration.get()
-        player.submitOnEntity {
-            if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
-                return@submitOnEntity
-            }
-            RealWorldStorage.withPlayerState(uuid) { state ->
-                ThirstEngine.onWaterBottleConsume(state)
-            } ?: return@submitOnEntity
-            if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
-                return@submitOnEntity
-            }
-            RealWorldStorage.markPlayerDirty(uuid)
-        }
-    }
-
-    @SubscribeEvent
-    fun onStaminaConsume(event: PlayerItemConsumeEvent) {
-        if (!StaminaSettings.enabled) return
-        val player = event.player
-        val item = event.item
-        val foodValues = getFoodValues(item.type)
-        if (foodValues > 0) {
-            RealWorldStorage.withPlayerState(player.uniqueId) { state ->
-                StaminaEngine.onEat(player, state, foodValues)
-            }
-        }
-        RealWorldStorage.withPlayerState(player.uniqueId) { state ->
-            StaminaEngine.onSpecialItem(player, state, item.type)
-        }
-    }
-
-    @SubscribeEvent
-    fun onEntityDamageByEntity(event: EntityDamageByEntityEvent) {
-        if (!StaminaSettings.enabled) return
-        val player = event.damager as? Player ?: return
-        RealWorldStorage.withPlayerState(player.uniqueId) { state ->
-            StaminaEngine.onAttack(player, state)
-        }
-    }
-
-    @SubscribeEvent
-    fun onBlockBreak(event: BlockBreakEvent) {
-        if (!StaminaSettings.enabled) return
-        val player = event.player
-        RealWorldStorage.withPlayerState(player.uniqueId) { state ->
-            StaminaEngine.onMine(player, state)
-        }
-    }
-
-    @SubscribeEvent(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onPlayerInteract(event: PlayerInteractEvent) {
-        if (!RealWorldSettings.enabled) {
-            return
-        }
-        if (!event.isRightClick()) {
-            return
-        }
-        if (event.hand != null && event.hand != EquipmentSlot.HAND) {
-            return
-        }
-
-        val player = event.player
-        val uuid = player.uniqueId
-        val generation = lifecycleGeneration.get()
-
-        val heldItem = event.item
-        if (heldItem != null && !heldItem.type.isAir) {
-            val treatment = when (heldItem.type) {
-                FractureSettings.bandageMaterial -> FractureTreatment.BANDAGE
-                FractureSettings.castMaterial -> FractureTreatment.CAST
-                else -> null
-            }
-            if (treatment != null) {
-                player.submitOnEntity {
-                    if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
-                        return@submitOnEntity
-                    }
-                    val changed = RealWorldStorage.withPlayerState(uuid) { state ->
-                        FractureEngine.useTreatment(player, state, treatment)
-                    } ?: return@submitOnEntity
-                    if (!changed) {
-                        return@submitOnEntity
-                    }
-                    heldItem.amount = heldItem.amount - 1
-                    RealWorldStorage.markPlayerDirty(uuid)
-                }
-                return
-            }
-        }
-
-        val block = event.clickedBlock ?: return
-        if (!ThirstEngine.isDrinker(block) && !ThirstEngine.isNaturalWaterSource(block)) {
-            return
-        }
-
-        player.submitOnEntity {
-            if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
-                return@submitOnEntity
-            }
-            val changed = RealWorldStorage.withPlayerState(uuid) { state ->
-                when {
-                    ThirstEngine.isDrinker(block) -> handleDrinkerInteract(uuid, state, block)
-                    else -> ThirstEngine.onRightClickNaturalWaterSource(player, state, block)
-                }
-            } ?: return@submitOnEntity
-            if (!changed) {
-                return@submitOnEntity
-            }
-            RealWorldStorage.markPlayerDirty(uuid)
-        }
-    }
-
-    @SubscribeEvent(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onEntityDamage(event: EntityDamageEvent) {
-        if (!RealWorldSettings.enabled || !RealWorldSettings.fractureEnabled) {
-            return
-        }
-        val player = event.entity as? Player ?: return
-        val uuid = player.uniqueId
-        val generation = lifecycleGeneration.get()
-        player.submitOnEntity {
-            if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
-                return@submitOnEntity
-            }
-            RealWorldStorage.withPlayerState(uuid) { state ->
-                FractureEngine.onFallDamage(player, state, event)
-            } ?: return@submitOnEntity
-            if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
-                return@submitOnEntity
-            }
-            RealWorldStorage.markPlayerDirty(uuid)
-        }
-    }
-
-    private fun getFoodValues(material: Material): Int {
-        return when (material) {
-            Material.BREAD -> 5
-            Material.COOKED_BEEF, Material.COOKED_PORKCHOP, Material.COOKED_MUTTON -> 8
-            Material.COOKED_CHICKEN, Material.COOKED_COD, Material.COOKED_SALMON -> 6
-            Material.BAKED_POTATO -> 5
-            Material.MUSHROOM_STEW, Material.RABBIT_STEW, Material.BEETROOT_SOUP -> 7
-            Material.GOLDEN_APPLE -> 4
-            Material.ENCHANTED_GOLDEN_APPLE -> 4
-            Material.COOKED_RABBIT -> 5
-            Material.APPLE, Material.BEETROOT, Material.CARROT, Material.POTATO, Material.SWEET_BERRIES, Material.GLOW_BERRIES -> 3
-            Material.MELON_SLICE, Material.CHORUS_FRUIT -> 2
-            Material.COOKIE -> 2
-            Material.DRIED_KELP -> 1
-            else -> 0
-        }
-    }
-
-    private fun handleDrinkerInteract(uuid: UUID, state: PlayerEnvState, block: org.bukkit.block.Block): Boolean {
-        if (!ThirstEngine.isDrinker(block)) {
-            return false
-        }
-
-        val now = System.currentTimeMillis()
-        val cooldownUntil = drinkerCooldownUntil[uuid] ?: 0L
-        if (now < cooldownUntil) {
-            return false
-        }
-
-        val changed = ThirstEngine.onRightClickDrinker(state, block)
-        if (!changed) {
-            return false
-        }
-
-        val cooldownMillis = RealWorldSettings.drinkerCooldownSeconds.coerceAtLeast(0) * 1000L
-        if (cooldownMillis > 0L) {
-            drinkerCooldownUntil[uuid] = now + cooldownMillis
-        }
-        return true
-    }
-
     private fun startTickTask() {
         val periodTicks = RealWorldSettings.tickIntervalSeconds.coerceAtLeast(1) * 20L
-        val generation = lifecycleGeneration.get()
+        val generation = _lifecycleGeneration.get()
         tickTask = submit(delay = periodTicks, period = periodTicks) {
-            if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
+            if (shuttingDown || generation != _lifecycleGeneration.get() || !RealWorldSettings.enabled) {
                 return@submit
             }
 
@@ -524,7 +324,7 @@ object RealWorldService {
             onlinePlayers().forEach { proxy ->
                 val player = proxy.cast<Player>() ?: return@forEach
                 player.submitOnEntity {
-                    if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
+                    if (shuttingDown || generation != _lifecycleGeneration.get() || !RealWorldSettings.enabled) {
                         return@submitOnEntity
                     }
                     val shouldMarkDirty = RealWorldStorage.withPlayerState(player.uniqueId) { playerState ->
@@ -556,7 +356,7 @@ object RealWorldService {
                             previousStamina = previousStamina,
                         )
                     } ?: return@submitOnEntity
-                    if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
+                    if (shuttingDown || generation != _lifecycleGeneration.get() || !RealWorldSettings.enabled) {
                         return@submitOnEntity
                     }
                     if (shouldMarkDirty) {
@@ -582,15 +382,15 @@ object RealWorldService {
 
     private fun startAutoSaveTask() {
         val periodTicks = RealWorldSettings.autoSaveIntervalMinutes.coerceAtLeast(1) * 60L * 20L
-        val generation = lifecycleGeneration.get()
+        val generation = _lifecycleGeneration.get()
         autoSaveTask = submitAsync(delay = periodTicks, period = periodTicks) {
-            if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
+            if (shuttingDown || generation != _lifecycleGeneration.get() || !RealWorldSettings.enabled) {
                 return@submitAsync
             }
             val state = synchronized(globalStateLock) {
                 globalState?.copy()
             } ?: return@submitAsync
-            if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
+            if (shuttingDown || generation != _lifecycleGeneration.get() || !RealWorldSettings.enabled) {
                 return@submitAsync
             }
             RealWorldStorage.flushDirty(state)
@@ -614,20 +414,20 @@ object RealWorldService {
             return
         }
 
-        val generation = lifecycleGeneration.get()
+        val generation = _lifecycleGeneration.get()
         submitAsync {
-            if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
+            if (shuttingDown || generation != _lifecycleGeneration.get() || !RealWorldSettings.enabled) {
                 return@submitAsync
             }
             onlinePlayerIds.forEach { uuid ->
-                if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
+                if (shuttingDown || generation != _lifecycleGeneration.get() || !RealWorldSettings.enabled) {
                     return@submitAsync
                 }
                 if (pendingQuitAt.containsKey(uuid)) {
                     return@forEach
                 }
                 RealWorldStorage.loadPlayer(uuid)
-                if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
+                if (shuttingDown || generation != _lifecycleGeneration.get() || !RealWorldSettings.enabled) {
                     return@submitAsync
                 }
                 if (pendingQuitAt.containsKey(uuid)) {
@@ -644,16 +444,16 @@ object RealWorldService {
         if (RealWorldStorage.getPlayerCache().containsKey(uuid)) {
             return
         }
-        val generation = lifecycleGeneration.get()
+        val generation = _lifecycleGeneration.get()
         submitAsync {
-            if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
+            if (shuttingDown || generation != _lifecycleGeneration.get() || !RealWorldSettings.enabled) {
                 return@submitAsync
             }
             if (pendingQuitAt.containsKey(uuid)) {
                 return@submitAsync
             }
             RealWorldStorage.loadPlayer(uuid)
-            if (shuttingDown || generation != lifecycleGeneration.get() || !RealWorldSettings.enabled) {
+            if (shuttingDown || generation != _lifecycleGeneration.get() || !RealWorldSettings.enabled) {
                 return@submitAsync
             }
             if (pendingQuitAt.containsKey(uuid)) {
@@ -673,30 +473,15 @@ object RealWorldService {
     }
 
     private fun clearOnlineHud() {
-        val generation = lifecycleGeneration.get()
+        val generation = _lifecycleGeneration.get()
         onlinePlayers().forEach { proxy ->
             val player = proxy.cast<Player>() ?: return@forEach
             player.submitOnEntity {
-                if (generation != lifecycleGeneration.get()) {
+                if (generation != _lifecycleGeneration.get()) {
                     return@submitOnEntity
                 }
                 SurvivalHud.onPlayerQuit(player)
             }
-        }
-    }
-
-    private fun runOnGlobalRegion(action: () -> Unit) {
-        val generation = lifecycleGeneration.get()
-        val wrapped = {
-            if (!shuttingDown && generation == lifecycleGeneration.get() && RealWorldSettings.enabled) {
-                action()
-            }
-        }
-        val plugin = Bukkit.getPluginManager().getPlugin("phcore")
-        if (plugin != null) {
-            Bukkit.getGlobalRegionScheduler().run(plugin) { _ -> wrapped() }
-        } else {
-            submit { wrapped() }
         }
     }
 
@@ -718,9 +503,5 @@ object RealWorldService {
             return
         }
         RealWorldStorage.resetPlayer(uuid)
-    }
-
-    private fun isWaterBottle(type: Material, meta: PotionMeta?): Boolean {
-        return type == Material.POTION && meta?.basePotionType == PotionType.WATER
     }
 }
