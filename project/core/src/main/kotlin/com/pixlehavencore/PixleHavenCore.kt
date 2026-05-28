@@ -29,7 +29,6 @@ import com.pixlehavencore.feature.vanish.VanishSettings
 import com.pixlehavencore.feature.veinminer.VeinminerLimitService
 import com.pixlehavencore.feature.veinminer.VeinminerSettings
 import com.pixlehavencore.feature.optimization.entityclearer.EntityClearerService
-import com.pixlehavencore.feature.optimization.spawnreducer.SpawnReducerService
 import com.pixlehavencore.feature.optimization.viewdistance.ViewDistanceService
 import com.pixlehavencore.feature.optimization.viewdistance.ViewDistanceSettings
 import com.pixlehavencore.feature.playtime.PlaytimeSettings
@@ -61,7 +60,6 @@ object PixleHavenCore : Plugin() {
         NotificationService.init()
         ViewDistanceService.init()
         EntityClearerService.init()
-        SpawnReducerService.init()
         KeyCommandService.init()
         PlayerInvService.init()
         TradeService.init()
@@ -117,7 +115,6 @@ object PixleHavenCore : Plugin() {
         logEnabledGroup("优化模块", listOf(
             "View Distance Controller" to ViewDistanceSettings.enabled,
             "Entity Clearer" to EntityClearerService.isEnabled(),
-            "Spawn Reducer" to SpawnReducerService.isEnabled(),
         ))
         logEnabledGroup("软依赖", listOf(
             "Baikiruto" to BaikirutoItemsUtil.isAvailable(),

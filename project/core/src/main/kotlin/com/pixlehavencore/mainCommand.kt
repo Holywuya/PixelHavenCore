@@ -10,7 +10,6 @@ import com.pixlehavencore.feature.grindstone.GrindstoneRepairSettings
 import com.pixlehavencore.feature.keycommand.KeyCommandService
 import com.pixlehavencore.feature.notification.NotificationService
 import com.pixlehavencore.feature.optimization.entityclearer.EntityClearerService
-import com.pixlehavencore.feature.optimization.spawnreducer.SpawnReducerService
 import com.pixlehavencore.feature.optimization.viewdistance.ViewDistanceService
 import com.pixlehavencore.feature.playerinv.PlayerInvService
 import com.pixlehavencore.feature.mmhealthbar.MMHealthBarService
@@ -132,7 +131,6 @@ object MainCommand {
             ReloadStep("notification", true) { NotificationService.reload() },
             ReloadStep("view-distance", true) { ViewDistanceService.reload() },
             ReloadStep("entity-clearer", false) { EntityClearerService.reload() },
-            ReloadStep("spawn-reducer", false) { SpawnReducerService.reload() },
             ReloadStep("key-command", false) { KeyCommandService.reload() },
             ReloadStep("player-inv", false) { PlayerInvService.reload() },
             ReloadStep("trade", false) { TradeService.reload() },

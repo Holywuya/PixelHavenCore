@@ -1,6 +1,6 @@
 # Optimization 模块组
 
-性能优化模块集合，包含实体清理、自然生成削减与动态视距控制。
+性能优化模块集合，包含实体清理与动态视距控制。
 
 ## 子模块
 
@@ -10,14 +10,10 @@
 - `entityclearer`
   - 周期性实体清理（掉落物/怪物）
 
-- `spawnreducer`
-  - 自然生成实体削减（按生成原因）
-
 ## 配置文件
 
 - `feature/optimization/view-distance-controller.yml`
 - `feature/optimization/entity-clearer.yml`
-- `feature/optimization/spawn-reducer.yml`
 
 ## 说明
 
