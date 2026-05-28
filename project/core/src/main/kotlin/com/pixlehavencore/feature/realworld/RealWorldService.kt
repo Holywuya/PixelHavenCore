@@ -21,6 +21,7 @@ import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.block.BlockBreakEvent
+import org.bukkit.event.world.WorldLoadEvent
 import taboolib.common.platform.event.EventPriority
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
@@ -267,6 +268,15 @@ object RealWorldService {
             syncVanillaWeather(state)
             RealWorldStorage.markGlobalDirty(state)
         }
+    }
+
+    @SubscribeEvent
+    fun onWorldLoad(event: WorldLoadEvent) {
+        if (!RealWorldSettings.enabled || !RealWorldSettings.timeControlEnabled) {
+            return
+        }
+        event.world.setGameRule(GameRules.ADVANCE_TIME, false)
+        info("[RealWorld] 世界 ${event.world.name} 已禁用自动时间流逝")
     }
 
     @SubscribeEvent
