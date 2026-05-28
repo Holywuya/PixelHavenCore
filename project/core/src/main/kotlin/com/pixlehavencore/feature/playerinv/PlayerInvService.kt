@@ -78,7 +78,7 @@ object PlayerInvService {
 
         runCatching {
             dataSource = DatabaseUtils.newHikariDataSource("WarehousePool", 4, 1)
-            personalDataHandler = DatabaseUtils.newPlayerDataHandler(personalDataTableName(), autoHook = true, syncTick = 200L)
+            personalDataHandler = DatabaseUtils.newPlayerDataHandler(personalDataTableName(), autoHook = false, syncTick = 200L)
             ensureTables()
             info("[Warehouse] 数据库已连接")
         }.onFailure { ex ->
@@ -95,6 +95,15 @@ object PlayerInvService {
 
     fun isReady(): Boolean {
         return dataSource != null && personalDataHandler != null
+    }
+
+    fun setupPlayerDataContainer(playerUuid: UUID) {
+        val handler = personalDataHandler ?: return
+        runCatching {
+            handler.setupDataContainer(playerUuid.toString())
+        }.onFailure { ex ->
+            warning("[Warehouse] 初始化玩家数据容器失败(${playerUuid}): ${ex.message}")
+        }
     }
 
     fun countPersonalMaterials(owner: UUID, specs: Collection<String>): Map<String, Int> {

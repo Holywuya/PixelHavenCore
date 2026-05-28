@@ -180,8 +180,7 @@ class FastNoiseLite(private var seed: Int = 1337) {
         var hash = seed xor xPrimed xor yPrimed xor zPrimed
         hash *= 0x27D4EB2D
         hash = hash xor (hash shr 15)
-        hash = hash and 0x7FFFFFFF
-        val index = (hash and 0x3FC) shr 1
+        val index = (hash and (63 shl 2)) shr 1
         return xd * GRAD_3D[index] + yd * GRAD_3D[index + 1] + zd * GRAD_3D[index + 2]
     }
 

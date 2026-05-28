@@ -4,11 +4,18 @@ import com.pixlehavencore.bridge.TextBridge
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
+import org.bukkit.event.player.PlayerJoinEvent
 import io.papermc.paper.event.player.AsyncChatEvent
 import taboolib.common.platform.event.EventPriority
 import taboolib.common.platform.event.SubscribeEvent
 
 object PlayerInvListener {
+
+    @SubscribeEvent
+    fun onPlayerJoin(event: PlayerJoinEvent) {
+        if (!PlayerInvSettings.enabled) return
+        PlayerInvService.setupPlayerDataContainer(event.player.uniqueId)
+    }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     fun onInventoryClick(event: InventoryClickEvent) {
