@@ -63,10 +63,10 @@ object ChunkWeatherEngine {
     
     /**
      * 计算时间因子
-     * @param worldTime 世界游戏时间（ticks）
+     * @param gameTime 世界游戏时间（ticks，单调递增）
      * @param changeSpeed 变化速度系数
      */
-    fun calculateTimeFactor(worldTime: Long, changeSpeed: Float = WeatherSettings.localChangeSpeed): Float {
-        return (worldTime * changeSpeed).toFloat()
+    fun calculateTimeFactor(gameTime: Long, changeSpeed: Float = WeatherSettings.localChangeSpeed): Float {
+        return (gameTime * changeSpeed).toFloat()
     }
 }
