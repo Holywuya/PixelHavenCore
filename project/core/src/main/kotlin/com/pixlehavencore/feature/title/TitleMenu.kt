@@ -223,7 +223,7 @@ object TitleMenu {
         val icon = preview.definition.icon
         if (icon.isNotBlank()) {
             if (icon.contains(":")) {
-                CraftEngineItemsUtil.getItemBySpec(icon, null)?.let { return it.clone() }
+                ItemUtils.getItemBySpec(icon)?.let { return it.clone() }
             } else {
                 ItemUtils.matchMaterial(icon)?.let { return ItemStack(it) }
             }

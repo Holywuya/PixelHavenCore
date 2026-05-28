@@ -1,7 +1,5 @@
 package com.pixlehavencore.feature.craftingbench
 
-import com.pixlehavencore.util.BaikirutoItemsUtil
-import com.pixlehavencore.util.CraftEngineItemsUtil
 import com.pixlehavencore.util.ItemUtils
 import com.pixlehavencore.util.ADMIN_PERMISSION
 import org.bukkit.Bukkit
@@ -184,8 +182,7 @@ object AdminGuiService {
     // 从 ItemStack 推导物品规格字符串，优先级 ce: → bai: → 原版材质名
     fun deriveSpecFromItem(item: ItemStack): String {
         if (item.type.isAir) return ""
-        CraftEngineItemsUtil.getItemId(item)?.let { return "ce:$it" }
-        BaikirutoItemsUtil.getItemId(item)?.let { return "bai:$it" }
+        ItemUtils.getNamespacedItemId(item)?.let { return it }
         return item.type.name
     }
 
