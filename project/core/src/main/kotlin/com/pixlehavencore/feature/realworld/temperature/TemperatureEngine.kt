@@ -89,7 +89,20 @@ object TemperatureEngine {
         val delta = (feelsLike - state.temperature) * changeRate
         val change = delta * (1.0 - Math.exp(-absorptionRate * Math.abs(delta)))
 
-        state.temperature += change
+        // 体温调节机制
+        val regulation = if (TemperatureSettings.regulationEnabled) {
+            val setpoint = (TemperatureSettings.comfortMin + TemperatureSettings.comfortMax) / 2.0
+            val deviation = state.temperature - setpoint
+            val foodRatio = (player.foodLevel + player.saturation) / 40.0
+            val foodFactor = 0.3 + foodRatio * 0.7
+            val envFactor = computeEnvironmentFactor(feelsLike, setpoint)
+            val baseRate = 0.02
+            -deviation * baseRate * foodFactor * envFactor * tickIntervalSeconds
+        } else {
+            0.0
+        }
+
+        state.temperature += change + regulation
         state.temperaturePhase = classifyTemperature(state.temperature)
     }
 
@@ -266,6 +279,20 @@ object TemperatureEngine {
 
         val maxEffect = TemperatureSettings.foodResistanceMaxEffect
         return (foodRatio - 0.5) * maxEffect * 2.0
+    }
+
+    /**
+     * 计算环境对体温调节的影响因子
+     * 舒适环境调节力强，极端环境调节力弱
+     */
+    private fun computeEnvironmentFactor(ambientTemp: Double, setpoint: Double): Double {
+        val deviation = kotlin.math.abs(ambientTemp - setpoint)
+        return when {
+            deviation < 5.0 -> 1.0   // 舒适环境，调节力最强
+            deviation < 15.0 -> 0.5  // 轻微偏离，调节力减半
+            deviation < 25.0 -> 0.2  // 严重偏离，调节力很弱
+            else -> 0.05             // 极端环境，几乎无法调节
+        }
     }
 
     fun isOpenToSky(location: Location): Boolean {
