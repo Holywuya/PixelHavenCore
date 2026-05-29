@@ -67,64 +67,31 @@ object FractureEngine {
     }
 
     /**
-     * 应用骨折效果（每 tick 调用）
+     * 骨折自然恢复（每 tick 调用）
+     * 阶段惩罚（移动速度、疾跑禁止）已迁入 SurvivalEffectApplier
      */
-    fun applyEffects(player: Player, state: PlayerEnvState, tickSeconds: Int) {
+    fun tickRecovery(player: Player, state: PlayerEnvState, tickSeconds: Int) {
         if (!FractureSettings.enabled) return
+
+        if (state.fracture <= 0) return
 
         val severity = classifyFracture(state.fracture)
 
-        // 应用移动速度惩罚
-        when (severity) {
-            FractureSeverity.NONE -> {
-                // 恢复正常速度
-                if (player.walkSpeed != 0.2f) {
-                    player.walkSpeed = 0.2f
-                }
-            }
-            FractureSeverity.MILD -> {
-                // 减速 20%
-                val targetSpeed = 0.2f * 0.8f
-                if (player.walkSpeed != targetSpeed) {
-                    player.walkSpeed = targetSpeed
-                }
-            }
-            FractureSeverity.MODERATE -> {
-                // 减速 50%，禁止疾跑
-                val targetSpeed = 0.2f * 0.5f
-                if (player.walkSpeed != targetSpeed) {
-                    player.walkSpeed = targetSpeed
-                }
-                player.isSprinting = false
-            }
-            FractureSeverity.SEVERE -> {
-                // 减速 80%，禁止疾跑
-                val targetSpeed = 0.2f * 0.2f
-                if (player.walkSpeed != targetSpeed) {
-                    player.walkSpeed = targetSpeed
-                }
-                player.isSprinting = false
-            }
+        // 基础恢复速率：每分钟 2 点
+        var recoveryPerSecond = FractureSettings.recoveryRate / 60.0
+
+        // 如果无法疾跑，恢复速度减半
+        if (severity >= FractureSeverity.MODERATE) {
+            recoveryPerSecond *= 0.5
         }
 
-        // 自然恢复
-        if (state.fracture > 0) {
-            // 基础恢复速率：每分钟 2 点
-            var recoveryPerSecond = FractureSettings.recoveryRate / 60.0
+        val recovery = recoveryPerSecond * tickSeconds
+        state.fracture = (state.fracture - recovery).coerceAtLeast(0.0)
 
-            // 如果无法疾跑，恢复速度减半
-            if (severity >= FractureSeverity.MODERATE) {
-                recoveryPerSecond *= 0.5
-            }
-
-            val recovery = recoveryPerSecond * tickSeconds
-            state.fracture = (state.fracture - recovery).coerceAtLeast(0.0)
-
-            // 骨折完全恢复时通知玩家
-            if (state.fracture == 0.0 && severity != FractureSeverity.NONE) {
-                TextBridge.sendActionBar(player, "&a你的骨折已经完全恢复！")
-                player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.5f)
-            }
+        // 骨折完全恢复时通知玩家
+        if (state.fracture == 0.0 && severity != FractureSeverity.NONE) {
+            TextBridge.sendActionBar(player, "&a你的骨折已经完全恢复！")
+            player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.5f)
         }
     }
 

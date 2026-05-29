@@ -1,5 +1,7 @@
 package com.pixlehavencore.feature.realworld
 
+import com.pixlehavencore.feature.realworld.fracture.FractureEngine
+import com.pixlehavencore.feature.realworld.fracture.FractureSeverity
 import com.pixlehavencore.feature.realworld.weather.WeatherQuery
 import com.pixlehavencore.feature.realworld.weather.WeatherSettings
 import org.bukkit.Location
@@ -14,6 +16,29 @@ object SurvivalEffectApplier {
         applyExtremeNeedsEffects(player, state, tickIntervalSeconds)
         applyVisibilityWeatherEffects(player, state, global)
         applyWeatherExposureEffects(player, state, global, tickIntervalSeconds)
+        applyFractureEffects(player, state)
+    }
+
+    private fun applyFractureEffects(player: Player, state: PlayerEnvState) {
+        when (FractureEngine.classifyFracture(state.fracture)) {
+            FractureSeverity.NONE -> {
+                if (player.walkSpeed != 0.2f) player.walkSpeed = 0.2f
+            }
+            FractureSeverity.MILD -> {
+                val target = 0.2f * 0.8f
+                if (player.walkSpeed != target) player.walkSpeed = target
+            }
+            FractureSeverity.MODERATE -> {
+                val target = 0.2f * 0.5f
+                if (player.walkSpeed != target) player.walkSpeed = target
+                player.isSprinting = false
+            }
+            FractureSeverity.SEVERE -> {
+                val target = 0.2f * 0.2f
+                if (player.walkSpeed != target) player.walkSpeed = target
+                player.isSprinting = false
+            }
+        }
     }
 
     private fun applyExtremeNeedsEffects(player: Player, state: PlayerEnvState, tickIntervalSeconds: Int) {

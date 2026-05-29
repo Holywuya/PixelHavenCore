@@ -8,6 +8,6 @@ import org.bukkit.entity.Player
 
 object FractureTicker : PlayerSubsystemTicker {
     override fun tick(player: Player, state: PlayerEnvState, global: GlobalEnvState, dt: Int) {
-        FractureEngine.applyEffects(player, state, dt)
+        FractureEngine.tickRecovery(player, state, dt)
     }
 }
