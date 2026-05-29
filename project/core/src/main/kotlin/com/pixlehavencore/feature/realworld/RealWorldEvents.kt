@@ -3,8 +3,6 @@ package com.pixlehavencore.feature.realworld
 import com.pixlehavencore.feature.realworld.fracture.FractureEngine
 import com.pixlehavencore.feature.realworld.fracture.FractureSettings
 import com.pixlehavencore.feature.realworld.fracture.FractureTreatment
-import com.pixlehavencore.feature.realworld.stamina.StaminaEngine
-import com.pixlehavencore.feature.realworld.stamina.StaminaSettings
 import com.pixlehavencore.feature.realworld.thirst.ThirstEngine
 import com.pixlehavencore.feature.realworld.thirst.ThirstSettings
 import org.bukkit.Material
@@ -44,40 +42,6 @@ object RealWorldEvents {
                 if (!RealWorldService.isActive(generation)) return@submitOnEntity
                 RealWorldStorage.markPlayerDirty(uuid)
             }
-        }
-    }
-
-    @SubscribeEvent
-    fun onStaminaConsume(event: PlayerItemConsumeEvent) {
-        if (!StaminaSettings.enabled) return
-        val player = event.player
-        val item = event.item
-        val foodValues = getFoodValues(item.type)
-        if (foodValues > 0) {
-            RealWorldStorage.withPlayerState(player.uniqueId) { state ->
-                StaminaEngine.onEat(player, state, foodValues)
-            }
-        }
-        RealWorldStorage.withPlayerState(player.uniqueId) { state ->
-            StaminaEngine.onSpecialItem(player, state, item.type)
-        }
-    }
-
-    @SubscribeEvent
-    fun onEntityDamageByEntity(event: EntityDamageByEntityEvent) {
-        if (!StaminaSettings.enabled) return
-        val player = event.damager as? Player ?: return
-        RealWorldStorage.withPlayerState(player.uniqueId) { state ->
-            StaminaEngine.onAttack(player, state)
-        }
-    }
-
-    @SubscribeEvent
-    fun onBlockBreak(event: BlockBreakEvent) {
-        if (!StaminaSettings.enabled) return
-        val player = event.player
-        RealWorldStorage.withPlayerState(player.uniqueId) { state ->
-            StaminaEngine.onMine(player, state)
         }
     }
 
@@ -161,24 +125,6 @@ object RealWorldEvents {
             RealWorldService.drinkerCooldownUntil[uuid] = now + cooldownMillis
         }
         return true
-    }
-
-    private fun getFoodValues(material: Material): Int {
-        return when (material) {
-            Material.BREAD -> 5
-            Material.COOKED_BEEF, Material.COOKED_PORKCHOP, Material.COOKED_MUTTON -> 8
-            Material.COOKED_CHICKEN, Material.COOKED_COD, Material.COOKED_SALMON -> 6
-            Material.BAKED_POTATO -> 5
-            Material.MUSHROOM_STEW, Material.RABBIT_STEW, Material.BEETROOT_SOUP -> 7
-            Material.GOLDEN_APPLE -> 4
-            Material.ENCHANTED_GOLDEN_APPLE -> 4
-            Material.COOKED_RABBIT -> 5
-            Material.APPLE, Material.BEETROOT, Material.CARROT, Material.POTATO, Material.SWEET_BERRIES, Material.GLOW_BERRIES -> 3
-            Material.MELON_SLICE, Material.CHORUS_FRUIT -> 2
-            Material.COOKIE -> 2
-            Material.DRIED_KELP -> 1
-            else -> 0
-        }
     }
 
     private fun isWaterBottle(type: Material, meta: PotionMeta?): Boolean {

@@ -3,8 +3,6 @@ package com.pixlehavencore.feature.realworld
 import com.pixlehavencore.feature.realworld.foodcorrosion.FoodCorrosionCommand
 import com.pixlehavencore.feature.realworld.fracture.FractureEngine
 import com.pixlehavencore.feature.realworld.fracture.FractureSeverity
-import com.pixlehavencore.feature.realworld.stamina.StaminaEngine
-import com.pixlehavencore.feature.realworld.stamina.StaminaSettings
 import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission
@@ -33,7 +31,6 @@ object RealWorldCommand {
             sender.msg("&b/rw weather <天气> &7- 强制切换天气")
             sender.msg("&b/rw reset <玩家名> &7- 重置玩家生存数据")
             sender.msg("&b/rw reload &7- 重载真实世界模块")
-            sender.msg("&b/rw stamina <info|set|add|remove|reset> &7- 管理玩家体力")
             sender.msg("&b/rw corrosion status &7- 查看食物腐蚀功能状态")
             sender.msg("&7管理子命令均需要 &fphcore.admin &7权限")
         }
@@ -183,73 +180,6 @@ object RealWorldCommand {
 
             RealWorldService.reload()
             sender.msg("&a真实世界模块已重载。")
-        }
-    }
-
-    @CommandBody
-    val stamina = subCommand {
-        dynamic(comment = "action") {
-            suggestion<ProxyCommandSender> { _, _ -> listOf("info", "set", "add", "remove", "reset") }
-            execute<ProxyCommandSender> { sender, _, argument ->
-                if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
-                sender.msg("&c请指定玩家名。用法: /rw stamina <info|set|add|remove|reset> <玩家名>")
-            }
-            dynamic(comment = "player") {
-                suggestPlayers()
-                execute<ProxyCommandSender> { sender, _, argument ->
-                    if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
-                    val args = argument.toString().trim().split(" ")
-                    val action = args[0].lowercase()
-                    val playerName = args.getOrNull(1) ?: run {
-                        sender.msg("&c请指定玩家名。")
-                        return@execute
-                    }
-                    val target = findOnlinePlayer(playerName)
-                    if (target == null) {
-                        sender.msg("&c找不到在线玩家 &f$playerName&c。")
-                        return@execute
-                    }
-                    when (action) {
-                        "info" -> {
-                            val info = StaminaEngine.getStaminaInfo(target)
-                            if (info == null) {
-                                sender.msg("&e玩家 &f${target.name} &e当前没有缓存体力数据。")
-                                return@execute
-                            }
-                            sender.msg("&6=== 玩家体力信息：${target.name} ===")
-                            sender.msg("&7体力值: &f${"%.1f".format(info.stamina)} / ${"%.1f".format(info.maxStamina)}")
-                            sender.msg("&7百分比: &f${"%.1f".format(info.percentage)}%")
-                            sender.msg("&7阶段: &f${info.phase.displayName}")
-                        }
-                        "set", "add", "remove" -> {
-                            val value = args.getOrNull(2)?.toDoubleOrNull()
-                            if (value == null) {
-                                sender.msg("&c请指定数值。用法: /rw stamina $action <玩家名> <数值>")
-                                return@execute
-                            }
-                            when (action) {
-                                "set" -> {
-                                    StaminaEngine.setStamina(target, value)
-                                    sender.msg("&a已设置玩家 &f${target.name} &a的体力为 &f${"%.1f".format(value)}&a。")
-                                }
-                                "add" -> {
-                                    StaminaEngine.addStamina(target, value)
-                                    sender.msg("&a已为玩家 &f${target.name} &a增加 &f${"%.1f".format(value)} &a体力。")
-                                }
-                                "remove" -> {
-                                    StaminaEngine.removeStamina(target, value)
-                                    sender.msg("&a已从玩家 &f${target.name} &a减少 &f${"%.1f".format(value)} &a体力。")
-                                }
-                            }
-                        }
-                        "reset" -> {
-                            StaminaEngine.resetStamina(target)
-                            sender.msg("&a已重置玩家 &f${target.name} &a的体力。")
-                        }
-                        else -> sender.msg("&c未知操作: $action")
-                    }
-                }
-            }
         }
     }
 

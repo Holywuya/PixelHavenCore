@@ -3,8 +3,6 @@ package com.pixlehavencore.feature.realworld
 import com.pixlehavencore.bridge.TextBridge
 import com.pixlehavencore.feature.realworld.fracture.FractureEngine
 import com.pixlehavencore.feature.realworld.fracture.FractureSeverity
-import com.pixlehavencore.feature.realworld.stamina.StaminaPhase
-import com.pixlehavencore.feature.realworld.stamina.StaminaSettings
 import com.pixlehavencore.feature.realworld.temperature.FrostOverlay
 import com.pixlehavencore.feature.realworld.temperature.HeatOverlay
 import com.pixlehavencore.feature.realworld.weather.WeatherQuery
@@ -96,7 +94,7 @@ object SurvivalHud {
     }
 
     private fun renderBossBar(player: Player, state: PlayerEnvState) {
-        if (!RealWorldSettings.hudBossBarEnabled && !StaminaSettings.bossBarEnabled) {
+        if (!RealWorldSettings.hudBossBarEnabled) {
             removeBossBar(player)
             return
         }
@@ -105,16 +103,6 @@ object SurvivalHud {
         val color: BarColor
 
         when {
-            // 体力 DEPLETED 最高优先级
-            StaminaSettings.bossBarEnabled && state.staminaPhase == StaminaPhase.DEPLETED -> {
-                title = StaminaSettings.bossBarTitleDepleted
-                color = BarColor.valueOf(StaminaSettings.bossBarColorDepleted)
-            }
-            // 体力 EXHAUSTED 次优先级
-            StaminaSettings.bossBarEnabled && state.staminaPhase == StaminaPhase.EXHAUSTED -> {
-                title = StaminaSettings.bossBarTitleExhausted
-                color = BarColor.valueOf(StaminaSettings.bossBarColorExhausted)
-            }
             // 温度/口渴极端状态
             state.temperaturePhase == TemperaturePhase.SEVERE_HEAT -> {
                 title = RealWorldSettings.hudBossBarTitleHeat
@@ -135,8 +123,7 @@ object SurvivalHud {
         }
 
         val bossBar: BossBar = bossBars.get(player.uniqueId) ?: run {
-            val barStyle = try { BarStyle.valueOf(StaminaSettings.bossBarStyle) } catch (_: Exception) { BarStyle.SOLID }
-            val bar = Bukkit.createBossBar(colorize(title), color, barStyle)
+            val bar = Bukkit.createBossBar(colorize(title), color, BarStyle.SOLID)
             bossBars[player.uniqueId] = bar
             bar
         }
