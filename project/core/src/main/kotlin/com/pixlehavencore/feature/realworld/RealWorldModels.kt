@@ -1,7 +1,5 @@
 package com.pixlehavencore.feature.realworld
 
-import com.pixlehavencore.feature.realworld.stamina.StaminaPhase
-
 enum class Season(
     val displayName: String,
     val temperatureModifier: Double,
@@ -106,11 +104,6 @@ data class PlayerEnvState(
     var shelterCacheBlockY: Int = Int.MIN_VALUE,
     var shelterCacheBlockZ: Int = Int.MIN_VALUE,
     var hudRefreshTimer: Double = 0.0,
-    var stamina: Double = 100.0,
-    var staminaPhase: StaminaPhase = StaminaPhase.FULL,
-    var staminaIdleTimer: Double = 0.0,
-    var staminaRecoveryCooldown: Double = 0.0,
-    var staminaChatWarnCooldown: Double = 0.0,
 )
 
 data class GlobalEnvState(
