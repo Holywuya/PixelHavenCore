@@ -234,14 +234,38 @@ object TemperatureEngine {
             -state.wetness * TemperatureSettings.wetnessCoolingFactor
         }
 
+        val foodResistance = getFoodColdResistance(
+            player,
+            biomeBaseTemperature + seasonModifier + timeModifier + weatherModifier
+        )
+
         return biomeBaseTemperature +
             seasonModifier + timeModifier + weatherModifier +
             altitudeModifier + shelterModifier + armorModifier +
-            blockModifier + wetnessModifier
+            blockModifier + wetnessModifier + foodResistance
     }
 
     fun isUnderSolidRoof(location: Location): Boolean {
         return findWeatherRoofBlock(location, 0, 0) != null
+    }
+
+    /**
+     * 计算饱食度抗寒效果
+     * 只在寒冷环境（低于舒适下限）生效
+     * 高饱食度 → 抗寒能力增强（体感温度提高）
+     * 低饱食度 → 抗寒能力减弱（体感温度降低）
+     */
+    private fun getFoodColdResistance(player: Player, ambientTemp: Double): Double {
+        if (!TemperatureSettings.foodResistanceEnabled) return 0.0
+        // 只在寒冷环境生效
+        if (ambientTemp >= TemperatureSettings.coldMildThreshold) return 0.0
+
+        val foodLevel = player.foodLevel  // 0-20
+        val saturation = player.saturation  // 0-20
+        val foodRatio = (foodLevel + saturation) / 40.0  // 0.0-1.0
+
+        val maxEffect = TemperatureSettings.foodResistanceMaxEffect
+        return (foodRatio - 0.5) * maxEffect * 2.0
     }
 
     fun isOpenToSky(location: Location): Boolean {
