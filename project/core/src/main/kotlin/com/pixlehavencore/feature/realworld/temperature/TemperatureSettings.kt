@@ -81,6 +81,10 @@ object TemperatureSettings {
         private set
     var blockDecayFactor: Double = 0.5
         private set
+    var foodResistanceEnabled: Boolean = true
+        private set
+    var foodResistanceMaxEffect: Double = 5.0
+        private set
 
     private const val MAX_SHELTER_HORIZONTAL_RADIUS = 2
 
@@ -141,5 +145,7 @@ object TemperatureSettings {
         shelterBuildingBonus = config.getDouble("shelter.building-bonus", 8.0)
         shelterLeavesCountAsCanopy = config.getBoolean("shelter.leaves-count-as-canopy", true)
         blockDecayFactor = config.getDouble("temperature-blocks.decay-factor", 0.5).coerceIn(0.1, 0.9)
+        foodResistanceEnabled = config.getBoolean("food-resistance.enabled", true)
+        foodResistanceMaxEffect = config.getDouble("food-resistance.max-effect", 5.0).coerceIn(0.0, 20.0)
     }
 }
