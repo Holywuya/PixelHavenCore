@@ -318,8 +318,12 @@ object RealWorldService {
 
             val tickSeconds = RealWorldSettings.tickIntervalSeconds
             val onlinePlayerList = onlinePlayers().mapNotNull { it.cast<Player>() }
+            val context = GlobalTickContext(onlinePlayers = onlinePlayerList)
+
             val globalSnapshot = synchronized(globalStateLock) {
                 val state = globalState ?: return@submit
+                globalTickers.forEach { ticker -> ticker.tick(state, tickSeconds, context) }
+                // 阶段 3 完成前，保留旧的硬编码调用以保证行为不变
                 SeasonEngine.tick(state, tickSeconds)
                 WeatherEngine.tick(state, tickSeconds, onlinePlayerList)
                 state.dayPhase = SeasonEngine.computeDayPhase(Bukkit.getWorlds().firstOrNull()?.time ?: 6000L)
@@ -327,6 +331,7 @@ object RealWorldService {
                 RealWorldStorage.markGlobalDirty(state)
                 state.copy()
             }
+
             onlinePlayers().forEach { proxy ->
                 val player = proxy.cast<Player>() ?: return@forEach
                 player.submitOnEntity {
@@ -339,6 +344,10 @@ object RealWorldService {
                         val previousFracture = playerState.fracture
                         val previousStamina = playerState.stamina
 
+                        playerTickers.forEach { ticker ->
+                            ticker.tick(player, playerState, globalSnapshot, tickSeconds)
+                        }
+                        // 阶段 4 完成前，保留旧的硬编码调用以保证行为不变
                         TemperatureEngine.compute(player, playerState, globalSnapshot, tickSeconds)
                         ThirstEngine.compute(player, playerState, globalSnapshot, tickSeconds)
                         FractureEngine.applyEffects(player, playerState, tickSeconds)
@@ -346,6 +355,7 @@ object RealWorldService {
                         SurvivalEffectApplier.apply(player, playerState, globalSnapshot, tickSeconds)
                         StaminaEngine.checkIdle(player, playerState, tickSeconds.toDouble())
                         StaminaEngine.tick(player, playerState, globalSnapshot, tickSeconds)
+
                         playerState.hudRefreshTimer -= tickSeconds.coerceAtLeast(0).toDouble()
                         if (playerState.hudRefreshTimer <= 0.0) {
                             SurvivalHud.renderCurrentThread(player, playerState, globalSnapshot)
