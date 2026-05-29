@@ -86,23 +86,33 @@ object TemperatureEngine {
             1.0
         }
 
-        val delta = (feelsLike - state.temperature) * changeRate
-        val change = delta * (1.0 - Math.exp(-absorptionRate * Math.abs(delta)))
+        val envDelta = (feelsLike - state.temperature) * changeRate
 
-        // 体温调节机制
-        val regulation = if (TemperatureSettings.regulationEnabled) {
+        // 体温调节阻尼：当环境让体温远离设定点时，阻尼减缓这个过程
+        val dampingFactor = if (TemperatureSettings.regulationEnabled) {
             val setpoint = (TemperatureSettings.comfortMin + TemperatureSettings.comfortMax) / 2.0
             val deviation = state.temperature - setpoint
-            val foodRatio = (player.foodLevel + player.saturation) / 40.0
-            val foodFactor = 0.3 + foodRatio * 0.7
-            val envFactor = computeEnvironmentFactor(feelsLike, setpoint)
-            val baseRate = 0.02
-            -deviation * baseRate * foodFactor * envFactor * tickIntervalSeconds
+
+            // 判断环境是否让体温远离设定点
+            val isMovingAway = (envDelta > 0 && deviation > 0) || (envDelta < 0 && deviation < 0)
+
+            if (isMovingAway) {
+                // 饱食度影响阻尼强度（饱食度高 → 阻尼强 → 体温更稳定）
+                val foodRatio = (player.foodLevel + player.saturation) / 40.0
+                val foodFactor = 0.3 + foodRatio * 0.7
+                // 阻尼系数：1 - 阻尼强度，范围 0.15~0.65
+                1.0 - foodFactor * 0.5
+            } else {
+                // 环境让体温靠近设定点，无阻尼
+                1.0
+            }
         } else {
-            0.0
+            1.0
         }
 
-        state.temperature += change + regulation
+        val change = envDelta * dampingFactor * (1.0 - Math.exp(-absorptionRate * Math.abs(envDelta)))
+
+        state.temperature += change
         state.temperaturePhase = classifyTemperature(state.temperature)
     }
 
@@ -255,20 +265,6 @@ object TemperatureEngine {
 
     fun isUnderSolidRoof(location: Location): Boolean {
         return findWeatherRoofBlock(location, 0, 0) != null
-    }
-
-    /**
-     * 计算环境对体温调节的影响因子
-     * 舒适环境调节力强，极端环境调节力弱
-     */
-    private fun computeEnvironmentFactor(ambientTemp: Double, setpoint: Double): Double {
-        val deviation = kotlin.math.abs(ambientTemp - setpoint)
-        return when {
-            deviation < 5.0 -> 1.0   // 舒适环境，调节力最强
-            deviation < 15.0 -> 0.5  // 轻微偏离，调节力减半
-            deviation < 25.0 -> 0.2  // 严重偏离，调节力很弱
-            else -> 0.05             // 极端环境，几乎无法调节
-        }
     }
 
     fun isOpenToSky(location: Location): Boolean {
