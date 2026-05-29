@@ -100,8 +100,10 @@ object TemperatureEngine {
                 // 饱食度影响阻尼强度（饱食度高 → 阻尼强 → 体温更稳定）
                 val foodRatio = (player.foodLevel + player.saturation) / 40.0
                 val foodFactor = 0.3 + foodRatio * 0.7
-                // 阻尼系数：1 - 阻尼强度，范围 0.15~0.65
-                1.0 - foodFactor * 0.5
+                // 骨折降低阻尼效果（骨折越重，体温越难维持）
+                val fracturePenalty = state.fracture / 100.0 * 0.5
+                // 阻尼系数：1 - 阻尼强度，范围 0.15~0.65（骨折时更高）
+                1.0 - (foodFactor * 0.5 - fracturePenalty).coerceAtLeast(0.0)
             } else {
                 // 环境让体温靠近设定点，无阻尼
                 1.0
