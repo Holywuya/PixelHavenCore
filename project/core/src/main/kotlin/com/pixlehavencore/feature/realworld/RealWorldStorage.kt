@@ -4,6 +4,7 @@ import com.pixlehavencore.util.DatabaseUtils
 import com.zaxxer.hikari.HikariDataSource
 import taboolib.common.platform.function.submitAsync
 import taboolib.common.platform.function.warning
+import taboolib.expansion.MultipleHandler
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -12,9 +13,15 @@ object RealWorldStorage {
     private const val PLAYER_TABLE = "ph_realworld_player"
     private const val GLOBAL_TABLE = "ph_realworld_global"
     private const val GLOBAL_ID = 1
+    private const val KEY_HYDRATION = "hydration"
+    private const val KEY_TEMPERATURE = "last_temperature"
+    private const val KEY_FRACTURE = "fracture"
 
     @Volatile
     private var dataSource: HikariDataSource? = null
+
+    @Volatile
+    private var playerHandler: MultipleHandler? = null
 
     private val playerCache = ConcurrentHashMap<UUID, PlayerEnvState>()
     private val playerLocks = ConcurrentHashMap<UUID, Any>()
@@ -29,8 +36,9 @@ object RealWorldStorage {
     fun init() {
         stop()
         runCatching {
+            playerHandler = DatabaseUtils.newPlayerDataHandler(PLAYER_TABLE, syncTick = 200L)
             dataSource = DatabaseUtils.newHikariDataSource("RealWorldPool", 4, 1)
-            createTables()
+            createGlobalTable()
         }.onFailure { ex ->
             warning("[RealWorld] 初始化存储失败: ${ex.message}")
             stop()
@@ -57,6 +65,8 @@ object RealWorldStorage {
             }
         }
 
+        DatabaseUtils.closeMultipleHandler(playerHandler)
+        playerHandler = null
         dataSource?.close()
         dataSource = null
         playerCache.clear()
@@ -71,23 +81,17 @@ object RealWorldStorage {
     fun loadPlayer(uuid: UUID): PlayerEnvState {
         getPlayerSnapshot(uuid)?.let { return it }
 
-        val loaded = DatabaseUtils.withConnection(dataSource) { connection ->
-            connection.prepareStatement(
-                "SELECT ${quoted("hydration")}, ${quoted("last_temperature")}, ${quoted("fracture")} FROM $PLAYER_TABLE WHERE ${quoted("uuid")} = ?"
-            ).use { statement ->
-                statement.setString(1, uuid.toString())
-                statement.executeQuery().use { result ->
-                    if (!result.next()) {
-                        return@use null
-                    }
-                    PlayerEnvState(
-                        temperature = result.getDouble("last_temperature"),
-                        hydration = result.getDouble("hydration"),
-                        fracture = result.getDouble("fracture"),
-                    )
-                }
-            }
-        } ?: PlayerEnvState()
+        val currentHandler = playerHandler
+        val user = uuid.toString()
+        val loaded = if (currentHandler != null) {
+            PlayerEnvState(
+                temperature = (currentHandler.database[user, KEY_TEMPERATURE] as? String)?.toDoubleOrNull() ?: 20.0,
+                hydration = (currentHandler.database[user, KEY_HYDRATION] as? String)?.toDoubleOrNull() ?: 100.0,
+                fracture = (currentHandler.database[user, KEY_FRACTURE] as? String)?.toDoubleOrNull() ?: 0.0,
+            )
+        } else {
+            PlayerEnvState()
+        }
 
         val lock = playerLock(uuid)
         synchronized(lock) {
@@ -223,23 +227,8 @@ object RealWorldStorage {
         return playerLocks.computeIfAbsent(uuid) { Any() }
     }
 
-    private fun createTables() {
+    private fun createGlobalTable() {
         DatabaseUtils.withConnection(dataSource) { connection ->
-            connection.prepareStatement(
-                """
-                CREATE TABLE IF NOT EXISTS $PLAYER_TABLE (
-                    ${quoted("uuid")} VARCHAR(36) NOT NULL,
-                    ${quoted("hydration")} DOUBLE NOT NULL DEFAULT 100.0,
-                    ${quoted("last_temperature")} DOUBLE NOT NULL DEFAULT 20.0,
-                    ${quoted("fracture")} DOUBLE NOT NULL DEFAULT 0.0,
-                    ${quoted("updated_at")} TIMESTAMP NOT NULL,
-                    PRIMARY KEY (${quoted("uuid")})
-                )
-                """.trimIndent()
-            ).use { statement ->
-                statement.execute()
-            }
-
             connection.prepareStatement(
                 """
                 CREATE TABLE IF NOT EXISTS $GLOBAL_TABLE (
@@ -259,33 +248,21 @@ object RealWorldStorage {
     }
 
     private fun savePlayerSnapshot(uuid: UUID, snapshot: PlayerEnvState): Boolean {
-        return DatabaseUtils.withConnection(dataSource) { connection ->
-            connection.prepareStatement(playerUpsertSql()).use { statement ->
-                statement.setString(1, uuid.toString())
-                statement.setDouble(2, snapshot.hydration)
-                statement.setDouble(3, snapshot.temperature)
-                statement.setDouble(4, snapshot.fracture)
-                statement.setTimestamp(5, DatabaseUtils.now())
-                statement.executeUpdate()
-                true
-            }
-        } ?: false
+        val currentHandler = playerHandler ?: return false
+        val user = uuid.toString()
+        currentHandler.database[user, KEY_HYDRATION] = snapshot.hydration.toString()
+        currentHandler.database[user, KEY_TEMPERATURE] = snapshot.temperature.toString()
+        currentHandler.database[user, KEY_FRACTURE] = snapshot.fracture.toString()
+        return true
     }
 
     private fun batchSavePlayerSnapshots(snapshots: List<Pair<UUID, PlayerEnvState>>) {
-        DatabaseUtils.withConnection(dataSource) { connection ->
-            connection.prepareStatement(playerUpsertSql()).use { statement ->
-                val now = DatabaseUtils.now()
-                for ((uuid, snapshot) in snapshots) {
-                    statement.setString(1, uuid.toString())
-                    statement.setDouble(2, snapshot.hydration)
-                    statement.setDouble(3, snapshot.temperature)
-                    statement.setDouble(4, snapshot.fracture)
-                    statement.setTimestamp(5, now)
-                    statement.addBatch()
-                }
-                statement.executeBatch()
-            }
+        val currentHandler = playerHandler ?: return
+        for ((uuid, snapshot) in snapshots) {
+            val user = uuid.toString()
+            currentHandler.database[user, KEY_HYDRATION] = snapshot.hydration.toString()
+            currentHandler.database[user, KEY_TEMPERATURE] = snapshot.temperature.toString()
+            currentHandler.database[user, KEY_FRACTURE] = snapshot.fracture.toString()
         }
     }
 
@@ -312,15 +289,6 @@ object RealWorldStorage {
     private fun samePersistedGlobalState(current: GlobalEnvState, snapshot: GlobalEnvState): Boolean {
         return current.season == snapshot.season &&
             current.seasonProgress == snapshot.seasonProgress
-    }
-
-    private fun playerUpsertSql(): String {
-        return if (DatabaseUtils.isMySql) {
-            "INSERT INTO $PLAYER_TABLE (${quoted("uuid")}, ${quoted("hydration")}, ${quoted("last_temperature")}, ${quoted("fracture")}, ${quoted("updated_at")}) VALUES (?, ?, ?, ?, ?) " +
-                "ON DUPLICATE KEY UPDATE ${quoted("hydration")} = VALUES(${quoted("hydration")}), ${quoted("last_temperature")} = VALUES(${quoted("last_temperature")}), ${quoted("fracture")} = VALUES(${quoted("fracture")}), ${quoted("updated_at")} = VALUES(${quoted("updated_at")})"
-        } else {
-            "INSERT OR REPLACE INTO $PLAYER_TABLE (${quoted("uuid")}, ${quoted("hydration")}, ${quoted("last_temperature")}, ${quoted("fracture")}, ${quoted("updated_at")}) VALUES (?, ?, ?, ?, ?)"
-        }
     }
 
     private fun globalUpsertSql(): String {
