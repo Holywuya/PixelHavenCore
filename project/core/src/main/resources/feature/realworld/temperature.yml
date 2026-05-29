@@ -36,6 +36,13 @@ scan-interval-seconds: 5
 # 防止温度瞬间跳变过大
 max-change-per-tick: 0.5
 
+# 温度吸收速率
+# 控制体温趋近环境温度的速度曲线
+# 值越大，温差大时变化越快，温差小时变化越慢
+# 推荐范围 0.05~0.2
+temperature:
+  absorption-rate: 0.1
+
 # 遮蔽判定配置
 shelter:
   # 玻璃方块是否算作遮蔽物（影响天气暴露判定）

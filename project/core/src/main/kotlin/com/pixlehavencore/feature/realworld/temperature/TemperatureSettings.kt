@@ -21,6 +21,8 @@ object TemperatureSettings {
         private set
     var maxChangePerTick: Double = 0.5
         private set
+    var absorptionRate: Double = 0.1
+        private set
     var shelterGlassCountsAsShelter: Boolean = false
         private set
     var shelterLeavesCountAsShelter: Boolean = false
@@ -94,6 +96,7 @@ object TemperatureSettings {
         altitudeDropPerBlock = config.getDouble("altitude-drop-per-block", 0.5).coerceAtLeast(0.0)
         heatSourceScanIntervalSeconds = config.getInt("scan-interval-seconds", 5).coerceAtLeast(1)
         maxChangePerTick = config.getDouble("max-change-per-tick", 0.5).coerceAtLeast(0.0)
+        absorptionRate = config.getDouble("temperature.absorption-rate", 0.1).coerceAtLeast(0.01)
         shelterGlassCountsAsShelter = config.getBoolean("shelter.glass-counts-as-shelter", false)
         shelterLeavesCountAsShelter = config.getBoolean("shelter.leaves-counts-as-shelter", false)
         shelterHorizontalRadius = config.getInt("shelter.horizontal-radius", 1).coerceIn(0, MAX_SHELTER_HORIZONTAL_RADIUS)

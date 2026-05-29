@@ -79,7 +79,7 @@ object TemperatureEngine {
             )
         }
 
-        val maxChangePerTick = TemperatureSettings.maxChangePerTick.coerceAtLeast(0.0)
+        val absorptionRate = TemperatureSettings.absorptionRate
         val changeRate = if (player.isInWater && TemperatureSettings.waterEnabled) {
             TemperatureSettings.waterConductivityMultiplier
         } else {
@@ -87,7 +87,7 @@ object TemperatureEngine {
         }
 
         val delta = (feelsLike - state.temperature) * changeRate
-        val change = delta.coerceIn(-maxChangePerTick, maxChangePerTick)
+        val change = delta * (1.0 - Math.exp(-absorptionRate * Math.abs(delta)))
 
         state.temperature += change
         state.temperaturePhase = classifyTemperature(state.temperature)
