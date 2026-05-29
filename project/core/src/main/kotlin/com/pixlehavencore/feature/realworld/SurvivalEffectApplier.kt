@@ -2,6 +2,9 @@ package com.pixlehavencore.feature.realworld
 
 import com.pixlehavencore.feature.realworld.fracture.FractureEngine
 import com.pixlehavencore.feature.realworld.fracture.FractureSeverity
+import com.pixlehavencore.feature.realworld.stamina.StaminaEngine
+import com.pixlehavencore.feature.realworld.stamina.StaminaPhase
+import com.pixlehavencore.feature.realworld.stamina.StaminaSettings
 import com.pixlehavencore.feature.realworld.weather.WeatherQuery
 import com.pixlehavencore.feature.realworld.weather.WeatherSettings
 import org.bukkit.Location
@@ -16,29 +19,37 @@ object SurvivalEffectApplier {
         applyExtremeNeedsEffects(player, state, tickIntervalSeconds)
         applyVisibilityWeatherEffects(player, state, global)
         applyWeatherExposureEffects(player, state, global, tickIntervalSeconds)
-        applyFractureEffects(player, state)
+
+        // walkSpeed / sprint 取骨折与体力中最严格的值，避免后者覆盖前者
+        val fractureSpeed = computeFractureWalkSpeed(state)
+        val fractureBlockSprint = fractureSpeed < 0.2f * 0.5f
+        val staminaSpeed = computeStaminaWalkSpeed(state)
+        val staminaBlockSprint = state.staminaPhase == StaminaPhase.EXHAUSTED ||
+            state.staminaPhase == StaminaPhase.DEPLETED
+        val targetSpeed = minOf(fractureSpeed, staminaSpeed)
+        val blockSprint = fractureBlockSprint || staminaBlockSprint
+
+        if (player.walkSpeed != targetSpeed) player.walkSpeed = targetSpeed
+        if (blockSprint) player.isSprinting = false
+
         applyStaminaEffects(player, state, tickIntervalSeconds)
     }
 
-    private fun applyFractureEffects(player: Player, state: PlayerEnvState) {
-        when (FractureEngine.classifyFracture(state.fracture)) {
-            FractureSeverity.NONE -> {
-                if (player.walkSpeed != 0.2f) player.walkSpeed = 0.2f
-            }
-            FractureSeverity.MILD -> {
-                val target = 0.2f * 0.8f
-                if (player.walkSpeed != target) player.walkSpeed = target
-            }
-            FractureSeverity.MODERATE -> {
-                val target = 0.2f * 0.5f
-                if (player.walkSpeed != target) player.walkSpeed = target
-                player.isSprinting = false
-            }
-            FractureSeverity.SEVERE -> {
-                val target = 0.2f * 0.2f
-                if (player.walkSpeed != target) player.walkSpeed = target
-                player.isSprinting = false
-            }
+    private fun computeFractureWalkSpeed(state: PlayerEnvState): Float {
+        return when (FractureEngine.classifyFracture(state.fracture)) {
+            FractureSeverity.NONE -> 0.2f
+            FractureSeverity.MILD -> 0.2f * 0.8f
+            FractureSeverity.MODERATE -> 0.2f * 0.5f
+            FractureSeverity.SEVERE -> 0.2f * 0.2f
+        }
+    }
+
+    private fun computeStaminaWalkSpeed(state: PlayerEnvState): Float {
+        return when (state.staminaPhase) {
+            StaminaPhase.FULL -> 0.2f
+            StaminaPhase.TIRED -> 0.2f * StaminaSettings.tiredSpeedMultiplier.toFloat()
+            StaminaPhase.EXHAUSTED -> 0.2f * StaminaSettings.exhaustedSpeedMultiplier.toFloat()
+            StaminaPhase.DEPLETED -> 0.2f * StaminaSettings.depletedSpeedMultiplier.toFloat()
         }
     }
 
@@ -330,6 +341,21 @@ object SurvivalEffectApplier {
     }
 
     private fun applyStaminaEffects(player: Player, state: PlayerEnvState, tickIntervalSeconds: Int) {
-        com.pixlehavencore.feature.realworld.stamina.StaminaEngine.applyEffects(player, state, tickIntervalSeconds)
+        StaminaEngine.applyEffects(player, state, tickIntervalSeconds)
+
+        // DEPLETED 聊天提醒
+        if (state.staminaPhase == StaminaPhase.DEPLETED) {
+            state.staminaChatWarnCooldown -= tickIntervalSeconds.toDouble()
+            if (state.staminaChatWarnCooldown <= 0.0) {
+                state.staminaChatWarnCooldown = StaminaSettings.depletedReminderCooldownSeconds
+                val max = StaminaEngine.getMaxStamina(state)
+                val percent = (state.stamina / max * 100).toInt()
+                player.sendMessage(
+                    StaminaSettings.msgDepletedReminder
+                        .replace("&", "§")
+                        .replace("{stamina}", percent.toString())
+                )
+            }
+        }
     }
 }

@@ -100,15 +100,6 @@ object StaminaEngine {
                 sendPhaseChangeMessage(player, playerState, oldPhase, newPhase)
             }
         }
-
-        // DEPLETED 提醒
-        if (playerState.staminaPhase == StaminaPhase.DEPLETED) {
-            playerState.staminaChatWarnCooldown -= elapsed
-            if (playerState.staminaChatWarnCooldown <= 0.0) {
-                playerState.staminaChatWarnCooldown = StaminaSettings.depletedReminderCooldownSeconds
-                player.sendMessage(StaminaSettings.msgDepletedReminder.replace("&", "§").replace("{stamina}", (playerState.stamina / max * 100).toInt().toString()))
-            }
-        }
     }
 
     fun checkIdle(player: Player, playerState: PlayerEnvState, deltaSeconds: Double) {
@@ -369,26 +360,16 @@ object StaminaEngine {
         return true
     }
 
+    /**
+     * 体力阶段药水效果（walkSpeed/sprint 由 SurvivalEffectApplier 统一管理）
+     */
     internal fun applyEffects(player: Player, state: PlayerEnvState, tickSeconds: Int) {
         val phase = state.staminaPhase
         val durationTicks = StaminaSettings.effectDurationSeconds * 20 + 10
 
         when (phase) {
-            StaminaPhase.FULL -> {
-                resetWalkSpeed(player)
-            }
-            StaminaPhase.TIRED -> {
-                val targetSpeed = 0.2f * StaminaSettings.tiredSpeedMultiplier.toFloat()
-                if (player.walkSpeed != targetSpeed) {
-                    player.walkSpeed = targetSpeed
-                }
-            }
+            StaminaPhase.FULL, StaminaPhase.TIRED -> Unit
             StaminaPhase.EXHAUSTED -> {
-                val targetSpeed = 0.2f * StaminaSettings.exhaustedSpeedMultiplier.toFloat()
-                if (player.walkSpeed != targetSpeed) {
-                    player.walkSpeed = targetSpeed
-                }
-                player.isSprinting = false
                 PotionEffectType.MINING_FATIGUE?.let {
                     player.addPotionEffect(PotionEffect(it, durationTicks, StaminaSettings.exhaustedMiningFatigueAmplifier, false, false, false))
                 }
@@ -397,11 +378,6 @@ object StaminaEngine {
                 }
             }
             StaminaPhase.DEPLETED -> {
-                val targetSpeed = 0.2f * StaminaSettings.depletedSpeedMultiplier.toFloat()
-                if (player.walkSpeed != targetSpeed) {
-                    player.walkSpeed = targetSpeed
-                }
-                player.isSprinting = false
                 PotionEffectType.MINING_FATIGUE?.let {
                     player.addPotionEffect(PotionEffect(it, durationTicks, StaminaSettings.depletedMiningFatigueAmplifier, false, false, false))
                 }
@@ -409,18 +385,6 @@ object StaminaEngine {
                     player.addPotionEffect(PotionEffect(it, durationTicks, StaminaSettings.depletedWeaknessAmplifier, false, false, false))
                 }
             }
-        }
-    }
-
-    private fun resetWalkSpeed(player: Player) {
-        val currentSpeed = player.walkSpeed
-        val expectedSpeeds = listOf(
-            0.2f * StaminaSettings.tiredSpeedMultiplier.toFloat(),
-            0.2f * StaminaSettings.exhaustedSpeedMultiplier.toFloat(),
-            0.2f * StaminaSettings.depletedSpeedMultiplier.toFloat(),
-        )
-        if (currentSpeed in expectedSpeeds) {
-            player.walkSpeed = 0.2f
         }
     }
 
