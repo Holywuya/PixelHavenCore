@@ -2,9 +2,6 @@ package com.pixlehavencore.feature.realworld
 
 import com.pixlehavencore.feature.realworld.fracture.FractureEngine
 import com.pixlehavencore.feature.realworld.fracture.FractureSeverity
-import com.pixlehavencore.feature.realworld.stamina.StaminaEngine
-import com.pixlehavencore.feature.realworld.stamina.StaminaPhase
-import com.pixlehavencore.feature.realworld.stamina.StaminaSettings
 import com.pixlehavencore.feature.realworld.weather.WeatherSettings
 import org.bukkit.entity.Player
 import org.bukkit.potion.PotionEffect
@@ -15,20 +12,13 @@ object SurvivalEffectApplier {
     fun apply(player: Player, state: PlayerEnvState, global: GlobalEnvState, tickIntervalSeconds: Int) {
         applyExtremeNeedsEffects(player, state, tickIntervalSeconds)
 
-        // walkSpeed / sprint 取骨折与体力中最严格的值，避免后者覆盖前者
+        // walkSpeed 只考虑骨折
         val fractureSeverity = FractureEngine.classifyFracture(state.fracture)
         val fractureSpeed = computeFractureWalkSpeed(fractureSeverity)
         val fractureBlockSprint = fractureSeverity >= FractureSeverity.MODERATE
-        val staminaSpeed = computeStaminaWalkSpeed(state)
-        val staminaBlockSprint = state.staminaPhase == StaminaPhase.EXHAUSTED ||
-            state.staminaPhase == StaminaPhase.DEPLETED
-        val targetSpeed = minOf(fractureSpeed, staminaSpeed)
-        val blockSprint = fractureBlockSprint || staminaBlockSprint
 
-        if (player.walkSpeed != targetSpeed) player.walkSpeed = targetSpeed
-        if (blockSprint) player.isSprinting = false
-
-        applyStaminaEffects(player, state, tickIntervalSeconds)
+        if (player.walkSpeed != fractureSpeed) player.walkSpeed = fractureSpeed
+        if (fractureBlockSprint) player.isSprinting = false
     }
 
     private fun computeFractureWalkSpeed(severity: FractureSeverity): Float {
@@ -37,15 +27,6 @@ object SurvivalEffectApplier {
             FractureSeverity.MILD -> 0.2f * 0.8f
             FractureSeverity.MODERATE -> 0.2f * 0.5f
             FractureSeverity.SEVERE -> 0.2f * 0.2f
-        }
-    }
-
-    private fun computeStaminaWalkSpeed(state: PlayerEnvState): Float {
-        return when (state.staminaPhase) {
-            StaminaPhase.FULL -> 0.2f
-            StaminaPhase.TIRED -> 0.2f * StaminaSettings.tiredSpeedMultiplier.toFloat()
-            StaminaPhase.EXHAUSTED -> 0.2f * StaminaSettings.exhaustedSpeedMultiplier.toFloat()
-            StaminaPhase.DEPLETED -> 0.2f * StaminaSettings.depletedSpeedMultiplier.toFloat()
         }
     }
 
@@ -172,24 +153,5 @@ object SurvivalEffectApplier {
         type ?: return
         val durationTicks = tickIntervalSeconds.coerceAtLeast(1) * 20 + 10
         player.addPotionEffect(PotionEffect(type, durationTicks, amplifier, false, false, false))
-    }
-
-    private fun applyStaminaEffects(player: Player, state: PlayerEnvState, tickIntervalSeconds: Int) {
-        StaminaEngine.applyEffects(player, state, tickIntervalSeconds)
-
-        // DEPLETED 聊天提醒
-        if (state.staminaPhase == StaminaPhase.DEPLETED) {
-            state.staminaChatWarnCooldown -= tickIntervalSeconds.coerceAtLeast(0).toDouble()
-            if (state.staminaChatWarnCooldown <= 0.0) {
-                state.staminaChatWarnCooldown = StaminaSettings.depletedReminderCooldownSeconds
-                val max = StaminaEngine.getMaxStamina(state)
-                val percent = (state.stamina / max * 100).toInt()
-                player.sendMessage(
-                    StaminaSettings.msgDepletedReminder
-                        .replace("&", "§")
-                        .replace("{stamina}", percent.toString())
-                )
-            }
-        }
     }
 }
