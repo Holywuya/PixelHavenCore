@@ -154,8 +154,10 @@ object RealWorldService {
             return
         }
 
-        Bukkit.getWorlds().forEach { world ->
-            world.setGameRule(GameRules.ADVANCE_TIME, false)
+        submit {
+            Bukkit.getWorlds().forEach { world ->
+                world.setGameRule(GameRules.ADVANCE_TIME, false)
+            }
         }
 
         startTimeAdvanceTask()
@@ -170,8 +172,10 @@ object RealWorldService {
 
         stopTimeAdvanceTask()
 
-        Bukkit.getWorlds().forEach { world ->
-            world.setGameRule(GameRules.ADVANCE_TIME, true)
+        submit {
+            Bukkit.getWorlds().forEach { world ->
+                world.setGameRule(GameRules.ADVANCE_TIME, true)
+            }
         }
 
         info("[RealWorld] 时间控制已禁用，恢复原版时间流速")
