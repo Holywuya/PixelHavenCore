@@ -11,7 +11,6 @@ import org.bukkit.block.Biome
 import org.bukkit.block.Block
 import org.bukkit.block.data.Lightable
 import org.bukkit.entity.Player
-import kotlin.math.abs
 
 object TemperatureEngine {
 

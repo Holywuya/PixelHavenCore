@@ -21,8 +21,9 @@ object SurvivalEffectApplier {
         applyWeatherExposureEffects(player, state, global, tickIntervalSeconds)
 
         // walkSpeed / sprint 取骨折与体力中最严格的值，避免后者覆盖前者
-        val fractureSpeed = computeFractureWalkSpeed(state)
-        val fractureBlockSprint = fractureSpeed < 0.2f * 0.5f
+        val fractureSeverity = FractureEngine.classifyFracture(state.fracture)
+        val fractureSpeed = computeFractureWalkSpeed(fractureSeverity)
+        val fractureBlockSprint = fractureSeverity >= FractureSeverity.MODERATE
         val staminaSpeed = computeStaminaWalkSpeed(state)
         val staminaBlockSprint = state.staminaPhase == StaminaPhase.EXHAUSTED ||
             state.staminaPhase == StaminaPhase.DEPLETED
@@ -35,8 +36,8 @@ object SurvivalEffectApplier {
         applyStaminaEffects(player, state, tickIntervalSeconds)
     }
 
-    private fun computeFractureWalkSpeed(state: PlayerEnvState): Float {
-        return when (FractureEngine.classifyFracture(state.fracture)) {
+    private fun computeFractureWalkSpeed(severity: FractureSeverity): Float {
+        return when (severity) {
             FractureSeverity.NONE -> 0.2f
             FractureSeverity.MILD -> 0.2f * 0.8f
             FractureSeverity.MODERATE -> 0.2f * 0.5f
@@ -345,7 +346,7 @@ object SurvivalEffectApplier {
 
         // DEPLETED 聊天提醒
         if (state.staminaPhase == StaminaPhase.DEPLETED) {
-            state.staminaChatWarnCooldown -= tickIntervalSeconds.toDouble()
+            state.staminaChatWarnCooldown -= tickIntervalSeconds.coerceAtLeast(0).toDouble()
             if (state.staminaChatWarnCooldown <= 0.0) {
                 state.staminaChatWarnCooldown = StaminaSettings.depletedReminderCooldownSeconds
                 val max = StaminaEngine.getMaxStamina(state)

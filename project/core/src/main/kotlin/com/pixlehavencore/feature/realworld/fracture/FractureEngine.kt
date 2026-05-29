@@ -115,11 +115,10 @@ object FractureEngine {
                 state.fracture = 0.0
                 TextBridge.sendActionBar(player, "&a使用石膏，骨折完全治愈！")
                 player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.5f)
+                // 完全治愈时恢复速度，绷带部分治愈由下一 tick 的 SurvivalEffectApplier 自然修正
+                player.walkSpeed = 0.2f
             }
         }
-
-        // 恢复正常速度
-        player.walkSpeed = 0.2f
         return true
     }
 
