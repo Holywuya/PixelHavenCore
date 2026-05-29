@@ -241,18 +241,6 @@ object RealWorldStorage {
             }
 
             connection.prepareStatement(
-                "ALTER TABLE $PLAYER_TABLE ADD COLUMN ${quoted("fracture")} DOUBLE NOT NULL DEFAULT 0.0".trimIndent()
-            ).use { statement ->
-                runCatching { statement.execute() }
-            }
-
-            connection.prepareStatement(
-                "ALTER TABLE $PLAYER_TABLE ADD COLUMN ${quoted("stamina")} DOUBLE NOT NULL DEFAULT 100.0".trimIndent()
-            ).use { statement ->
-                runCatching { statement.execute() }
-            }
-
-            connection.prepareStatement(
                 """
                 CREATE TABLE IF NOT EXISTS $GLOBAL_TABLE (
                     ${quoted("id")} INT NOT NULL,
