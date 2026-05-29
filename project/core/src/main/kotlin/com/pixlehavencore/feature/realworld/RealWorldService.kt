@@ -6,6 +6,9 @@ import com.pixlehavencore.feature.realworld.fracture.FractureEngine
 import com.pixlehavencore.feature.realworld.season.SeasonEngine
 import com.pixlehavencore.feature.realworld.stamina.StaminaEngine
 import com.pixlehavencore.feature.realworld.temperature.TemperatureEngine
+import com.pixlehavencore.feature.realworld.tick.GlobalSubsystemTicker
+import com.pixlehavencore.feature.realworld.tick.GlobalTickContext
+import com.pixlehavencore.feature.realworld.tick.PlayerSubsystemTicker
 import com.pixlehavencore.feature.realworld.thirst.ThirstEngine
 import com.pixlehavencore.feature.realworld.weather.WeatherEngine
 import com.pixlehavencore.util.cancelTaskSafely
@@ -43,6 +46,9 @@ object RealWorldService {
     private var tickTask: Any? = null
     private var autoSaveTask: Any? = null
     private var timeAdvanceTask: Any? = null
+
+    private val globalTickers: List<GlobalSubsystemTicker> = emptyList()
+    private val playerTickers: List<PlayerSubsystemTicker> = emptyList()
 
     fun init() {
         RealWorldSettings.init()
