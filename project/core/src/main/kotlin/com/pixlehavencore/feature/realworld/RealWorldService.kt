@@ -9,6 +9,8 @@ import com.pixlehavencore.feature.realworld.temperature.TemperatureEngine
 import com.pixlehavencore.feature.realworld.tick.GlobalSubsystemTicker
 import com.pixlehavencore.feature.realworld.tick.GlobalTickContext
 import com.pixlehavencore.feature.realworld.tick.PlayerSubsystemTicker
+import com.pixlehavencore.feature.realworld.tick.global.SeasonTicker
+import com.pixlehavencore.feature.realworld.tick.global.WeatherTicker
 import com.pixlehavencore.feature.realworld.thirst.ThirstEngine
 import com.pixlehavencore.feature.realworld.weather.WeatherEngine
 import com.pixlehavencore.util.cancelTaskSafely
@@ -47,7 +49,10 @@ object RealWorldService {
     private var autoSaveTask: Any? = null
     private var timeAdvanceTask: Any? = null
 
-    private val globalTickers: List<GlobalSubsystemTicker> = emptyList()
+    private val globalTickers: List<GlobalSubsystemTicker> = listOf(
+        SeasonTicker,
+        WeatherTicker,
+    )
     private val playerTickers: List<PlayerSubsystemTicker> = emptyList()
 
     fun init() {
@@ -323,9 +328,6 @@ object RealWorldService {
             val globalSnapshot = synchronized(globalStateLock) {
                 val state = globalState ?: return@submit
                 globalTickers.forEach { ticker -> ticker.tick(state, tickSeconds, context) }
-                // 阶段 3 完成前，保留旧的硬编码调用以保证行为不变
-                SeasonEngine.tick(state, tickSeconds)
-                WeatherEngine.tick(state, tickSeconds, onlinePlayerList)
                 state.dayPhase = SeasonEngine.computeDayPhase(Bukkit.getWorlds().firstOrNull()?.time ?: 6000L)
                 syncVanillaWeather(state)
                 RealWorldStorage.markGlobalDirty(state)
