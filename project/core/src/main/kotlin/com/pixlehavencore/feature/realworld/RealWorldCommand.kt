@@ -55,10 +55,10 @@ object RealWorldCommand {
 
             sender.msg("&6=== 真实世界环境状态 ===")
             sender.msg("&7季节: &f${globalState.season.displayName} &7(进度 &f${formatDecimal(globalState.seasonProgress * 100)}%&7)")
-            sender.msg("&7天气: &f${globalState.weather.displayName} &7(强度 &f${formatDecimal(globalState.weatherIntensity)}&7)")
-            val pendingWeather = globalState.pendingWeather
-            if (pendingWeather != null && globalState.warningRemainingSeconds > 0.0) {
-                sender.msg("&7预警: &f${pendingWeather.displayName} &7将在 &f${kotlin.math.ceil(globalState.warningRemainingSeconds).toInt()} &7秒后到来")
+            val weatherType = RealWorldService.getCurrentWeatherType()
+            if (weatherType != null) {
+                val forcedHint = if (globalState.forcedWeather != null) " &8(强制)" else ""
+                sender.msg("&7天气: &f${weatherType.displayName}$forcedHint")
             }
             sender.msg("&7在线玩家: &f${onlinePlayers.size} &7人")
             sender.msg("&7已缓存状态: &f${cachedStates.size} &7人")
@@ -128,20 +128,28 @@ object RealWorldCommand {
     @CommandBody
     val weather = subCommand {
         dynamic(comment = "weather") {
-            suggestion<ProxyCommandSender> { _, _ -> WeatherType.entries.map { it.name } }
+            suggestion<ProxyCommandSender> { _, _ -> WeatherType.entries.map { it.name } + "AUTO" }
             execute<ProxyCommandSender> { sender, _, argument ->
                 if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
 
                 val weatherName = argument.toString().trim()
+                if (weatherName.equals("AUTO", ignoreCase = true)) {
+                    submit {
+                        RealWorldService.clearForcedWeather()
+                        sender.msg("&a天气已恢复为噪声驱动（自动）。")
+                    }
+                    return@execute
+                }
+
                 val newWeather = WeatherType.fromName(weatherName)
                 if (newWeather == null) {
-                    sender.msg("&c无效天气。可选值: &f${WeatherType.entries.joinToString(", ") { it.name }}")
+                    sender.msg("&c无效天气。可选值: &f${WeatherType.entries.joinToString(", ") { it.name }}, AUTO")
                     return@execute
                 }
 
                 submit {
                     RealWorldService.forceWeather(newWeather)
-                    sender.msg("&a天气已切换为 &f${newWeather.displayName}&a。")
+                    sender.msg("&a天气已强制为 &f${newWeather.displayName}&a。使用 &f/rw weather AUTO &a恢复自动。")
                 }
             }
         }

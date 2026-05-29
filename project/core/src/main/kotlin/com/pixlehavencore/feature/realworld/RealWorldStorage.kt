@@ -144,7 +144,7 @@ object RealWorldStorage {
     fun loadGlobal(): GlobalEnvState {
         val loaded = DatabaseUtils.withConnection(dataSource) { connection ->
             connection.prepareStatement(
-                "SELECT ${quoted("season")}, ${quoted("season_progress")}, ${quoted("weather")}, ${quoted("weather_intensity")} FROM $GLOBAL_TABLE WHERE ${quoted("id")} = ?"
+                "SELECT ${quoted("season")}, ${quoted("season_progress")} FROM $GLOBAL_TABLE WHERE ${quoted("id")} = ?"
             ).use { statement ->
                 statement.setInt(1, GLOBAL_ID)
                 statement.executeQuery().use { result ->
@@ -154,8 +154,6 @@ object RealWorldStorage {
                     GlobalEnvState(
                         season = Season.fromName(result.getString("season")) ?: Season.SPRING,
                         seasonProgress = result.getDouble("season_progress"),
-                        weather = WeatherType.fromName(result.getString("weather")) ?: WeatherType.CLEAR,
-                        weatherIntensity = result.getDouble("weather_intensity")
                     )
                 }
             }
@@ -312,9 +310,7 @@ object RealWorldStorage {
                 statement.setInt(1, GLOBAL_ID)
                 statement.setString(2, snapshot.season.name)
                 statement.setDouble(3, snapshot.seasonProgress)
-                statement.setString(4, snapshot.weather.name)
-                statement.setDouble(5, snapshot.weatherIntensity)
-                statement.setTimestamp(6, DatabaseUtils.now())
+                statement.setTimestamp(4, DatabaseUtils.now())
                 statement.executeUpdate()
                 true
             }
@@ -331,9 +327,7 @@ object RealWorldStorage {
 
     private fun samePersistedGlobalState(current: GlobalEnvState, snapshot: GlobalEnvState): Boolean {
         return current.season == snapshot.season &&
-            current.seasonProgress == snapshot.seasonProgress &&
-            current.weather == snapshot.weather &&
-            current.weatherIntensity == snapshot.weatherIntensity
+            current.seasonProgress == snapshot.seasonProgress
     }
 
     private fun playerUpsertSql(): String {
@@ -347,10 +341,10 @@ object RealWorldStorage {
 
     private fun globalUpsertSql(): String {
         return if (DatabaseUtils.isMySql) {
-            "INSERT INTO $GLOBAL_TABLE (${quoted("id")}, ${quoted("season")}, ${quoted("season_progress")}, ${quoted("weather")}, ${quoted("weather_intensity")}, ${quoted("updated_at")}) VALUES (?, ?, ?, ?, ?, ?) " +
-                "ON DUPLICATE KEY UPDATE ${quoted("season")} = VALUES(${quoted("season")}), ${quoted("season_progress")} = VALUES(${quoted("season_progress")}), ${quoted("weather")} = VALUES(${quoted("weather")}), ${quoted("weather_intensity")} = VALUES(${quoted("weather_intensity")}), ${quoted("updated_at")} = VALUES(${quoted("updated_at")})"
+            "INSERT INTO $GLOBAL_TABLE (${quoted("id")}, ${quoted("season")}, ${quoted("season_progress")}, ${quoted("updated_at")}) VALUES (?, ?, ?, ?) " +
+                "ON DUPLICATE KEY UPDATE ${quoted("season")} = VALUES(${quoted("season")}), ${quoted("season_progress")} = VALUES(${quoted("season_progress")}), ${quoted("updated_at")} = VALUES(${quoted("updated_at")})"
         } else {
-            "INSERT OR REPLACE INTO $GLOBAL_TABLE (${quoted("id")}, ${quoted("season")}, ${quoted("season_progress")}, ${quoted("weather")}, ${quoted("weather_intensity")}, ${quoted("updated_at")}) VALUES (?, ?, ?, ?, ?, ?)"
+            "INSERT OR REPLACE INTO $GLOBAL_TABLE (${quoted("id")}, ${quoted("season")}, ${quoted("season_progress")}, ${quoted("updated_at")}) VALUES (?, ?, ?, ?)"
         }
     }
 

@@ -186,34 +186,6 @@ object RealWorldEvents {
     }
 }
 
-class RealWorldWeatherWarningStartedEvent(
-    val currentWeather: WeatherType,
-    val currentWeatherIntensity: Double,
-    val targetWeather: WeatherType,
-    val targetWeatherIntensity: Double,
-    val warningDurationSeconds: Double,
-    val remainingWarningSeconds: Double,
-) : Event(true) {
-    override fun getHandlers(): HandlerList = getHandlerList()
-    companion object {
-        private val handlers = HandlerList()
-        @JvmStatic fun getHandlerList(): HandlerList = handlers
-    }
-}
-
-class RealWorldWeatherChangedEvent(
-    val previousWeather: WeatherType,
-    val previousWeatherIntensity: Double,
-    val weather: WeatherType,
-    val intensity: Double,
-) : Event(true) {
-    override fun getHandlers(): HandlerList = getHandlerList()
-    companion object {
-        private val handlers = HandlerList()
-        @JvmStatic fun getHandlerList(): HandlerList = handlers
-    }
-}
-
 class RealWorldSeasonChangedEvent(
     val previousSeason: Season,
     val season: Season,

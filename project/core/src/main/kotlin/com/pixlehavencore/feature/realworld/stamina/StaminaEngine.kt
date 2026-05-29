@@ -334,13 +334,6 @@ object StaminaEngine {
             multiplier *= StaminaSettings.integrationWetnessConsumptionMultiplier
         }
 
-        if (StaminaSettings.integrationWeatherEnabled && !state.isWeatherSheltered) {
-            val weather = global.weather
-            if (weather.isExtreme) {
-                multiplier *= StaminaSettings.integrationWeatherExtremeMultiplier
-            }
-        }
-
         if (StaminaSettings.integrationSeasonEnabled) {
             when (global.season) {
                 Season.WINTER -> multiplier *= StaminaSettings.integrationSeasonWinterMultiplier

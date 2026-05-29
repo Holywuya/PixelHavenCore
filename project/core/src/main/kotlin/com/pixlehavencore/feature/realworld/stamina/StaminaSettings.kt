@@ -151,10 +151,6 @@ object StaminaSettings {
         private set
     var integrationFoodFullSaturationBonus: Double = 1.25
         private set
-    var integrationWeatherEnabled: Boolean = true
-        private set
-    var integrationWeatherExtremeMultiplier: Double = 1.3
-        private set
     var integrationSeasonEnabled: Boolean = true
         private set
     var integrationSeasonWinterMultiplier: Double = 1.1
@@ -247,8 +243,6 @@ object StaminaSettings {
         integrationWetnessConsumptionMultiplier = config.getDouble("integration.wetness.consumption-multiplier", 1.2).coerceAtLeast(1.0)
         integrationFoodEnabled = config.getBoolean("integration.food.enabled", true)
         integrationFoodFullSaturationBonus = config.getDouble("integration.food.full-saturation-bonus", 1.25).coerceAtLeast(1.0)
-        integrationWeatherEnabled = config.getBoolean("integration.weather.enabled", true)
-        integrationWeatherExtremeMultiplier = config.getDouble("integration.weather.extreme-multiplier", 1.3).coerceAtLeast(1.0)
         integrationSeasonEnabled = config.getBoolean("integration.season.enabled", true)
         integrationSeasonWinterMultiplier = config.getDouble("integration.season.winter-multiplier", 1.1).coerceAtLeast(1.0)
         integrationSeasonSummerMultiplier = config.getDouble("integration.season.summer-multiplier", 1.05).coerceAtLeast(1.0)

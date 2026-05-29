@@ -6,49 +6,11 @@ enum class Season(
     val displayName: String,
     val temperatureModifier: Double,
     val hydrationMultiplier: Double,
-    val weatherWeights: Map<WeatherType, Double>,
 ) {
-    SPRING(
-        "春",
-        3.0,
-        1.0,
-        mapOf(
-            WeatherType.CLEAR to 3.0,
-            WeatherType.RAIN to 4.0,
-            WeatherType.THUNDER to 1.0,
-        ),
-    ),
-    SUMMER(
-        "夏",
-        10.0,
-        1.5,
-        mapOf(
-            WeatherType.CLEAR to 5.0,
-            WeatherType.RAIN to 2.0,
-            WeatherType.THUNDER to 2.0,
-            WeatherType.SANDSTORM to 1.0,
-        ),
-    ),
-    AUTUMN(
-        "秋",
-        0.0,
-        0.9,
-        mapOf(
-            WeatherType.CLEAR to 3.0,
-            WeatherType.RAIN to 4.0,
-            WeatherType.FOG to 2.0,
-        ),
-    ),
-    WINTER(
-        "冬",
-        -20.0,
-        0.6,
-        mapOf(
-            WeatherType.CLEAR to 3.0,
-            WeatherType.SNOW to 4.0,
-            WeatherType.BLIZZARD to 1.0,
-        ),
-    );
+    SPRING("春", 3.0, 1.0),
+    SUMMER("夏", 10.0, 1.5),
+    AUTUMN("秋", 0.0, 0.9),
+    WINTER("冬", -20.0, 0.6);
 
     companion object {
         fun fromName(name: String): Season? =
@@ -56,6 +18,9 @@ enum class Season(
     }
 }
 
+/**
+ * 天气类型仅保留晴天和雨天。
+ */
 enum class WeatherType(
     val displayName: String,
     val temperatureModifier: Double,
@@ -64,16 +29,10 @@ enum class WeatherType(
     val hasDamageEffect: Boolean,
 ) {
     CLEAR("晴", 0.0, 1.2, false, false),
-    RAIN("雨", -3.0, 0.5, false, false),
-    THUNDER("雷暴", -5.0, 0.6, false, false),
-    SNOW("雪", -8.0, 0.4, true, false),
-    BLIZZARD("暴风雪", -15.0, 0.3, true, true),
-    SANDSTORM("沙尘暴", 5.0, 1.8, true, true),
-    FOG("雾", -2.0, 0.7, true, false),
-    ACID_RAIN("酸雨", -4.0, 0.3, false, true);
+    RAIN("雨", -3.0, 0.5, false, false);
 
     val isExtreme: Boolean
-        get() = this == BLIZZARD || this == SANDSTORM || this == ACID_RAIN
+        get() = false
 
     companion object {
         fun fromName(name: String): WeatherType? =
@@ -157,14 +116,9 @@ data class PlayerEnvState(
 data class GlobalEnvState(
     var season: Season = Season.SPRING,
     var seasonProgress: Double = 0.0,
-    var weather: WeatherType = WeatherType.CLEAR,
-    var weatherIntensity: Double = 0.5,
-    var pendingWeather: WeatherType? = null,
-    var pendingWeatherIntensity: Double = 0.0,
-    var warningRemainingSeconds: Double = 0.0,
+    var forcedWeather: WeatherType? = null,
+    var forcedWeatherIntensity: Double = 0.0,
     var dayPhase: DayPhase = DayPhase.DAY,
-    var weatherDecisionTimer: Double = 0.0,
-    var lastDominantWeather: WeatherType? = null,
 )
 
 /**

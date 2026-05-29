@@ -6,6 +6,7 @@ import com.pixlehavencore.feature.realworld.ThirstPhase
 import com.pixlehavencore.feature.realworld.WeatherType
 import com.pixlehavencore.feature.realworld.season.SeasonEngine
 import com.pixlehavencore.feature.realworld.temperature.TemperatureSettings
+import com.pixlehavencore.feature.realworld.weather.WeatherQuery
 import java.util.concurrent.ThreadLocalRandom
 import org.bukkit.Material
 import org.bukkit.block.Block
@@ -30,7 +31,8 @@ object ThirstEngine {
         val intervalSeconds = tickIntervalSeconds.coerceAtLeast(0)
         val baseConsumption = settings.baseThirstRatePerMinute / 60.0 * intervalSeconds
         val seasonMultiplier = SeasonEngine.getHydrationMultiplier(global)
-        val weatherMultiplier = global.weather.hydrationMultiplier
+        val weatherState = WeatherQuery.getWeatherAt(player.location, global)
+        val weatherMultiplier = weatherState.type.hydrationMultiplier
         val temperatureMultiplier = 1.0 + (
             computeTemperatureDeviation(state.temperature) * settings.tempDeviationPercentPerDegree / 100.0
             )
@@ -55,7 +57,7 @@ object ThirstEngine {
         var hydration = (state.hydration - consumption).coerceIn(0.0, 100.0)
 
         // 复用 TemperatureEngine 已缓存的 isWeatherSheltered，避免重复调用 getHighestBlockYAt
-        if (supportsRainHydration(global) && !state.isWeatherSheltered && !isInWater(player)) {
+        if (supportsRainHydration(weatherState.type) && !state.isWeatherSheltered && !isInWater(player)) {
             val rainRestore = settings.rainRestorePerMinute / 60.0 * intervalSeconds
             hydration = (hydration + rainRestore).coerceIn(0.0, 100.0)
         }
@@ -171,8 +173,8 @@ object ThirstEngine {
         return location.blockY >= highestBlockY
     }
 
-    private fun supportsRainHydration(global: GlobalEnvState): Boolean {
-        return global.weather == WeatherType.RAIN || global.weather == WeatherType.THUNDER
+    private fun supportsRainHydration(weather: WeatherType): Boolean {
+        return weather == WeatherType.RAIN
     }
 
     fun classifyThirst(hydration: Double): ThirstPhase {

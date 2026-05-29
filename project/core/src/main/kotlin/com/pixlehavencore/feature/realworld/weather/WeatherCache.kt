@@ -1,6 +1,5 @@
 package com.pixlehavencore.feature.realworld.weather
 
-import com.pixlehavencore.feature.realworld.Season
 import com.pixlehavencore.feature.realworld.WeatherState
 import java.util.concurrent.ConcurrentHashMap
 
@@ -23,10 +22,10 @@ object WeatherCache {
     }
 
     /**
-     * 获取或计算区块天气
+     * 获取或计算区块天气（lambda 版本）
      * 缓存有效期内（默认 10 秒）直接返回缓存结果
      */
-    fun getOrCompute(chunkX: Int, chunkZ: Int, timeFactor: Float, season: Season): WeatherState {
+    fun getOrCompute(chunkX: Int, chunkZ: Int, compute: () -> WeatherState): WeatherState {
         val key = chunkKey(chunkX, chunkZ)
         val now = System.currentTimeMillis()
         val cached = cache[key]
@@ -35,7 +34,7 @@ object WeatherCache {
             return cached.weather
         }
 
-        val weather = ChunkWeatherEngine.computeWeather(chunkX, chunkZ, timeFactor, season)
+        val weather = compute()
 
         if (cache.size >= maxCacheSize) {
             // O(n) 单次遍历找最旧条目移除，避免 O(n log n) 排序

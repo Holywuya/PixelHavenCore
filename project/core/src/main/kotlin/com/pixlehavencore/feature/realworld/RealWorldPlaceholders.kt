@@ -1,5 +1,6 @@
 package com.pixlehavencore.feature.realworld
 
+import com.pixlehavencore.feature.realworld.weather.WeatherQuery
 import org.bukkit.entity.Player
 import taboolib.platform.compat.PlaceholderExpansion
 
@@ -11,7 +12,13 @@ object RealWorldPlaceholders : PlaceholderExpansion {
         val globalState = RealWorldService.getGlobalStateSnapshot()
         return when (args.lowercase()) {
             "season" -> globalState?.season?.displayName ?: ""
-            "weather" -> globalState?.weather?.displayName ?: ""
+            "weather" -> {
+                if (globalState == null || player == null) {
+                    ""
+                } else {
+                    WeatherQuery.getWeatherAt(player.location, globalState).type.displayName
+                }
+            }
             "season_progress" -> globalState?.let { global ->
                 "%.1f%%".format(global.seasonProgress.coerceIn(0.0, 1.0) * 100)
             } ?: ""

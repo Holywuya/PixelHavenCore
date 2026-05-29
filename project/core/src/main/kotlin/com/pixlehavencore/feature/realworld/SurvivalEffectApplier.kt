@@ -5,10 +5,7 @@ import com.pixlehavencore.feature.realworld.fracture.FractureSeverity
 import com.pixlehavencore.feature.realworld.stamina.StaminaEngine
 import com.pixlehavencore.feature.realworld.stamina.StaminaPhase
 import com.pixlehavencore.feature.realworld.stamina.StaminaSettings
-import com.pixlehavencore.feature.realworld.weather.WeatherQuery
 import com.pixlehavencore.feature.realworld.weather.WeatherSettings
-import org.bukkit.Location
-import org.bukkit.Particle
 import org.bukkit.entity.Player
 import org.bukkit.potion.PotionEffect
 import org.bukkit.potion.PotionEffectType
@@ -17,16 +14,6 @@ object SurvivalEffectApplier {
 
     fun apply(player: Player, state: PlayerEnvState, global: GlobalEnvState, tickIntervalSeconds: Int) {
         applyExtremeNeedsEffects(player, state, tickIntervalSeconds)
-
-        // 查询一次 WeatherState，供可见性和暴露效果共享，避免重复 WeatherQuery 调用
-        val localWeatherState = if (WeatherSettings.localEnabled) {
-            WeatherQuery.getWeatherAt(player.location, global)
-        } else {
-            null
-        }
-
-        applyVisibilityWeatherEffects(player, state, global, localWeatherState)
-        applyWeatherExposureEffects(player, state, global, tickIntervalSeconds, localWeatherState)
 
         // walkSpeed / sprint 取骨折与体力中最严格的值，避免后者覆盖前者
         val fractureSeverity = FractureEngine.classifyFracture(state.fracture)
@@ -164,174 +151,6 @@ object SurvivalEffectApplier {
                 }
             }
         }
-    }
-
-    private fun applyVisibilityWeatherEffects(
-        player: Player,
-        state: PlayerEnvState,
-        global: GlobalEnvState,
-        localWeatherState: com.pixlehavencore.feature.realworld.WeatherState?,
-    ) {
-        val visibilityWeather = if (localWeatherState != null) {
-            localWeatherState.type.takeIf { it.affectsVisibility }
-        } else {
-            global.weather.takeIf { it.affectsVisibility }
-        }
-        val weather = visibilityWeather ?: return
-        val visibilityDurationSeconds = WeatherSettings.visibilityEffectDurationSeconds
-        when (weather) {
-            WeatherType.FOG -> {
-                addEffect(player, PotionEffectType.BLINDNESS, WeatherSettings.fogBlindnessAmplifier, visibilityDurationSeconds)
-            }
-            WeatherType.BLIZZARD -> {
-                if (!state.isWeatherSheltered) {
-                    addEffect(player, PotionEffectType.BLINDNESS, WeatherSettings.blizzardBlindnessAmplifier, visibilityDurationSeconds)
-                }
-            }
-            WeatherType.SANDSTORM -> {
-                if (!state.isWeatherSheltered) {
-                    addEffect(player, PotionEffectType.BLINDNESS, WeatherSettings.sandstormBlindnessAmplifier, visibilityDurationSeconds)
-                }
-            }
-            else -> Unit
-        }
-    }
-
-    private fun applyWeatherExposureEffects(
-        player: Player,
-        state: PlayerEnvState,
-        global: GlobalEnvState,
-        tickIntervalSeconds: Int,
-        localWeatherState: com.pixlehavencore.feature.realworld.WeatherState?,
-    ) {
-        val weather = currentDamagingWeather(global, state, localWeatherState) ?: run {
-            resetWeatherExposure(state)
-            clearWeatherExposureEffects(player)
-            return
-        }
-
-        val elapsedSeconds = tickIntervalSeconds.coerceAtLeast(0).toDouble()
-        val allowDamage = advanceWeatherExposure(state, weather, elapsedSeconds)
-        applyWeatherEffectByType(player, weather, tickIntervalSeconds, allowDamage)
-        if (!allowDamage) {
-            return
-        }
-
-        if (state.weatherExposureDamageTimer > 0.0) {
-            return
-        }
-
-        player.damage(computeWeatherExposureDamage(global, weather))
-        state.weatherExposureDamageTimer = WeatherSettings.extremeDamageIntervalSeconds.toDouble()
-    }
-
-    private fun currentDamagingWeather(
-        global: GlobalEnvState,
-        state: PlayerEnvState,
-        localWeatherState: com.pixlehavencore.feature.realworld.WeatherState?,
-    ): WeatherType? {
-        if (state.isWeatherSheltered) {
-            return null
-        }
-        val weather = if (localWeatherState != null) {
-            localWeatherState.type
-        } else {
-            global.weather
-        }
-        if (!weather.hasDamageEffect || !weather.isExtreme) {
-            return null
-        }
-        return weather
-    }
-
-    private fun advanceWeatherExposure(
-        state: PlayerEnvState,
-        weather: WeatherType,
-        elapsedSeconds: Double,
-    ): Boolean {
-        val switchedWeather = state.weatherExposureSource != weather
-        if (switchedWeather) {
-            state.weatherExposureSource = weather
-            state.weatherExposureGraceTimer = WeatherSettings.extremeGracePeriodSeconds.toDouble()
-            state.weatherExposureDamageTimer = WeatherSettings.extremeDamageIntervalSeconds.toDouble()
-        }
-
-        if (state.weatherExposureGraceTimer > 0.0) {
-            state.weatherExposureGraceTimer = (state.weatherExposureGraceTimer - elapsedSeconds).coerceAtLeast(0.0)
-            return state.weatherExposureGraceTimer <= 0.0
-        }
-
-        state.weatherExposureDamageTimer = (state.weatherExposureDamageTimer - elapsedSeconds).coerceAtLeast(0.0)
-        return true
-    }
-
-    private fun applyWeatherEffectByType(
-        player: Player,
-        weather: WeatherType,
-        tickIntervalSeconds: Int,
-        allowDamage: Boolean,
-    ) {
-        when (weather) {
-            WeatherType.BLIZZARD -> {
-                addEffect(player, PotionEffectType.SLOWNESS, 1, tickIntervalSeconds)
-                spawnWeatherParticles(player, Particle.SNOWFLAKE, 30, 0.8, 0.5, 0.8, 0.1)
-            }
-            WeatherType.SANDSTORM -> {
-                addEffect(player, PotionEffectType.SLOWNESS, 0, tickIntervalSeconds)
-                addEffect(player, PotionEffectType.MINING_FATIGUE, 0, tickIntervalSeconds)
-                spawnWeatherParticles(player, Particle.DUST, 40, 1.2, 0.8, 1.2, 0.05)
-            }
-            WeatherType.ACID_RAIN -> {
-                addEffect(player, PotionEffectType.WEAKNESS, 0, tickIntervalSeconds)
-                if (allowDamage) {
-                    addEffect(player, PotionEffectType.POISON, 0, tickIntervalSeconds)
-                }
-                spawnWeatherParticles(player, Particle.FALLING_WATER, 25, 0.6, 1.0, 0.6, 0.2)
-                val loc = player.location.add(0.0, 1.0, 0.0)
-                player.world.spawnParticle(Particle.ENTITY_EFFECT, loc, 15, 0.5, 0.8, 0.5, 0.0)
-            }
-            else -> Unit
-        }
-    }
-
-    private fun spawnWeatherParticles(
-        player: Player,
-        particle: Particle,
-        count: Int,
-        offsetX: Double,
-        offsetY: Double,
-        offsetZ: Double,
-        speed: Double,
-        data: Any? = null
-    ) {
-        val location = player.location.add(0.0, 1.0, 0.0)
-        if (data != null) {
-            player.world.spawnParticle(particle, location, count, offsetX, offsetY, offsetZ, speed, data)
-        } else {
-            player.world.spawnParticle(particle, location, count, offsetX, offsetY, offsetZ, speed)
-        }
-    }
-
-    private fun computeWeatherExposureDamage(global: GlobalEnvState, weather: WeatherType): Double {
-        val intensity = global.weatherIntensity.coerceIn(0.0, 1.0)
-        val severityMultiplier = when (weather) {
-            WeatherType.BLIZZARD -> 0.75
-            WeatherType.SANDSTORM -> 1.0
-            WeatherType.ACID_RAIN -> 1.35
-            else -> 1.0
-        }
-        val scaledHearts = WeatherSettings.extremeBaseDamageHearts * severityMultiplier * (0.5 + intensity)
-        return scaledHearts.coerceAtLeast(0.0) * 2.0
-    }
-
-    private fun resetWeatherExposure(state: PlayerEnvState) {
-        state.weatherExposureSource = null
-        state.weatherExposureGraceTimer = 0.0
-        state.weatherExposureDamageTimer = 0.0
-    }
-
-    private fun clearWeatherExposureEffects(player: Player) {
-        // 天气暴露效果使用短持续时间，自然过期即可，避免误清除其他系统或外部来源的同类药水效果。
     }
 
     private fun isInSevereState(state: PlayerEnvState): Boolean {

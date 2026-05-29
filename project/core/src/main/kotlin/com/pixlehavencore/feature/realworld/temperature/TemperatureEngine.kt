@@ -3,7 +3,6 @@ package com.pixlehavencore.feature.realworld.temperature
 import com.pixlehavencore.feature.realworld.*
 import com.pixlehavencore.feature.realworld.season.SeasonEngine
 import com.pixlehavencore.feature.realworld.weather.WeatherQuery
-import com.pixlehavencore.feature.realworld.weather.WeatherSettings
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.Tag
@@ -42,11 +41,7 @@ object TemperatureEngine {
 
         val seasonModifier = SeasonEngine.getTemperatureModifier(global)
         val timeModifier = SeasonEngine.getTimeTemperatureModifier(worldTime, biomeName, location)
-        val weatherModifier = if (WeatherSettings.localEnabled) {
-            WeatherQuery.getTemperatureModifierAt(location, global)
-        } else {
-            global.weather.temperatureModifier
-        }
+        val weatherModifier = WeatherQuery.getTemperatureModifierAt(location, global)
         val altitudeModifier = computeAltitudeModifier(location.blockY)
 
         updateShelterState(player, state, tickIntervalSeconds)
@@ -475,7 +470,7 @@ object TemperatureEngine {
         val dt = tickSeconds.coerceAtLeast(0).toDouble()
         when {
             player.isInWater -> state.wetness += TemperatureSettings.wetnessRateSubmerge * dt
-            !state.isWeatherSheltered && isRaining(global) -> state.wetness += TemperatureSettings.wetnessRateRain * dt
+            !state.isWeatherSheltered && isRaining(player.location, global) -> state.wetness += TemperatureSettings.wetnessRateRain * dt
             else -> {
                 val dryRate = if (state.temperature > 30.0)
                     TemperatureSettings.wetnessDryRate * 2.0
@@ -487,10 +482,8 @@ object TemperatureEngine {
         state.wetness = state.wetness.coerceIn(0.0, 1.0)
     }
 
-    private fun isRaining(global: GlobalEnvState): Boolean {
-        return global.weather == WeatherType.RAIN ||
-            global.weather == WeatherType.THUNDER ||
-            global.weather == WeatherType.ACID_RAIN
+    private fun isRaining(location: Location, global: GlobalEnvState): Boolean {
+        return WeatherQuery.getWeatherAt(location, global).type == WeatherType.RAIN
     }
 
     private data class TemperatureScanOffset(

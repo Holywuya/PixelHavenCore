@@ -6,7 +6,6 @@ import com.pixlehavencore.feature.realworld.tick.GlobalSubsystemTicker
 import com.pixlehavencore.feature.realworld.tick.GlobalTickContext
 import com.pixlehavencore.feature.realworld.tick.PlayerSubsystemTicker
 import com.pixlehavencore.feature.realworld.tick.global.SeasonTicker
-import com.pixlehavencore.feature.realworld.tick.global.WeatherTicker
 import com.pixlehavencore.feature.realworld.tick.player.FoodCorrosionTicker
 import com.pixlehavencore.feature.realworld.tick.player.FractureTicker
 import com.pixlehavencore.feature.realworld.tick.player.StaminaTicker
@@ -14,6 +13,7 @@ import com.pixlehavencore.feature.realworld.tick.player.SurvivalEffectTicker
 import com.pixlehavencore.feature.realworld.tick.player.TemperatureTicker
 import com.pixlehavencore.feature.realworld.tick.player.ThirstTicker
 import com.pixlehavencore.feature.realworld.weather.WeatherEngine
+import com.pixlehavencore.feature.realworld.weather.WeatherQuery
 import com.pixlehavencore.util.cancelTaskSafely
 import org.bukkit.Bukkit
 import org.bukkit.GameRules
@@ -52,7 +52,6 @@ object RealWorldService {
 
     private val globalTickers: List<GlobalSubsystemTicker> = listOf(
         SeasonTicker,
-        WeatherTicker,
     )
     private val playerTickers: List<PlayerSubsystemTicker> = listOf(
         TemperatureTicker,
@@ -198,15 +197,19 @@ object RealWorldService {
     }
 
     /**
-     * 返回当前天气类型，只暴露不可变枚举值，不向外暴露内部全局状态对象。
+     * 返回当前天气类型。天气改为噪声驱动后无单一全局天气，
+     * 优先返回强制天气，否则以主世界出生点为代表点采样。
      */
     fun getCurrentWeatherType(): WeatherType? {
         if (!RealWorldSettings.enabled) {
             return null
         }
-        return synchronized(globalStateLock) {
-            globalState?.weather
-        }
+        val state = synchronized(globalStateLock) {
+            globalState?.copy()
+        } ?: return null
+        state.forcedWeather?.let { return it }
+        val world = Bukkit.getWorlds().firstOrNull() ?: return null
+        return WeatherQuery.getWeatherAt(world.spawnLocation, state).type
     }
 
     /**
@@ -270,6 +273,18 @@ object RealWorldService {
         synchronized(globalStateLock) {
             val state = globalState ?: return
             WeatherEngine.setWeather(state, weather)
+            syncVanillaWeather(state)
+            RealWorldStorage.markGlobalDirty(state)
+        }
+    }
+
+    fun clearForcedWeather() {
+        if (!RealWorldSettings.enabled) {
+            return
+        }
+        synchronized(globalStateLock) {
+            val state = globalState ?: return
+            WeatherEngine.clearForcedWeather(state)
             syncVanillaWeather(state)
             RealWorldStorage.markGlobalDirty(state)
         }
@@ -505,14 +520,15 @@ object RealWorldService {
     }
 
     private fun syncVanillaWeather(state: GlobalEnvState) {
-        val hasStorm = state.weather != WeatherType.CLEAR && state.weather != WeatherType.FOG
-        val hasThunder = state.weather == WeatherType.THUNDER
         Bukkit.getWorlds().forEach { world ->
+            // 噪声驱动：以每个世界出生点为代表点采样降雨状态，同步原版下雨视觉
+            val weather = WeatherQuery.getWeatherAt(world.spawnLocation, state).type
+            val hasStorm = weather == WeatherType.RAIN
             if (world.hasStorm() != hasStorm) {
                 world.setStorm(hasStorm)
             }
-            if (world.isThundering != hasThunder) {
-                world.isThundering = hasThunder
+            if (world.isThundering) {
+                world.isThundering = false
             }
         }
     }
