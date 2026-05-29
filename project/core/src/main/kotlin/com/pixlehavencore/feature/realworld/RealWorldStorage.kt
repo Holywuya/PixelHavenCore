@@ -73,7 +73,7 @@ object RealWorldStorage {
 
         val loaded = DatabaseUtils.withConnection(dataSource) { connection ->
             connection.prepareStatement(
-                "SELECT ${quoted("hydration")}, ${quoted("last_temperature")}, ${quoted("fracture")}, ${quoted("stamina")} FROM $PLAYER_TABLE WHERE ${quoted("uuid")} = ?"
+                "SELECT ${quoted("hydration")}, ${quoted("last_temperature")}, ${quoted("fracture")} FROM $PLAYER_TABLE WHERE ${quoted("uuid")} = ?"
             ).use { statement ->
                 statement.setString(1, uuid.toString())
                 statement.executeQuery().use { result ->
@@ -328,10 +328,10 @@ object RealWorldStorage {
 
     private fun playerUpsertSql(): String {
         return if (DatabaseUtils.isMySql) {
-            "INSERT INTO $PLAYER_TABLE (${quoted("uuid")}, ${quoted("hydration")}, ${quoted("last_temperature")}, ${quoted("fracture")}, ${quoted("stamina")}, ${quoted("updated_at")}) VALUES (?, ?, ?, ?, ?, ?) " +
-                "ON DUPLICATE KEY UPDATE ${quoted("hydration")} = VALUES(${quoted("hydration")}), ${quoted("last_temperature")} = VALUES(${quoted("last_temperature")}), ${quoted("fracture")} = VALUES(${quoted("fracture")}), ${quoted("stamina")} = VALUES(${quoted("stamina")}), ${quoted("updated_at")} = VALUES(${quoted("updated_at")})"
+            "INSERT INTO $PLAYER_TABLE (${quoted("uuid")}, ${quoted("hydration")}, ${quoted("last_temperature")}, ${quoted("fracture")}, ${quoted("updated_at")}) VALUES (?, ?, ?, ?, ?) " +
+                "ON DUPLICATE KEY UPDATE ${quoted("hydration")} = VALUES(${quoted("hydration")}), ${quoted("last_temperature")} = VALUES(${quoted("last_temperature")}), ${quoted("fracture")} = VALUES(${quoted("fracture")}), ${quoted("updated_at")} = VALUES(${quoted("updated_at")})"
         } else {
-            "INSERT OR REPLACE INTO $PLAYER_TABLE (${quoted("uuid")}, ${quoted("hydration")}, ${quoted("last_temperature")}, ${quoted("fracture")}, ${quoted("stamina")}, ${quoted("updated_at")}) VALUES (?, ?, ?, ?, ?, ?)"
+            "INSERT OR REPLACE INTO $PLAYER_TABLE (${quoted("uuid")}, ${quoted("hydration")}, ${quoted("last_temperature")}, ${quoted("fracture")}, ${quoted("updated_at")}) VALUES (?, ?, ?, ?, ?)"
         }
     }
 

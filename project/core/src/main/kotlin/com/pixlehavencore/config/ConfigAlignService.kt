@@ -68,8 +68,6 @@ object ConfigAlignService {
         "feature/realworld/temperature.yml" to listOf("temperature-blocks"),
         // food-corrosion 物品保质期：用户可自行添加物品→天数条目
         "feature/realworld/food-corrosion.yml" to listOf("item-days"),
-        // stamina 特殊物品恢复：用户可自行添加物品→恢复比例条目
-        "feature/realworld/stamina.yml" to listOf("recovery.special-items.items"),
         // title 稀有度颜色：用户可自定义稀有度名称和颜色
         "feature/title/config.yml" to listOf("gui.rarity_colors")
     )
