@@ -84,7 +84,6 @@ object RealWorldStorage {
                         temperature = result.getDouble("last_temperature"),
                         hydration = result.getDouble("hydration"),
                         fracture = result.getDouble("fracture"),
-                        stamina = result.getDouble("stamina").let { if (it == 0.0) 100.0 else it }
                     )
                 }
             }
@@ -278,8 +277,7 @@ object RealWorldStorage {
                 statement.setDouble(2, snapshot.hydration)
                 statement.setDouble(3, snapshot.temperature)
                 statement.setDouble(4, snapshot.fracture)
-                statement.setDouble(5, snapshot.stamina)
-                statement.setTimestamp(6, DatabaseUtils.now())
+                statement.setTimestamp(5, DatabaseUtils.now())
                 statement.executeUpdate()
                 true
             }
@@ -295,8 +293,7 @@ object RealWorldStorage {
                     statement.setDouble(2, snapshot.hydration)
                     statement.setDouble(3, snapshot.temperature)
                     statement.setDouble(4, snapshot.fracture)
-                    statement.setDouble(5, snapshot.stamina)
-                    statement.setTimestamp(6, now)
+                    statement.setTimestamp(5, now)
                     statement.addBatch()
                 }
                 statement.executeBatch()
@@ -321,8 +318,7 @@ object RealWorldStorage {
         return current != null &&
             current.hydration == snapshot.hydration &&
             current.temperature == snapshot.temperature &&
-            current.fracture == snapshot.fracture &&
-            current.stamina == snapshot.stamina
+            current.fracture == snapshot.fracture
     }
 
     private fun samePersistedGlobalState(current: GlobalEnvState, snapshot: GlobalEnvState): Boolean {

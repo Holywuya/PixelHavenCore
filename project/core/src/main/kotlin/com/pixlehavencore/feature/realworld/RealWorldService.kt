@@ -368,7 +368,6 @@ object RealWorldService {
                         val previousTemperature = playerState.temperature
                         val previousHydration = playerState.hydration
                         val previousFracture = playerState.fracture
-                        val previousStamina = playerState.stamina
 
                         playerTickers.forEach { ticker ->
                             ticker.tick(player, playerState, globalSnapshot, tickSeconds)
@@ -387,7 +386,6 @@ object RealWorldService {
                             previousTemperature = previousTemperature,
                             previousHydration = previousHydration,
                             previousFracture = previousFracture,
-                            previousStamina = previousStamina,
                         )
                     } ?: return@submitOnEntity
                     if (shuttingDown || generation != _lifecycleGeneration.get() || !RealWorldSettings.enabled) {
@@ -406,12 +404,10 @@ object RealWorldService {
         previousTemperature: Double,
         previousHydration: Double,
         previousFracture: Double,
-        previousStamina: Double,
     ): Boolean {
         return playerState.temperature != previousTemperature ||
             playerState.hydration != previousHydration ||
-            playerState.fracture != previousFracture ||
-            playerState.stamina != previousStamina
+            playerState.fracture != previousFracture
     }
 
     private fun startAutoSaveTask() {
