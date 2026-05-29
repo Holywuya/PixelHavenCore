@@ -3,12 +3,10 @@ package com.pixlehavencore.feature.realworld.weather
 import com.pixlehavencore.feature.realworld.GlobalEnvState
 import com.pixlehavencore.feature.realworld.RealWorldWeatherChangedEvent
 import com.pixlehavencore.feature.realworld.RealWorldWeatherWarningStartedEvent
-import com.pixlehavencore.feature.realworld.WeatherState
 import com.pixlehavencore.feature.realworld.WeatherType
 import com.pixlehavencore.feature.realworld.tick.GlobalTickContext
 import java.util.concurrent.ThreadLocalRandom
 import org.bukkit.Bukkit
-import org.bukkit.entity.Player
 import taboolib.common.platform.function.info
 
 object WeatherEngine {
@@ -26,68 +24,15 @@ object WeatherEngine {
 
     /**
      * 天气系统 tick
-     * 现在只负责更新全局主导天气和极端天气预警
+     * 始终执行全局天气决策（驱动原版雨雪视觉效果），
+     * 局部天气启用时区块噪声天气独立工作（温度修正等局部效果由 WeatherQuery 按需查询）。
      */
-    fun tick(global: GlobalEnvState, tickIntervalSeconds: Int, context: GlobalTickContext) {
-        if (!WeatherSettings.localEnabled) {
-            // 保留旧的全局天气逻辑作为后备
-            tickGlobalWeather(global, tickIntervalSeconds)
-            return
-        }
-
-        // 更新全局主导天气
-        updateDominantWeather(global, context)
-
-        // 处理极端天气预警（保留原逻辑）
-        tickWarning(global, tickIntervalSeconds.toDouble())
+    fun tick(global: GlobalEnvState, tickIntervalSeconds: Int, @Suppress("UNUSED_PARAMETER") context: GlobalTickContext) {
+        tickGlobalWeather(global, tickIntervalSeconds)
     }
 
     /**
-     * 更新全局主导天气
-     * 统计所有玩家周围区块的天气，取最常见的类型
-     * 使用预收集的 playerLocations 避免跨线程访问 player.location
-     */
-    private fun updateDominantWeather(global: GlobalEnvState, context: GlobalTickContext) {
-        if (context.onlinePlayers.isEmpty()) return
-
-        val weatherCounts = java.util.EnumMap<WeatherType, Int>(WeatherType::class.java)
-        val weatherIntensitySums = java.util.EnumMap<WeatherType, Double>(WeatherType::class.java)
-
-        // 统计每个玩家所在区块的天气和强度（使用预收集的位置）
-        for (player in context.onlinePlayers) {
-            val location = context.playerLocations[player.uniqueId] ?: continue
-            val weather = WeatherQuery.getWeatherAt(location, global)
-            weatherCounts[weather.type] = (weatherCounts[weather.type] ?: 0) + 1
-            weatherIntensitySums[weather.type] = (weatherIntensitySums[weather.type] ?: 0.0) + weather.intensity
-        }
-
-        // 找出最常见的天气及其平均强度
-        val dominantWeather = weatherCounts.maxByOrNull { it.value }?.key ?: WeatherType.CLEAR
-        val dominantCount = weatherCounts[dominantWeather] ?: 1
-        val averageIntensity = (weatherIntensitySums[dominantWeather] ?: 0.5) / dominantCount
-
-        // 如果主导天气变化，触发事件
-        if (dominantWeather != global.weather) {
-            val previousWeather = global.weather
-            global.weather = dominantWeather
-            global.lastDominantWeather = previousWeather
-
-            Bukkit.getPluginManager().callEvent(
-                RealWorldWeatherChangedEvent(
-                    previousWeather = previousWeather,
-                    previousWeatherIntensity = global.weatherIntensity,
-                    weather = dominantWeather,
-                    intensity = averageIntensity,
-                ),
-            )
-            info("[RealWorld] 主导天气切换为: ${dominantWeather.displayName} (强度: %.2f)".format(averageIntensity))
-        }
-        // 天气类型未变时也更新强度
-        global.weatherIntensity = averageIntensity
-    }
-
-    /**
-     * 旧的全局天气逻辑（后备）
+     * 全局天气决策：递减计时器，到期时调用 decideWeather 切换天气
      */
     private fun tickGlobalWeather(global: GlobalEnvState, tickIntervalSeconds: Int) {
         val safeTickSeconds = tickIntervalSeconds.coerceAtLeast(0).toDouble()
