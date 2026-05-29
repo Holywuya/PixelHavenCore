@@ -54,7 +54,8 @@ object ThirstEngine {
 
         var hydration = (state.hydration - consumption).coerceIn(0.0, 100.0)
 
-        if (supportsRainHydration(global) && isExposedToRain(player) && !isInWater(player)) {
+        // 复用 TemperatureEngine 已缓存的 isWeatherSheltered，避免重复调用 getHighestBlockYAt
+        if (supportsRainHydration(global) && !state.isWeatherSheltered && !isInWater(player)) {
             val rainRestore = settings.rainRestorePerMinute / 60.0 * intervalSeconds
             hydration = (hydration + rainRestore).coerceIn(0.0, 100.0)
         }

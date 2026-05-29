@@ -331,7 +331,9 @@ object RealWorldService {
 
             val tickSeconds = RealWorldSettings.tickIntervalSeconds
             val onlinePlayerList = onlinePlayers().mapNotNull { it.cast<Player>() }
-            val context = GlobalTickContext(onlinePlayers = onlinePlayerList)
+            // 在 entity 线程预收集玩家位置，避免在 globalStateLock 内跨线程访问 player.location
+            val playerLocations = onlinePlayerList.associate { it.uniqueId to it.location.clone() }
+            val context = GlobalTickContext(onlinePlayers = onlinePlayerList, playerLocations = playerLocations)
 
             val globalSnapshot = synchronized(globalStateLock) {
                 val state = globalState ?: return@submit
@@ -342,8 +344,7 @@ object RealWorldService {
                 state.copy()
             }
 
-            onlinePlayers().forEach { proxy ->
-                val player = proxy.cast<Player>() ?: return@forEach
+            onlinePlayerList.forEach { player ->
                 player.submitOnEntity {
                     if (shuttingDown || generation != _lifecycleGeneration.get() || !RealWorldSettings.enabled) {
                         return@submitOnEntity

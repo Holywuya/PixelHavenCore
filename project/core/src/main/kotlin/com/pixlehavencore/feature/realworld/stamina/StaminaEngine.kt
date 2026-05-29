@@ -45,30 +45,31 @@ object StaminaEngine {
         val max = getMaxStamina(playerState)
         val elapsed = tickSeconds.coerceAtLeast(0).toDouble()
 
-        // 持续消耗（奔跑/游泳/攀爬）
-        val continuousMultiplier = computeContinuousMultiplier(player)
+        // 缓存 block type，避免 isSwimming/isClimbing 重复查询 player.location.block.type
+        val footBlockType = player.location.block.type
+        val eyeBlockType = player.eyeLocation.block.type
+        // 计算所有消耗来源
+        val continuousMultiplier = computeContinuousMultiplier(player, footBlockType)
         val environmentMultiplier = computeEnvironmentMultiplier(player, playerState, globalState)
         val integrationMultiplier = computeIntegrationMultiplier(playerState, globalState)
         val totalConsumeMultiplier = (continuousMultiplier * environmentMultiplier * integrationMultiplier).coerceAtMost(StaminaSettings.maxMultiplier)
 
-        val consume = StaminaSettings.baseConsumptionRate * elapsed * totalConsumeMultiplier
-        if (consume > 0) {
-            val event = StaminaConsumeEvent(player, StaminaConsumeSource.ENVIRONMENT, consume)
-            Bukkit.getPluginManager().callEvent(event)
-            if (!event.isCancelled) {
-                playerState.stamina = (playerState.stamina - consume).coerceIn(0.0, max)
-            }
+        var totalConsume = 0.0
+        var primarySource = StaminaConsumeSource.ENVIRONMENT
+
+        // 持续消耗（奔跑/游泳/攀爬）
+        val baseConsume = StaminaSettings.baseConsumptionRate * elapsed * totalConsumeMultiplier
+        if (baseConsume > 0) {
+            totalConsume += baseConsume
+            primarySource = StaminaConsumeSource.ENVIRONMENT
         }
 
         // 水下憋气消耗
-        if (isUnderwater(player)) {
+        if (isUnderwater(eyeBlockType)) {
             val underwaterConsume = StaminaSettings.baseConsumptionRate * elapsed * StaminaSettings.underwaterMultiplier
             if (underwaterConsume > 0) {
-                val event = StaminaConsumeEvent(player, StaminaConsumeSource.UNDERWATER, underwaterConsume)
-                Bukkit.getPluginManager().callEvent(event)
-                if (!event.isCancelled) {
-                    playerState.stamina = (playerState.stamina - underwaterConsume).coerceIn(0.0, max)
-                }
+                totalConsume += underwaterConsume
+                primarySource = StaminaConsumeSource.UNDERWATER
             }
         }
 
@@ -76,11 +77,17 @@ object StaminaEngine {
         if (player.location.blockY > StaminaSettings.highAltitudeY) {
             val altitudeConsume = StaminaSettings.baseConsumptionRate * elapsed * StaminaSettings.highAltitudeMultiplier
             if (altitudeConsume > 0) {
-                val event = StaminaConsumeEvent(player, StaminaConsumeSource.HIGH_ALTITUDE, altitudeConsume)
-                Bukkit.getPluginManager().callEvent(event)
-                if (!event.isCancelled) {
-                    playerState.stamina = (playerState.stamina - altitudeConsume).coerceIn(0.0, max)
-                }
+                totalConsume += altitudeConsume
+                primarySource = StaminaConsumeSource.HIGH_ALTITUDE
+            }
+        }
+
+        // 合并为单个事件
+        if (totalConsume > 0) {
+            val event = StaminaConsumeEvent(player, primarySource, totalConsume)
+            Bukkit.getPluginManager().callEvent(event)
+            if (!event.isCancelled) {
+                playerState.stamina = (playerState.stamina - totalConsume).coerceIn(0.0, max)
             }
         }
 
@@ -298,11 +305,11 @@ object StaminaEngine {
         }
     }
 
-    private fun computeContinuousMultiplier(player: Player): Double {
+    private fun computeContinuousMultiplier(player: Player, footBlockType: Material): Double {
         return when {
             player.isSprinting -> StaminaSettings.sprintMultiplier
-            isSwimming(player) -> StaminaSettings.swimMultiplier
-            isClimbing(player) -> StaminaSettings.climbMultiplier
+            isSwimming(player, footBlockType) -> StaminaSettings.swimMultiplier
+            isClimbing(footBlockType) -> StaminaSettings.climbMultiplier
             else -> 1.0
         }
     }
@@ -355,7 +362,7 @@ object StaminaEngine {
             if (phase == TemperaturePhase.SEVERE_HEAT || phase == TemperaturePhase.SEVERE_COLD) return false
         }
 
-        if (StaminaSettings.idleBlockedUnderwater && isUnderwater(player)) return false
+        if (StaminaSettings.idleBlockedUnderwater && isUnderwater(player.eyeLocation.block.type)) return false
 
         return true
     }
@@ -410,17 +417,15 @@ object StaminaEngine {
         player.sendMessage(formatted)
     }
 
-    private fun isSwimming(player: Player): Boolean {
-        return player.isSwimming || player.location.block.type == Material.WATER
+    private fun isSwimming(player: Player, footBlockType: Material): Boolean {
+        return player.isSwimming || footBlockType == Material.WATER
     }
 
-    private fun isClimbing(player: Player): Boolean {
-        val block = player.location.block
-        return block.type == Material.LADDER || block.type == Material.VINE
+    private fun isClimbing(footBlockType: Material): Boolean {
+        return footBlockType == Material.LADDER || footBlockType == Material.VINE
     }
 
-    private fun isUnderwater(player: Player): Boolean {
-        val eyeBlock = player.eyeLocation.block.type
-        return eyeBlock == Material.WATER || eyeBlock == Material.BUBBLE_COLUMN
+    private fun isUnderwater(eyeBlockType: Material): Boolean {
+        return eyeBlockType == Material.WATER || eyeBlockType == Material.BUBBLE_COLUMN
     }
 }

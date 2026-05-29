@@ -43,7 +43,7 @@ object TemperatureEngine {
         val seasonModifier = SeasonEngine.getTemperatureModifier(global)
         val timeModifier = SeasonEngine.getTimeTemperatureModifier(worldTime, biomeName, location)
         val weatherModifier = if (WeatherSettings.localEnabled) {
-            WeatherQuery.getTemperatureModifierAt(player.location, global)
+            WeatherQuery.getTemperatureModifierAt(location, global)
         } else {
             global.weather.temperatureModifier
         }
@@ -69,7 +69,7 @@ object TemperatureEngine {
 
         // 体感温度：浸水时直接替换为水温，否则计算空气体感温度
         val feelsLike = if (player.isInWater && TemperatureSettings.waterEnabled) {
-            calculateWaterTemp(player, global)
+            calculateWaterTemp(player, global, biomeName)
         } else {
             calculateAirFeelsLike(
                 player = player,
@@ -157,12 +157,11 @@ object TemperatureEngine {
         }
     }
 
-    fun calculateWaterTemp(player: Player, global: GlobalEnvState): Double {
+    fun calculateWaterTemp(player: Player, global: GlobalEnvState, biomeName: String): Double {
         if (!TemperatureSettings.waterEnabled) {
             return 14.0
         }
 
-        val biomeName = player.location.block.biome.toString().lowercase()
         val biomeWaterTemp = getBiomeWaterTemp(player.location, biomeName)
 
         val previousSeason = getPreviousSeason(global.season)
@@ -295,7 +294,7 @@ object TemperatureEngine {
     }
 
     /**
-     * 衰减叠加扫描周围温度方块。
+     * 衰减叠加扫描周围温度方块（球体裁剪：只扫描半径 5 的球体）。
      * 返回 (最近热源枚举, 辐射加热偏移量)。
      * 公式: modifier = Σ (方块温度 - 环境温度) × 衰减因子^距离
      * 衰减因子默认 0.5，每远 1 格效果减半。
@@ -315,7 +314,11 @@ object TemperatureEngine {
         var nearestSource: HeatSource? = null
         var nearestDistSq = Int.MAX_VALUE
 
+        val maxDistSq = TEMPERATURE_SCAN_RANGE * TEMPERATURE_SCAN_RANGE
         for (offset in temperatureScanOffsets) {
+            // 球体裁剪：跳过超出半径的方块
+            if (offset.distSqInt > maxDistSq) continue
+
             val block = originBlock.getRelative(offset.x, offset.y, offset.z)
             val temp = temperatureBlocks[block.type] ?: continue
             if (!isBlockActive(block)) continue
@@ -385,7 +388,8 @@ object TemperatureEngine {
         val baseX = location.blockX + xOffset
         val baseY = location.blockY
         val baseZ = location.blockZ + zOffset
-        val maxY = world.maxHeight - 1
+        // 限制扫描高度为 playerY + 30，避免扫描整个 Y 轴（最坏 256 格）
+        val maxY = (baseY + 30).coerceAtMost(world.maxHeight - 1)
         for (y in baseY + 1..maxY) {
             val block = world.getBlockAt(baseX, y, baseZ)
             if (isWeatherRoofCandidate(block)) {

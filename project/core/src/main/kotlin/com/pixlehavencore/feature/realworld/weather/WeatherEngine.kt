@@ -5,6 +5,7 @@ import com.pixlehavencore.feature.realworld.RealWorldWeatherChangedEvent
 import com.pixlehavencore.feature.realworld.RealWorldWeatherWarningStartedEvent
 import com.pixlehavencore.feature.realworld.WeatherState
 import com.pixlehavencore.feature.realworld.WeatherType
+import com.pixlehavencore.feature.realworld.tick.GlobalTickContext
 import java.util.concurrent.ThreadLocalRandom
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
@@ -27,7 +28,7 @@ object WeatherEngine {
      * 天气系统 tick
      * 现在只负责更新全局主导天气和极端天气预警
      */
-    fun tick(global: GlobalEnvState, tickIntervalSeconds: Int, players: List<Player>) {
+    fun tick(global: GlobalEnvState, tickIntervalSeconds: Int, context: GlobalTickContext) {
         if (!WeatherSettings.localEnabled) {
             // 保留旧的全局天气逻辑作为后备
             tickGlobalWeather(global, tickIntervalSeconds)
@@ -35,7 +36,7 @@ object WeatherEngine {
         }
 
         // 更新全局主导天气
-        updateDominantWeather(global, players)
+        updateDominantWeather(global, context)
 
         // 处理极端天气预警（保留原逻辑）
         tickWarning(global, tickIntervalSeconds.toDouble())
@@ -44,16 +45,18 @@ object WeatherEngine {
     /**
      * 更新全局主导天气
      * 统计所有玩家周围区块的天气，取最常见的类型
+     * 使用预收集的 playerLocations 避免跨线程访问 player.location
      */
-    private fun updateDominantWeather(global: GlobalEnvState, players: List<Player>) {
-        if (players.isEmpty()) return
+    private fun updateDominantWeather(global: GlobalEnvState, context: GlobalTickContext) {
+        if (context.onlinePlayers.isEmpty()) return
 
-        val weatherCounts = mutableMapOf<WeatherType, Int>()
-        val weatherIntensitySums = mutableMapOf<WeatherType, Double>()
+        val weatherCounts = java.util.EnumMap<WeatherType, Int>(WeatherType::class.java)
+        val weatherIntensitySums = java.util.EnumMap<WeatherType, Double>(WeatherType::class.java)
 
-        // 统计每个玩家所在区块的天气和强度
-        for (player in players) {
-            val weather = WeatherQuery.getWeatherAt(player.location, global)
+        // 统计每个玩家所在区块的天气和强度（使用预收集的位置）
+        for (player in context.onlinePlayers) {
+            val location = context.playerLocations[player.uniqueId] ?: continue
+            val weather = WeatherQuery.getWeatherAt(location, global)
             weatherCounts[weather.type] = (weatherCounts[weather.type] ?: 0) + 1
             weatherIntensitySums[weather.type] = (weatherIntensitySums[weather.type] ?: 0.0) + weather.intensity
         }

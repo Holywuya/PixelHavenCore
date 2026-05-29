@@ -192,14 +192,18 @@ object RealWorldStorage {
         lastKnownGlobalSnapshot = globalState
 
         submitAsync {
-            playerSnapshots.forEach { (uuid, snapshot) ->
+            // 批量保存玩家数据（一次连接，一次 batch）
+            if (playerSnapshots.isNotEmpty()) {
                 runCatching {
-                    val saved = savePlayerSnapshot(uuid, snapshot)
-                    if (saved && samePersistedPlayerState(playerCache[uuid], snapshot)) {
+                    batchSavePlayerSnapshots(playerSnapshots)
+                }.onFailure { ex ->
+                    warning("[RealWorld] 批量保存玩家环境数据失败: ${ex.message}")
+                }
+                // 逐个检查是否仍与当前状态一致，一致则清除脏标记
+                playerSnapshots.forEach { (uuid, snapshot) ->
+                    if (samePersistedPlayerState(playerCache[uuid], snapshot)) {
                         dirtyPlayers.remove(uuid)
                     }
-                }.onFailure { ex ->
-                    warning("[RealWorld] 保存玩家环境数据失败($uuid): ${ex.message}")
                 }
             }
 
@@ -282,6 +286,24 @@ object RealWorldStorage {
                 true
             }
         } ?: false
+    }
+
+    private fun batchSavePlayerSnapshots(snapshots: List<Pair<UUID, PlayerEnvState>>) {
+        DatabaseUtils.withConnection(dataSource) { connection ->
+            connection.prepareStatement(playerUpsertSql()).use { statement ->
+                val now = DatabaseUtils.now()
+                for ((uuid, snapshot) in snapshots) {
+                    statement.setString(1, uuid.toString())
+                    statement.setDouble(2, snapshot.hydration)
+                    statement.setDouble(3, snapshot.temperature)
+                    statement.setDouble(4, snapshot.fracture)
+                    statement.setDouble(5, snapshot.stamina)
+                    statement.setTimestamp(6, now)
+                    statement.addBatch()
+                }
+                statement.executeBatch()
+            }
+        }
     }
 
     private fun saveGlobalSnapshot(snapshot: GlobalEnvState): Boolean {

@@ -7,6 +7,6 @@ import com.pixlehavencore.feature.realworld.weather.WeatherEngine
 
 object WeatherTicker : GlobalSubsystemTicker {
     override fun tick(global: GlobalEnvState, dt: Int, context: GlobalTickContext) {
-        WeatherEngine.tick(global, dt, context.onlinePlayers)
+        WeatherEngine.tick(global, dt, context)
     }
 }

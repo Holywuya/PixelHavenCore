@@ -17,8 +17,16 @@ object SurvivalEffectApplier {
 
     fun apply(player: Player, state: PlayerEnvState, global: GlobalEnvState, tickIntervalSeconds: Int) {
         applyExtremeNeedsEffects(player, state, tickIntervalSeconds)
-        applyVisibilityWeatherEffects(player, state, global)
-        applyWeatherExposureEffects(player, state, global, tickIntervalSeconds)
+
+        // 查询一次 WeatherState，供可见性和暴露效果共享，避免重复 WeatherQuery 调用
+        val localWeatherState = if (WeatherSettings.localEnabled) {
+            WeatherQuery.getWeatherAt(player.location, global)
+        } else {
+            null
+        }
+
+        applyVisibilityWeatherEffects(player, state, global, localWeatherState)
+        applyWeatherExposureEffects(player, state, global, tickIntervalSeconds, localWeatherState)
 
         // walkSpeed / sprint 取骨折与体力中最严格的值，避免后者覆盖前者
         val fractureSeverity = FractureEngine.classifyFracture(state.fracture)
@@ -162,9 +170,10 @@ object SurvivalEffectApplier {
         player: Player,
         state: PlayerEnvState,
         global: GlobalEnvState,
+        localWeatherState: com.pixlehavencore.feature.realworld.WeatherState?,
     ) {
-        val visibilityWeather = if (WeatherSettings.localEnabled) {
-            WeatherQuery.getVisibilityWeatherAt(player.location, global)
+        val visibilityWeather = if (localWeatherState != null) {
+            localWeatherState.type.takeIf { it.affectsVisibility }
         } else {
             global.weather.takeIf { it.affectsVisibility }
         }
@@ -193,8 +202,9 @@ object SurvivalEffectApplier {
         state: PlayerEnvState,
         global: GlobalEnvState,
         tickIntervalSeconds: Int,
+        localWeatherState: com.pixlehavencore.feature.realworld.WeatherState?,
     ) {
-        val weather = currentDamagingWeather(player.location, global, state) ?: run {
+        val weather = currentDamagingWeather(global, state, localWeatherState) ?: run {
             resetWeatherExposure(state)
             clearWeatherExposureEffects(player)
             return
@@ -215,12 +225,16 @@ object SurvivalEffectApplier {
         state.weatherExposureDamageTimer = WeatherSettings.extremeDamageIntervalSeconds.toDouble()
     }
 
-    private fun currentDamagingWeather(location: Location, global: GlobalEnvState, state: PlayerEnvState): WeatherType? {
+    private fun currentDamagingWeather(
+        global: GlobalEnvState,
+        state: PlayerEnvState,
+        localWeatherState: com.pixlehavencore.feature.realworld.WeatherState?,
+    ): WeatherType? {
         if (state.isWeatherSheltered) {
             return null
         }
-        val weather = if (WeatherSettings.localEnabled) {
-            WeatherQuery.getWeatherAt(location, global).type
+        val weather = if (localWeatherState != null) {
+            localWeatherState.type
         } else {
             global.weather
         }

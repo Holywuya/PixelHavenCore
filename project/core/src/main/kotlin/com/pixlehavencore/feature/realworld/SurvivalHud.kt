@@ -91,13 +91,31 @@ object SurvivalHud {
             ""
         }
 
-        return RealWorldSettings.hudActionBarFormat
-            .replace("{temp}", "$tempColor${state.temperature.toInt()}")
-            .replace("{hydration}", "$hydrationColor${state.hydration.toInt()}")
-            .replace("{wetness}", "${(state.wetness * 100).toInt()}")
-            .replace("{sheltered}", shelterText + fractureText)
-            .replace("{weather}", weather.displayName)
-            .replace("{season}", global.season.displayName)
+        // 使用 StringBuilder 避免多次 replace 产生临时 String
+        val format = RealWorldSettings.hudActionBarFormat
+        val sb = StringBuilder(format.length + 32)
+        var i = 0
+        while (i < format.length) {
+            if (format[i] == '{') {
+                val end = format.indexOf('}', i)
+                if (end != -1) {
+                    when (format.substring(i, end + 1)) {
+                        "{temp}" -> sb.append(tempColor).append(state.temperature.toInt())
+                        "{hydration}" -> sb.append(hydrationColor).append(state.hydration.toInt())
+                        "{wetness}" -> sb.append((state.wetness * 100).toInt())
+                        "{sheltered}" -> sb.append(shelterText).append(fractureText)
+                        "{weather}" -> sb.append(weather.displayName)
+                        "{season}" -> sb.append(global.season.displayName)
+                        else -> sb.append(format, i, end + 1)
+                    }
+                    i = end + 1
+                    continue
+                }
+            }
+            sb.append(format[i])
+            i++
+        }
+        return sb.toString()
     }
 
     private fun buildWarningActionBar(global: GlobalEnvState): String? {

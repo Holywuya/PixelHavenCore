@@ -38,10 +38,16 @@ object WeatherCache {
         val weather = ChunkWeatherEngine.computeWeather(chunkX, chunkZ, timeFactor, season)
 
         if (cache.size >= maxCacheSize) {
-            cache.entries
-                .sortedBy { it.value.timestamp }
-                .take(cache.size - maxCacheSize / 2)
-                .forEach { cache.remove(it.key) }
+            // O(n) 单次遍历找最旧条目移除，避免 O(n log n) 排序
+            var oldestKey: Long? = null
+            var oldestTimestamp = Long.MAX_VALUE
+            for (entry in cache.entries) {
+                if (entry.value.timestamp < oldestTimestamp) {
+                    oldestTimestamp = entry.value.timestamp
+                    oldestKey = entry.key
+                }
+            }
+            oldestKey?.let { cache.remove(it) }
         }
         cache[key] = CachedWeather(weather, now)
 
