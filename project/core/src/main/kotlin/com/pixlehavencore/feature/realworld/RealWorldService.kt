@@ -1,17 +1,18 @@
 package com.pixlehavencore.feature.realworld
 
-import com.pixlehavencore.feature.realworld.foodcorrosion.FoodCorrosionEngine
 import com.pixlehavencore.feature.realworld.foodcorrosion.FoodCorrosionService
-import com.pixlehavencore.feature.realworld.fracture.FractureEngine
 import com.pixlehavencore.feature.realworld.season.SeasonEngine
-import com.pixlehavencore.feature.realworld.stamina.StaminaEngine
-import com.pixlehavencore.feature.realworld.temperature.TemperatureEngine
 import com.pixlehavencore.feature.realworld.tick.GlobalSubsystemTicker
 import com.pixlehavencore.feature.realworld.tick.GlobalTickContext
 import com.pixlehavencore.feature.realworld.tick.PlayerSubsystemTicker
 import com.pixlehavencore.feature.realworld.tick.global.SeasonTicker
 import com.pixlehavencore.feature.realworld.tick.global.WeatherTicker
-import com.pixlehavencore.feature.realworld.thirst.ThirstEngine
+import com.pixlehavencore.feature.realworld.tick.player.FoodCorrosionTicker
+import com.pixlehavencore.feature.realworld.tick.player.FractureTicker
+import com.pixlehavencore.feature.realworld.tick.player.StaminaTicker
+import com.pixlehavencore.feature.realworld.tick.player.SurvivalEffectTicker
+import com.pixlehavencore.feature.realworld.tick.player.TemperatureTicker
+import com.pixlehavencore.feature.realworld.tick.player.ThirstTicker
 import com.pixlehavencore.feature.realworld.weather.WeatherEngine
 import com.pixlehavencore.util.cancelTaskSafely
 import org.bukkit.Bukkit
@@ -53,7 +54,14 @@ object RealWorldService {
         SeasonTicker,
         WeatherTicker,
     )
-    private val playerTickers: List<PlayerSubsystemTicker> = emptyList()
+    private val playerTickers: List<PlayerSubsystemTicker> = listOf(
+        TemperatureTicker,
+        ThirstTicker,
+        FractureTicker,
+        StaminaTicker,
+        FoodCorrosionTicker,
+        SurvivalEffectTicker,
+    )
 
     fun init() {
         RealWorldSettings.init()
@@ -349,14 +357,6 @@ object RealWorldService {
                         playerTickers.forEach { ticker ->
                             ticker.tick(player, playerState, globalSnapshot, tickSeconds)
                         }
-                        // 阶段 4 完成前，保留旧的硬编码调用以保证行为不变
-                        TemperatureEngine.compute(player, playerState, globalSnapshot, tickSeconds)
-                        ThirstEngine.compute(player, playerState, globalSnapshot, tickSeconds)
-                        FractureEngine.applyEffects(player, playerState, tickSeconds)
-                        FoodCorrosionEngine.tickPlayer(player)
-                        SurvivalEffectApplier.apply(player, playerState, globalSnapshot, tickSeconds)
-                        StaminaEngine.checkIdle(player, playerState, tickSeconds.toDouble())
-                        StaminaEngine.tick(player, playerState, globalSnapshot, tickSeconds)
 
                         playerState.hudRefreshTimer -= tickSeconds.coerceAtLeast(0).toDouble()
                         if (playerState.hudRefreshTimer <= 0.0) {
