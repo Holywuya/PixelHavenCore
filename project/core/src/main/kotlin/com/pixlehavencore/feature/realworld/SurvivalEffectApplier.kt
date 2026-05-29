@@ -17,6 +17,7 @@ object SurvivalEffectApplier {
         applyVisibilityWeatherEffects(player, state, global)
         applyWeatherExposureEffects(player, state, global, tickIntervalSeconds)
         applyFractureEffects(player, state)
+        applyStaminaEffects(player, state, tickIntervalSeconds)
     }
 
     private fun applyFractureEffects(player: Player, state: PlayerEnvState) {
@@ -326,5 +327,9 @@ object SurvivalEffectApplier {
         type ?: return
         val durationTicks = tickIntervalSeconds.coerceAtLeast(1) * 20 + 10
         player.addPotionEffect(PotionEffect(type, durationTicks, amplifier, false, false, false))
+    }
+
+    private fun applyStaminaEffects(player: Player, state: PlayerEnvState, tickIntervalSeconds: Int) {
+        com.pixlehavencore.feature.realworld.stamina.StaminaEngine.applyEffects(player, state, tickIntervalSeconds)
     }
 }

@@ -101,9 +101,6 @@ object StaminaEngine {
             }
         }
 
-        // 惩罚应用
-        applyPenalties(player, playerState)
-
         // DEPLETED 提醒
         if (playerState.staminaPhase == StaminaPhase.DEPLETED) {
             playerState.staminaChatWarnCooldown -= elapsed
@@ -372,7 +369,7 @@ object StaminaEngine {
         return true
     }
 
-    private fun applyPenalties(player: Player, state: PlayerEnvState) {
+    internal fun applyEffects(player: Player, state: PlayerEnvState, tickSeconds: Int) {
         val phase = state.staminaPhase
         val durationTicks = StaminaSettings.effectDurationSeconds * 20 + 10
 
