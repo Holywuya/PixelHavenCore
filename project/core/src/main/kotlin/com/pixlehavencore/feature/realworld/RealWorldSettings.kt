@@ -3,7 +3,6 @@ package com.pixlehavencore.feature.realworld
 import com.pixlehavencore.feature.realworld.foodcorrosion.FoodCorrosionSettings
 import com.pixlehavencore.feature.realworld.fracture.FractureSettings
 import com.pixlehavencore.feature.realworld.season.SeasonSettings
-import com.pixlehavencore.feature.realworld.stamina.StaminaSettings
 import com.pixlehavencore.feature.realworld.temperature.TemperatureSettings
 import com.pixlehavencore.feature.realworld.thirst.ThirstSettings
 import com.pixlehavencore.feature.realworld.weather.WeatherSettings
@@ -50,7 +49,6 @@ object RealWorldSettings {
         ThirstSettings.init()
         FractureSettings.init()
         FoodCorrosionSettings.init()
-        StaminaSettings.init()
         reload()
     }
 
@@ -76,6 +74,5 @@ object RealWorldSettings {
         ThirstSettings.reload()
         FractureSettings.reload()
         FoodCorrosionSettings.reload()
-        StaminaSettings.reload()
     }
 }
