@@ -115,6 +115,10 @@ object ThirstEngine {
         }
     }
 
+    /**
+     * 喝自然水源后的一次性副作用（恶心/饥饿）。属于事件驱动效果，
+     * 不进入 SurvivalEffectApplier 的持续 tick 效果链路。
+     */
     private fun maybeApplyNaturalWaterSideEffects(
         player: Player,
         sourceType: NaturalWaterSourceType,
