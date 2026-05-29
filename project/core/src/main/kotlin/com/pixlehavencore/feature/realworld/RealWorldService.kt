@@ -9,7 +9,7 @@ import com.pixlehavencore.feature.realworld.tick.PlayerSubsystemTicker
 import com.pixlehavencore.feature.realworld.tick.global.SeasonTicker
 import com.pixlehavencore.feature.realworld.tick.player.FoodCorrosionTicker
 import com.pixlehavencore.feature.realworld.tick.player.FractureTicker
-import com.pixlehavencore.feature.realworld.tick.player.StaminaTicker
+
 import com.pixlehavencore.feature.realworld.tick.player.SurvivalEffectTicker
 import com.pixlehavencore.feature.realworld.tick.player.TemperatureTicker
 import com.pixlehavencore.feature.realworld.tick.player.ThirstTicker
@@ -58,7 +58,6 @@ object RealWorldService {
         TemperatureTicker,
         ThirstTicker,
         FractureTicker,
-        StaminaTicker,
         FoodCorrosionTicker,
         SurvivalEffectTicker,
     )
