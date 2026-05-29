@@ -38,10 +38,32 @@ object RealWorldStorage {
         runCatching {
             playerHandler = DatabaseUtils.newPlayerDataHandler(PLAYER_TABLE, syncTick = 200L)
             dataSource = DatabaseUtils.newHikariDataSource("RealWorldPool", 4, 1)
+            migratePlayerTable()
             createGlobalTable()
         }.onFailure { ex ->
             warning("[RealWorld] 初始化存储失败: ${ex.message}")
             stop()
+        }
+    }
+
+    private fun migratePlayerTable() {
+        val ds = dataSource ?: return
+        DatabaseUtils.withConnection(ds) { connection ->
+            // 检查 value 列是否存在
+            val hasValueColumn = connection.prepareStatement("PRAGMA table_info($PLAYER_TABLE)").use { stmt ->
+                stmt.executeQuery().use { rs ->
+                    while (rs.next()) {
+                        if (rs.getString("name") == "value") return@use true
+                    }
+                    false
+                }
+            }
+            if (!hasValueColumn) {
+                connection.prepareStatement("ALTER TABLE $PLAYER_TABLE ADD COLUMN ${quoted("value")} TEXT").use { stmt ->
+                    stmt.execute()
+                }
+                warning("[RealWorld] 已修复 $PLAYER_TABLE 表结构：添加 value 列")
+            }
         }
     }
 
