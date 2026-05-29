@@ -18,9 +18,6 @@ object RealWorldSettings {
     var enabled: Boolean = false
         private set
 
-    var timeControlEnabled: Boolean = false
-        private set
-
     var tickIntervalSeconds: Int = 2
         private set
 
@@ -60,7 +57,6 @@ object RealWorldSettings {
     fun reload() {
         config.reload()
         enabled = config.getBoolean("enabled", false)
-        timeControlEnabled = config.getBoolean("time-control.enabled", false)
         tickIntervalSeconds = config.getInt("tick-interval-seconds", 2).coerceAtLeast(1)
 
         hudActionBarFormat = config.getString("hud.actionbar-format") ?: hudActionBarFormat

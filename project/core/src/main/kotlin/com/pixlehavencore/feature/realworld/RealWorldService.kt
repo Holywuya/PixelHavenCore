@@ -2,6 +2,7 @@ package com.pixlehavencore.feature.realworld
 
 import com.pixlehavencore.feature.realworld.foodcorrosion.FoodCorrosionService
 import com.pixlehavencore.feature.realworld.season.SeasonEngine
+import com.pixlehavencore.feature.realworld.season.SeasonSettings
 import com.pixlehavencore.feature.realworld.tick.GlobalSubsystemTicker
 import com.pixlehavencore.feature.realworld.tick.GlobalTickContext
 import com.pixlehavencore.feature.realworld.tick.PlayerSubsystemTicker
@@ -150,7 +151,7 @@ object RealWorldService {
     }
 
     private fun initTimeControl() {
-        if (!RealWorldSettings.timeControlEnabled) {
+        if (!SeasonSettings.timeControlEnabled) {
             return
         }
 
@@ -164,7 +165,7 @@ object RealWorldService {
     }
 
     private fun stopTimeControl() {
-        if (!RealWorldSettings.timeControlEnabled) {
+        if (!SeasonSettings.timeControlEnabled) {
             return
         }
 
@@ -292,7 +293,7 @@ object RealWorldService {
 
     @SubscribeEvent
     fun onWorldLoad(event: WorldLoadEvent) {
-        if (!RealWorldSettings.enabled || !RealWorldSettings.timeControlEnabled) {
+        if (!RealWorldSettings.enabled || !SeasonSettings.timeControlEnabled) {
             return
         }
         event.world.setGameRule(GameRules.ADVANCE_TIME, false)
