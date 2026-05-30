@@ -512,9 +512,14 @@ object RealWorldService {
     }
 
     private fun syncVanillaWeather(state: GlobalEnvState) {
+        // 使用第一个在线玩家的位置作为采样点，与 HUD/潮湿度保持一致
+        // 没有玩家时回退到出生点
+        val sampleLocation = Bukkit.getOnlinePlayers().firstOrNull()?.location
+            ?: Bukkit.getWorlds().firstOrNull()?.spawnLocation
+            ?: return
+
         Bukkit.getWorlds().forEach { world ->
-            // 噪声驱动：以每个世界出生点为代表点采样降雨状态，同步原版下雨视觉
-            val weather = WeatherQuery.getWeatherAt(world.spawnLocation, state).type
+            val weather = WeatherQuery.getWeatherAt(sampleLocation, state).type
             val hasStorm = weather == WeatherType.RAIN
             if (world.hasStorm() != hasStorm) {
                 world.setStorm(hasStorm)
