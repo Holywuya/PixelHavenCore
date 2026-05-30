@@ -270,7 +270,6 @@ object RealWorldService {
         synchronized(globalStateLock) {
             val state = globalState ?: return
             WeatherEngine.setWeather(state, weather)
-            syncVanillaWeather(state)
             RealWorldStorage.markGlobalDirty(state)
         }
     }
@@ -282,7 +281,6 @@ object RealWorldService {
         synchronized(globalStateLock) {
             val state = globalState ?: return
             WeatherEngine.clearForcedWeather(state)
-            syncVanillaWeather(state)
             RealWorldStorage.markGlobalDirty(state)
         }
     }
@@ -351,7 +349,6 @@ object RealWorldService {
                 val state = globalState ?: return@submit
                 globalTickers.forEach { ticker -> ticker.tick(state, tickSeconds, context) }
                 state.dayPhase = SeasonEngine.computeDayPhase(Bukkit.getWorlds().firstOrNull()?.time ?: 6000L)
-                syncVanillaWeather(state)
                 RealWorldStorage.markGlobalDirty(state)
                 state.copy()
             }
@@ -508,25 +505,6 @@ object RealWorldService {
                     return@submitOnEntity
                 }
                 SurvivalHud.onPlayerQuit(player)
-            }
-        }
-    }
-
-    private fun syncVanillaWeather(state: GlobalEnvState) {
-        // 使用第一个在线玩家的位置作为采样点，与 HUD/潮湿度保持一致
-        // 没有玩家时回退到出生点
-        val sampleLocation = Bukkit.getOnlinePlayers().firstOrNull()?.location
-            ?: Bukkit.getWorlds().firstOrNull()?.spawnLocation
-            ?: return
-
-        Bukkit.getWorlds().forEach { world ->
-            val weather = WeatherQuery.getWeatherAt(sampleLocation, state).type
-            val hasStorm = weather == WeatherType.RAIN
-            if (world.hasStorm() != hasStorm) {
-                world.setStorm(hasStorm)
-            }
-            if (world.isThundering) {
-                world.isThundering = false
             }
         }
     }

@@ -5,6 +5,7 @@ import com.pixlehavencore.feature.realworld.season.SeasonEngine
 import com.pixlehavencore.feature.realworld.weather.WeatherQuery
 import org.bukkit.Location
 import org.bukkit.Material
+import org.bukkit.WeatherType as BukkitWeatherType
 import org.bukkit.entity.Player
 
 object TemperatureEngine {
@@ -283,9 +284,16 @@ object TemperatureEngine {
 
     private fun computeWetness(player: Player, state: PlayerEnvState, global: GlobalEnvState, tickSeconds: Int) {
         val dt = tickSeconds.coerceAtLeast(0).toDouble()
+
+        // 检查玩家位置是否下雨（使用遮蔽检测）
+        val isRainingHere = !state.isWeatherSheltered && isRaining(player.location, global)
+
+        // 同步客户端天气视觉效果
+        syncPlayerWeatherVisual(player, state, isRainingHere)
+
         when {
             player.isInWater -> state.wetness += TemperatureSettings.wetnessRateSubmerge * dt
-            !state.isWeatherSheltered && isRaining(player.location, global) -> state.wetness += TemperatureSettings.wetnessRateRain * dt
+            isRainingHere -> state.wetness += TemperatureSettings.wetnessRateRain * dt
             else -> {
                 val dryRate = if (state.temperature > 30.0)
                     TemperatureSettings.wetnessDryRate * 2.0
@@ -295,6 +303,23 @@ object TemperatureEngine {
             }
         }
         state.wetness = state.wetness.coerceIn(0.0, 1.0)
+    }
+
+    /**
+     * 同步客户端天气视觉效果（雨滴、声音等）。
+     * 使用 player.setPlayerWeather() 实现 per-player 天气，
+     * 确保视觉效果与逻辑判断一致。
+     */
+    private fun syncPlayerWeatherVisual(player: Player, state: PlayerEnvState, isRainingHere: Boolean) {
+        if (isRainingHere && !state.isClientRaining) {
+            // 开始下雨
+            state.isClientRaining = true
+            player.setPlayerWeather(BukkitWeatherType.DOWNFALL)
+        } else if (!isRainingHere && state.isClientRaining) {
+            // 停止下雨
+            state.isClientRaining = false
+            player.setPlayerWeather(BukkitWeatherType.CLEAR)
+        }
     }
 
     private fun isRaining(location: Location, global: GlobalEnvState): Boolean {
