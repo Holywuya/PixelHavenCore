@@ -12,14 +12,13 @@ import taboolib.common.platform.function.adaptPlayer
 import taboolib.platform.util.submit as submitOnLocation
 import kotlin.math.min
 import java.util.ArrayDeque
-import java.util.Collections
-import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import taboolib.platform.util.PlayerSessionMap
 
 object VeinminerService {
 
-    private val cooldowns = ConcurrentHashMap<UUID, Long>()
-    private val mining = Collections.newSetFromMap(ConcurrentHashMap<UUID, Boolean>())
+    private val cooldowns = PlayerSessionMap<Long>({ 0L })
+    private val mining = PlayerSessionMap<Boolean>({ false })
     private val offsetCache = ConcurrentHashMap<Int, List<Offset>>()
 
     fun handleBlockBreak(player: Player, source: Block): Boolean {
@@ -33,7 +32,7 @@ object VeinminerService {
         if (VeinminerSettings.mustSneak && !proxyPlayer.isSneaking) {
             return false
         }
-        if (mining.contains(proxyPlayer.uniqueId)) {
+        if (mining[proxyPlayer.uniqueId] == true) {
             return false
         }
         if (!VeinminerSettings.isBlockAllowed(source.type)) {
@@ -69,11 +68,11 @@ object VeinminerService {
             VeinminerMessages.send(proxyPlayer, VeinminerSettings.messageLimitDenied)
             return false
         }
-        mining.add(proxyPlayer.uniqueId)
+        mining[proxyPlayer.uniqueId] = true
         try {
             breakChain(player, tool, chain)
         } finally {
-            mining.remove(proxyPlayer.uniqueId)
+            mining[proxyPlayer.uniqueId] = false
         }
         VeinminerMessages.send(proxyPlayer, VeinminerSettings.messageLimitRemaining, mapOf("remaining" to VeinminerLimitService.getRemaining(proxyPlayer)))
         return true

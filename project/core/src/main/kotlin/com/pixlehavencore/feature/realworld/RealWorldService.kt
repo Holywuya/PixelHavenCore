@@ -157,7 +157,7 @@ object RealWorldService {
         submit {
             Bukkit.getWorlds().forEach { world ->
                 world.setGameRule(GameRules.ADVANCE_TIME, false)
-                world.setGameRule(GameRules.DO_WEATHER_CYCLE, false)
+                world.setGameRuleValue("advance_weather", "false")
             }
         }
 
