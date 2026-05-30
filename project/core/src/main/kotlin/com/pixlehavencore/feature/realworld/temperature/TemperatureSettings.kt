@@ -29,9 +29,11 @@ object TemperatureSettings {
         private set
     var shelterHorizontalRadius: Int = 1
         private set
-    var armorBonusLeather: Double = 5.0
+    var armorInsulationLeather: Double = 0.08
         private set
-    var armorBonusNetherite: Double = 10.0
+    var armorInsulationNetherite: Double = 0.12
+        private set
+    var armorInsulationMax: Double = 0.7
         private set
     var severeHeatThreshold: Double = 42.0
         private set
@@ -73,15 +75,19 @@ object TemperatureSettings {
         private set
     var waterSeasonLagRatio: Double = 0.3
         private set
-    var shelterCanopyBonus: Double = 2.0
+    var shelterCanopyInsulation: Double = 0.15
         private set
-    var shelterBuildingBonus: Double = 8.0
+    var shelterBuildingInsulation: Double = 0.25
         private set
     var shelterLeavesCountAsCanopy: Boolean = true
         private set
     var blockDecayFactor: Double = 0.5
         private set
     var regulationEnabled: Boolean = true
+        private set
+    var regulationStrength: Double = 0.05
+        private set
+    var waterExitBlendThreshold: Double = 0.5
         private set
 
     private const val MAX_SHELTER_HORIZONTAL_RADIUS = 2
@@ -102,8 +108,9 @@ object TemperatureSettings {
         shelterGlassCountsAsShelter = config.getBoolean("shelter.glass-counts-as-shelter", false)
         shelterLeavesCountAsShelter = config.getBoolean("shelter.leaves-counts-as-shelter", false)
         shelterHorizontalRadius = config.getInt("shelter.horizontal-radius", 1).coerceIn(0, MAX_SHELTER_HORIZONTAL_RADIUS)
-        armorBonusLeather = config.getDouble("armor-bonus.leather", 5.0)
-        armorBonusNetherite = config.getDouble("armor-bonus.netherite", 10.0)
+        armorInsulationLeather = config.getDouble("armor-insulation.leather", 0.08).coerceAtLeast(0.0)
+        armorInsulationNetherite = config.getDouble("armor-insulation.netherite", 0.12).coerceAtLeast(0.0)
+        armorInsulationMax = config.getDouble("armor-insulation.max", 0.7).coerceIn(0.0, 1.0)
         severeHeatThreshold = config.getDouble("thresholds.severe-heat", 42.0)
         heatThreshold = config.getDouble("thresholds.heat", 36.0)
         coldMildThreshold = config.getDouble("thresholds.cold-mild", 15.0)
@@ -139,10 +146,12 @@ object TemperatureSettings {
         waterDepthCoolPer10Blocks = config.getDouble("water.depth-cool-per-10-blocks", 1.0).coerceAtLeast(0.0)
         waterMaxDepthCool = config.getDouble("water.max-depth-cool", 5.0).coerceAtLeast(0.0)
         waterSeasonLagRatio = config.getDouble("water.season-lag-ratio", 0.3).coerceIn(0.0, 1.0)
-        shelterCanopyBonus = config.getDouble("shelter.canopy-bonus", 2.0)
-        shelterBuildingBonus = config.getDouble("shelter.building-bonus", 8.0)
+        shelterCanopyInsulation = config.getDouble("shelter.canopy-insulation", 0.15).coerceIn(0.0, 1.0)
+        shelterBuildingInsulation = config.getDouble("shelter.building-insulation", 0.25).coerceIn(0.0, 1.0)
         shelterLeavesCountAsCanopy = config.getBoolean("shelter.leaves-count-as-canopy", true)
         blockDecayFactor = config.getDouble("temperature-blocks.decay-factor", 0.5).coerceIn(0.1, 0.9)
         regulationEnabled = config.getBoolean("regulation.enabled", true)
+        regulationStrength = config.getDouble("regulation.strength", 0.05).coerceAtLeast(0.0)
+        waterExitBlendThreshold = config.getDouble("water.exit-blend-threshold", 0.5).coerceIn(0.0, 1.0)
     }
 }

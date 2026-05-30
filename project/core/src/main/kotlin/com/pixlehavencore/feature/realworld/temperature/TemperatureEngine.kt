@@ -5,26 +5,9 @@ import com.pixlehavencore.feature.realworld.season.SeasonEngine
 import com.pixlehavencore.feature.realworld.weather.WeatherQuery
 import org.bukkit.Location
 import org.bukkit.Material
-import org.bukkit.Tag
-import org.bukkit.block.Biome
-import org.bukkit.block.Block
-import org.bukkit.block.data.Lightable
 import org.bukkit.entity.Player
 
 object TemperatureEngine {
-
-    private const val TEMPERATURE_SCAN_RANGE = 5
-    private const val SHELTER_CACHE_SECONDS = 5.0
-
-    private val temperatureScanOffsets = buildList {
-        for (x in -TEMPERATURE_SCAN_RANGE..TEMPERATURE_SCAN_RANGE) {
-            for (y in -TEMPERATURE_SCAN_RANGE..TEMPERATURE_SCAN_RANGE) {
-                for (z in -TEMPERATURE_SCAN_RANGE..TEMPERATURE_SCAN_RANGE) {
-                    add(TemperatureScanOffset(x, y, z, x * x + y * y + z * z))
-                }
-            }
-        }
-    }
 
     fun compute(
         player: Player,
@@ -36,6 +19,7 @@ object TemperatureEngine {
         val biomeName = location.block.biome.toString().lowercase()
         val worldTime = location.world?.time ?: 6000L
 
+        // 阶段 1: 基础环境温度
         val biomeBaseTemperature = getBiomeBaseTemperature(location, biomeName)
         state.biomeTemperature = biomeBaseTemperature
 
@@ -44,75 +28,91 @@ object TemperatureEngine {
         val weatherModifier = WeatherQuery.getTemperatureModifierAt(location, global)
         val altitudeModifier = computeAltitudeModifier(location.blockY)
 
-        updateShelterState(player, state, tickIntervalSeconds)
-        val armorModifier = getArmorTemperatureBonus(player)
+        ShelterDetector.updateState(player, state, tickIntervalSeconds)
 
         // 潮湿度
         computeWetness(player, state, global, tickIntervalSeconds)
 
-        // 温度方块：衰减叠加扫描
+        // 方块辐射扫描
         state.heatSourceScanTimer -= tickIntervalSeconds.coerceAtLeast(0)
         if (state.heatSourceScanTimer <= 0.0) {
-            val scanResult = scanTemperatureBlocks(player, biomeBaseTemperature)
+            val scanResult = BlockRadiationScanner.scan(player, biomeBaseTemperature)
             state.nearHeatSource = scanResult.first
             state.temperatureBlockModifier = scanResult.second
             val interval = TemperatureSettings.heatSourceScanIntervalSeconds.toDouble()
-            while (state.heatSourceScanTimer <= 0.0) {
-                state.heatSourceScanTimer += interval
+            state.heatSourceScanTimer = interval
+        }
+
+        val blockRadiationModifier = state.temperatureBlockModifier
+
+        // 阶段 2 + 3: 计算有效环境温度
+        val isInWater = player.isInWater && TemperatureSettings.waterEnabled
+        val effectiveEnvTemp: Double
+
+        if (isInWater) {
+            // 水中：水温 + 方块辐射
+            val waterTemp = calculateWaterTemp(player, global, biomeName)
+            state.lastWaterTemp = waterTemp
+            effectiveEnvTemp = waterTemp + blockRadiationModifier
+        } else {
+            // 空气：基础环境 + 热源 + 湿度蒸发冷却
+            var airFeelsLike = biomeBaseTemperature +
+                seasonModifier + timeModifier + weatherModifier +
+                altitudeModifier + blockRadiationModifier
+
+            // 湿度蒸发冷却
+            val wetnessCooling = -state.wetness * TemperatureSettings.wetnessCoolingFactor
+            airFeelsLike += wetnessCooling
+
+            // 阶段 4: 水/空气平滑过渡
+            if (state.wetness > TemperatureSettings.waterExitBlendThreshold) {
+                val blendFactor = state.wetness
+                effectiveEnvTemp = airFeelsLike * (1.0 - blendFactor) + state.lastWaterTemp * blendFactor
+            } else {
+                effectiveEnvTemp = airFeelsLike
             }
         }
 
-        // 体感温度：浸水时直接替换为水温，否则计算空气体感温度
-        val feelsLike = if (player.isInWater && TemperatureSettings.waterEnabled) {
-            calculateWaterTemp(player, global, biomeName)
-        } else {
-            calculateAirFeelsLike(
-                player = player,
-                state = state,
-                global = global,
-                biomeBaseTemperature = biomeBaseTemperature,
-                seasonModifier = seasonModifier,
-                timeModifier = timeModifier,
-                weatherModifier = weatherModifier,
-                altitudeModifier = altitudeModifier,
-                armorModifier = armorModifier,
-            )
+        // 阶段 5: 温度差
+        var envDelta = effectiveEnvTemp - state.temperature
+
+        // 传导率（水中导热更快）
+        if (isInWater) {
+            envDelta *= TemperatureSettings.waterConductivityMultiplier
         }
 
-        val absorptionRate = TemperatureSettings.absorptionRate
-        val changeRate = if (player.isInWater && TemperatureSettings.waterEnabled) {
-            TemperatureSettings.waterConductivityMultiplier
-        } else {
-            1.0
+        // 阶段 6: 绝缘（护甲 + 遮蔽）
+        val armorInsulation = getArmorInsulation(player)
+        val shelterInsulation = when (state.shelterType) {
+            ShelterType.NONE -> 0.0
+            ShelterType.CANOPY -> TemperatureSettings.shelterCanopyInsulation
+            ShelterType.BUILDING -> TemperatureSettings.shelterBuildingInsulation
         }
+        val totalInsulation = armorInsulation + shelterInsulation
+        val insulationFactor = 1.0 - totalInsulation.coerceIn(0.0, TemperatureSettings.armorInsulationMax)
+        envDelta *= insulationFactor
 
-        val envDelta = (feelsLike - state.temperature) * changeRate
-
-        // 体温调节阻尼：当环境让体温远离设定点时，阻尼减缓这个过程
-        val dampingFactor = if (TemperatureSettings.regulationEnabled) {
+        // 阶段 7: 主动回拉（体温调节）
+        if (TemperatureSettings.regulationEnabled) {
             val setpoint = (TemperatureSettings.comfortMin + TemperatureSettings.comfortMax) / 2.0
             val deviation = state.temperature - setpoint
 
-            // 判断环境是否让体温远离设定点
-            val isMovingAway = (envDelta > 0 && deviation > 0) || (envDelta < 0 && deviation < 0)
+            val foodRatio = (player.foodLevel + player.saturation) / 40.0
+            val foodFactor = 0.3 + foodRatio * 0.7
+            val fracturePenalty = state.fracture / 100.0 * 0.5
+            val capacity = (foodFactor - fracturePenalty).coerceAtLeast(0.1)
 
-            if (isMovingAway) {
-                // 饱食度影响阻尼强度（饱食度高 → 阻尼强 → 体温更稳定）
-                val foodRatio = (player.foodLevel + player.saturation) / 40.0
-                val foodFactor = 0.3 + foodRatio * 0.7
-                // 骨折降低阻尼效果（骨折越重，体温越难维持）
-                val fracturePenalty = state.fracture / 100.0 * 0.5
-                // 阻尼系数：1 - 阻尼强度，范围 0.15~0.65（骨折时更高）
-                1.0 - (foodFactor * 0.5 - fracturePenalty).coerceAtLeast(0.0)
-            } else {
-                // 环境让体温靠近设定点，无阻尼
-                1.0
-            }
-        } else {
-            1.0
+            val regulationForce = -deviation * TemperatureSettings.regulationStrength * capacity
+            envDelta += regulationForce
         }
 
-        val change = envDelta * dampingFactor * (1.0 - Math.exp(-absorptionRate * Math.abs(envDelta)))
+        // 阶段 8: 吸收曲线 + 限速
+        val absorptionRate = TemperatureSettings.absorptionRate
+        val rawChange = envDelta * (1.0 - Math.exp(-absorptionRate * Math.abs(envDelta)))
+        val change = rawChange.coerceIn(
+            -TemperatureSettings.maxChangePerTick,
+            TemperatureSettings.maxChangePerTick,
+        )
 
         state.temperature += change
         state.temperaturePhase = classifyTemperature(state.temperature)
@@ -234,241 +234,31 @@ object TemperatureEngine {
         }
     }
 
-    fun calculateAirFeelsLike(
-        player: Player,
-        state: PlayerEnvState,
-        global: GlobalEnvState,
-        biomeBaseTemperature: Double,
-        seasonModifier: Double,
-        timeModifier: Double,
-        weatherModifier: Double,
-        altitudeModifier: Double,
-        armorModifier: Double,
-    ): Double {
-        val shelterModifier = when (state.shelterType) {
-            ShelterType.NONE -> 0.0
-            ShelterType.CANOPY -> TemperatureSettings.shelterCanopyBonus
-            ShelterType.BUILDING -> TemperatureSettings.shelterBuildingBonus
-        }
-
-        val blockModifier = state.temperatureBlockModifier
-
-        val wetnessModifier = if (player.isInWater) {
-            0.0
-        } else {
-            -state.wetness * TemperatureSettings.wetnessCoolingFactor
-        }
-
-        return biomeBaseTemperature +
-            seasonModifier + timeModifier + weatherModifier +
-            altitudeModifier + shelterModifier + armorModifier +
-            blockModifier + wetnessModifier
-    }
-
-    fun isUnderSolidRoof(location: Location): Boolean {
-        return findWeatherRoofBlock(location, 0, 0) != null
-    }
-
-    fun isOpenToSky(location: Location): Boolean {
-        return !hasAnyOverheadCover(location)
-    }
-
-    fun isWeatherSheltered(player: Player): Boolean {
-        return isWeatherSheltered(player.eyeLocation)
-    }
-
-    fun isWeatherSheltered(location: Location): Boolean {
-        if (!isUnderSolidRoof(location) || isOpenToSky(location)) {
-            return false
-        }
-        return hasWeatherTopCoverage(location)
-    }
-
-    private fun updateShelterState(player: Player, state: PlayerEnvState, tickIntervalSeconds: Int) {
-        state.shelterCacheTimer -= tickIntervalSeconds.coerceAtLeast(0).toDouble()
-
-        val eyeBlock = player.eyeLocation.block
-        val movedToDifferentBlock =
-            state.shelterCacheBlockX != eyeBlock.x ||
-                state.shelterCacheBlockY != eyeBlock.y ||
-                state.shelterCacheBlockZ != eyeBlock.z
-
-        if (!movedToDifferentBlock && state.shelterCacheTimer > 0.0) {
-            return
-        }
-
-        state.shelterType = classifyShelter(player)
-        state.isWeatherSheltered = isWeatherSheltered(player.eyeLocation)
-        state.shelterCacheBlockX = eyeBlock.x
-        state.shelterCacheBlockY = eyeBlock.y
-        state.shelterCacheBlockZ = eyeBlock.z
-        state.shelterCacheTimer = SHELTER_CACHE_SECONDS
-    }
-
-    private fun classifyShelter(player: Player): ShelterType {
-        val hasOverhead = hasAnyOverheadCover(player.eyeLocation)
-        if (!hasOverhead) return ShelterType.NONE
-
-        val hasCompleteRoof = hasWeatherTopCoverage(player.eyeLocation)
-        return if (hasCompleteRoof) ShelterType.BUILDING else ShelterType.CANOPY
-    }
-
     /**
-     * 衰减叠加扫描周围温度方块（球体裁剪：只扫描半径 5 的球体）。
-     * 返回 (最近热源枚举, 辐射加热偏移量)。
-     * 公式: modifier = Σ (方块温度 - 环境温度) × 衰减因子^距离
-     * 衰减因子默认 0.5，每远 1 格效果减半。
-     * 多热源可叠加但有自然衰减，不会无限累加。
+     * 计算护甲绝缘值（百分比叠加）。
+     * 返回总绝缘值（0.0 ~ armorInsulationMax）。
      */
-    private fun scanTemperatureBlocks(player: Player, ambientTemp: Double): Pair<HeatSource?, Double> {
-        val playerLocation = player.location
-        val originBlock = playerLocation.block
-        val temperatureBlocks = TemperatureSettings.temperatureBlocks
-        if (temperatureBlocks.isEmpty()) return null to 0.0
-
-        val baseCenterOffsetX = originBlock.x + 0.5 - playerLocation.x
-        val baseCenterOffsetY = originBlock.y + 0.5 - (playerLocation.y + 0.5)
-        val baseCenterOffsetZ = originBlock.z + 0.5 - playerLocation.z
-        val decayFactor = TemperatureSettings.blockDecayFactor
-        var blockModifier = 0.0
-        var nearestSource: HeatSource? = null
-        var nearestDistSq = Int.MAX_VALUE
-
-        val maxDistSq = TEMPERATURE_SCAN_RANGE * TEMPERATURE_SCAN_RANGE
-        for (offset in temperatureScanOffsets) {
-            // 球体裁剪：跳过超出半径的方块
-            if (offset.distSqInt > maxDistSq) continue
-
-            val block = originBlock.getRelative(offset.x, offset.y, offset.z)
-            val temp = temperatureBlocks[block.type] ?: continue
-            if (!isBlockActive(block)) continue
-
-            val dx = offset.x + baseCenterOffsetX
-            val dy = offset.y + baseCenterOffsetY
-            val dz = offset.z + baseCenterOffsetZ
-            val distSq = dx * dx + dy * dy + dz * dz
-            val distance = kotlin.math.sqrt(distSq)
-            val contribution = (temp - ambientTemp) * Math.pow(decayFactor, distance)
-            blockModifier += contribution
-
-            if (offset.distSqInt < nearestDistSq) {
-                nearestDistSq = offset.distSqInt
-                nearestSource = matchLegacyHeatSource(block)
-            }
-        }
-
-        return nearestSource to blockModifier
-    }
-
-    private fun isBlockActive(block: Block): Boolean {
-        val data = block.blockData
-        if (data is Lightable && !data.isLit) return false
-        return true
-    }
-
-    private fun matchLegacyHeatSource(block: Block): HeatSource? {
-        return when (block.type) {
-            Material.LAVA -> HeatSource.LAVA
-            Material.CAMPFIRE -> if (isLit(block)) HeatSource.CAMPFIRE else null
-            Material.SOUL_CAMPFIRE -> if (isLit(block)) HeatSource.SOUL_CAMPFIRE else null
-            Material.FURNACE, Material.BLAST_FURNACE, Material.SMOKER -> if (isLit(block)) HeatSource.FURNACE else null
-            Material.FIRE -> HeatSource.FIRE
-            Material.ICE -> HeatSource.ICE
-            Material.PACKED_ICE -> HeatSource.PACKED_ICE
-            Material.BLUE_ICE -> HeatSource.BLUE_ICE
-            Material.MAGMA_BLOCK -> HeatSource.MAGMA_BLOCK
-            else -> null
-        }
-    }
-
-    private fun isLit(block: Block): Boolean {
-        return (block.blockData as? Lightable)?.isLit == true
-    }
-
-    private fun hasAnyOverheadCover(location: Location): Boolean {
-        val world = location.world ?: return false
-        val highestBlockY = world.getHighestBlockYAt(location.blockX, location.blockZ)
-        return highestBlockY >= location.blockY
-    }
-
-    private fun hasWeatherTopCoverage(location: Location): Boolean {
-        val radius = TemperatureSettings.shelterHorizontalRadius
-        for (xOffset in -radius..radius) {
-            for (zOffset in -radius..radius) {
-                if (findWeatherRoofBlock(location, xOffset, zOffset) == null) {
-                    return false
-                }
-            }
-        }
-        return true
-    }
-
-    private fun findWeatherRoofBlock(location: Location, xOffset: Int, zOffset: Int): Block? {
-        val world = location.world ?: return null
-        val baseX = location.blockX + xOffset
-        val baseY = location.blockY
-        val baseZ = location.blockZ + zOffset
-        // 限制扫描高度为 playerY + 30，避免扫描整个 Y 轴（最坏 256 格）
-        val maxY = (baseY + 30).coerceAtMost(world.maxHeight - 1)
-        for (y in baseY + 1..maxY) {
-            val block = world.getBlockAt(baseX, y, baseZ)
-            if (isWeatherRoofCandidate(block)) {
-                return block
-            }
-        }
-        return null
-    }
-
-    private fun isWeatherRoofCandidate(block: Block): Boolean {
-        if (block.isEmpty || block.isLiquid) {
-            return false
-        }
-        val material = block.type
-        if (isBaseWeatherRoof(material)) {
-            return true
-        }
-        if (TemperatureSettings.shelterGlassCountsAsShelter && isGlassLike(material)) {
-            return true
-        }
-        if (TemperatureSettings.shelterLeavesCountAsShelter && Tag.LEAVES.isTagged(material)) {
-            return true
-        }
-        return false
-    }
-
-    private fun isBaseWeatherRoof(material: Material): Boolean {
-        return material.isOccluding ||
-            material.name.endsWith("_SLAB") ||
-            material.name.endsWith("_STAIRS")
-    }
-
-    private fun isGlassLike(material: Material): Boolean {
-        return material == Material.GLASS ||
-            material.name.endsWith("_GLASS") ||
-            material.name.endsWith("_GLASS_PANE")
-    }
-
-    private fun getArmorTemperatureBonus(player: Player): Double {
-        var totalBonus = 0.0
+    private fun getArmorInsulation(player: Player): Double {
+        var insulation = 0.0
         for (armorPiece in player.inventory.armorContents) {
             val material = armorPiece?.type ?: continue
-            totalBonus += when (material) {
+            insulation += when (material) {
                 Material.LEATHER_HELMET,
                 Material.LEATHER_CHESTPLATE,
                 Material.LEATHER_LEGGINGS,
                 Material.LEATHER_BOOTS,
-                -> TemperatureSettings.armorBonusLeather / 4.0
+                -> TemperatureSettings.armorInsulationLeather
 
                 Material.NETHERITE_HELMET,
                 Material.NETHERITE_CHESTPLATE,
                 Material.NETHERITE_LEGGINGS,
                 Material.NETHERITE_BOOTS,
-                -> TemperatureSettings.armorBonusNetherite / 4.0
+                -> TemperatureSettings.armorInsulationNetherite
 
                 else -> 0.0
             }
         }
-        return totalBonus
+        return insulation
     }
 
     fun classifyTemperature(temp: Double): TemperaturePhase {
@@ -510,11 +300,4 @@ object TemperatureEngine {
     private fun isRaining(location: Location, global: GlobalEnvState): Boolean {
         return WeatherQuery.getWeatherAt(location, global).type == WeatherType.RAIN
     }
-
-    private data class TemperatureScanOffset(
-        val x: Int,
-        val y: Int,
-        val z: Int,
-        val distSqInt: Int,
-    )
 }
