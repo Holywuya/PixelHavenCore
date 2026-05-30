@@ -142,7 +142,7 @@ object TemperatureSettings {
         wetnessCoolingFactor = config.getDouble("feels-like.wetness-cooling", 8.0).coerceAtLeast(0.0)
         dayNightScale = config.getDouble("time.day-night-scale", 10.0).coerceAtLeast(0.0)
         waterEnabled = config.getBoolean("water.enabled", true)
-        waterConductivityMultiplier = config.getDouble("water.conductivity-multiplier", 4.0).coerceAtLeast(1.0)
+        waterConductivityMultiplier = config.getDouble("water.thermal-conductivity", 4.0).coerceAtLeast(1.0)
         waterDepthCoolPer10Blocks = config.getDouble("water.depth-cool-per-10-blocks", 1.0).coerceAtLeast(0.0)
         waterMaxDepthCool = config.getDouble("water.max-depth-cool", 5.0).coerceAtLeast(0.0)
         waterSeasonLagRatio = config.getDouble("water.season-lag-ratio", 0.3).coerceIn(0.0, 1.0)
