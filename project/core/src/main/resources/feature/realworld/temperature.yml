@@ -32,9 +32,14 @@ altitude-drop-per-block: 0.5
 # 每隔多久扫描一次周围方块对温度的影响
 scan-interval-seconds: 5
 
-# 每次体温计算最大变化量（°C）
-# 防止温度瞬间跳变过大
-max-change-per-tick: 0.5
+# 体温变化限速（动态）
+# 上限 = base + |温差| × dynamic-scale
+# 极端环境变化更快，温和环境更平滑
+max-change:
+  # 基础限速（°C/tick）
+  base: 0.3
+  # 动态缩放（每 1°C 温差增加的上限）
+  dynamic-scale: 0.02
 
 # 温度吸收速率
 # 控制体温趋近环境温度的速度曲线

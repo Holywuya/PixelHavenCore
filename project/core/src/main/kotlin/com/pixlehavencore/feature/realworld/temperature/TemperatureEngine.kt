@@ -107,13 +107,12 @@ object TemperatureEngine {
             envDelta += regulationForce
         }
 
-        // 阶段 8: 吸收曲线 + 限速
+        // 阶段 8: 吸收曲线 + 动态限速
+        // 动态上限 = 基础限速 + |温差| × 动态缩放，极端环境变化更快
+        val maxChange = TemperatureSettings.maxChangeBase + Math.abs(envDelta) * TemperatureSettings.maxChangeDynamicScale
         val absorptionRate = TemperatureSettings.absorptionRate
         val rawChange = envDelta * (1.0 - Math.exp(-absorptionRate * Math.abs(envDelta)))
-        val change = rawChange.coerceIn(
-            -TemperatureSettings.maxChangePerTick,
-            TemperatureSettings.maxChangePerTick,
-        )
+        val change = rawChange.coerceIn(-maxChange, maxChange)
 
         state.temperature += change
         state.temperaturePhase = classifyTemperature(state.temperature)

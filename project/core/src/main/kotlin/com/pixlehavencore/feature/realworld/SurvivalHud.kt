@@ -75,7 +75,7 @@ object SurvivalHud {
                 val end = format.indexOf('}', i)
                 if (end != -1) {
                     when (format.substring(i, end + 1)) {
-                        "{temp}" -> sb.append(tempColor).append(state.temperature.toInt())
+                        "{temp}" -> sb.append(tempColor).append(String.format("%.1f", state.temperature))
                         "{hydration}" -> sb.append(hydrationColor).append(state.hydration.toInt())
                         "{wetness}" -> sb.append((state.wetness * 100).toInt())
                         "{sheltered}" -> sb.append(shelterText).append(fractureText)

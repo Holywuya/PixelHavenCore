@@ -19,7 +19,9 @@ object TemperatureSettings {
         private set
     var heatSourceScanIntervalSeconds: Int = 5
         private set
-    var maxChangePerTick: Double = 0.5
+    var maxChangeBase: Double = 0.3
+        private set
+    var maxChangeDynamicScale: Double = 0.02
         private set
     var absorptionRate: Double = 0.1
         private set
@@ -103,7 +105,8 @@ object TemperatureSettings {
         altitudeThresholdY = config.getInt("altitude-threshold-y", 80)
         altitudeDropPerBlock = config.getDouble("altitude-drop-per-block", 0.5).coerceAtLeast(0.0)
         heatSourceScanIntervalSeconds = config.getInt("scan-interval-seconds", 5).coerceAtLeast(1)
-        maxChangePerTick = config.getDouble("max-change-per-tick", 0.5).coerceAtLeast(0.0)
+        maxChangeBase = config.getDouble("max-change.base", 0.3).coerceAtLeast(0.0)
+        maxChangeDynamicScale = config.getDouble("max-change.dynamic-scale", 0.02).coerceAtLeast(0.0)
         absorptionRate = config.getDouble("temperature.absorption-rate", 0.1).coerceAtLeast(0.01)
         shelterGlassCountsAsShelter = config.getBoolean("shelter.glass-counts-as-shelter", false)
         shelterLeavesCountAsShelter = config.getBoolean("shelter.leaves-counts-as-shelter", false)
