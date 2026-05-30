@@ -104,6 +104,7 @@ data class PlayerEnvState(
     var shelterCacheBlockY: Int = Int.MIN_VALUE,
     var shelterCacheBlockZ: Int = Int.MIN_VALUE,
     var hudRefreshTimer: Double = 0.0,
+    var lastWaterTemp: Double = 20.0,
 )
 
 data class GlobalEnvState(
