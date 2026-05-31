@@ -15,7 +15,7 @@ object BaseCommand {
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
             if (!BaseCommandSettings.enabled) {
-                sender.msg("&c基础模块已禁用。")
+                sender.msg("<red>基础模块已禁用。")
                 return@execute
             }
             val player = sender.requirePlayer() ?: return@execute
