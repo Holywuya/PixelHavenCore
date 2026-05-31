@@ -16,8 +16,8 @@ object GrindstoneRepairCommand {
     @CommandBody
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("&6=== 砂轮修复命令帮助 ===")
-            sender.msg("&b/grindstone reload &7- 重载配置")
+            sender.msg("<gold>=== 砂轮修复命令帮助 ===")
+            sender.msg("<aqua>/grindstone reload <gray>- 重载配置")
         }
     }
 
@@ -26,7 +26,7 @@ object GrindstoneRepairCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
             if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             GrindstoneRepairSettings.init()
-            sender.msg("&a砂轮修复配置已重载。")
+            sender.msg("<green>砂轮修复配置已重载。")
         }
     }
 }
