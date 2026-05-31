@@ -34,6 +34,12 @@ object RealWorldPlaceholders : PlaceholderExpansion {
             "temperature_exact" -> player?.let { p ->
                 RealWorldStorage.getPlayerSnapshot(p.uniqueId)?.temperature?.let { "%.1f".format(it) }
             } ?: ""
+            "temperature_colored" -> player?.let { p ->
+                RealWorldStorage.getPlayerSnapshot(p.uniqueId)?.let { state ->
+                    val color = getTemperatureColor(state.temperaturePhase)
+                    "${color}%.1f".format(state.temperature)
+                }
+            } ?: ""
             "temperature_phase" -> player?.let { p ->
                 RealWorldStorage.getPlayerSnapshot(p.uniqueId)?.temperaturePhase?.displayName
             } ?: ""
@@ -91,6 +97,13 @@ object RealWorldPlaceholders : PlaceholderExpansion {
 
             else -> ""
         }
+    }
+
+    private fun getTemperatureColor(phase: TemperaturePhase): String = when (phase) {
+        TemperaturePhase.COMFORTABLE -> "&a"
+        TemperaturePhase.HEAT, TemperaturePhase.COLD_MILD -> "&6"
+        TemperaturePhase.COLD -> "&e"
+        TemperaturePhase.SEVERE_HEAT, TemperaturePhase.SEVERE_COLD -> "&c"
     }
 
     private val TemperaturePhase.displayName: String
