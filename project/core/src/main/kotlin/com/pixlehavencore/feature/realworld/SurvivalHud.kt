@@ -36,6 +36,9 @@ object SurvivalHud {
     }
 
     private fun renderActionBar(player: Player, state: PlayerEnvState, global: GlobalEnvState) {
+        if (!RealWorldSettings.hudActionBarEnabled) {
+            return
+        }
         val statusText = buildStatusActionBar(player, state, global)
         TextBridge.sendActionBar(player, TextUtils.parseMiniMessage(statusText))
     }

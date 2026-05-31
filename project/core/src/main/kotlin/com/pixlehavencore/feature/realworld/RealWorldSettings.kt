@@ -25,6 +25,8 @@ object RealWorldSettings {
 
     var hudActionBarFormat: String = "<red>{temp}°C  <aqua>{hydration}/100  <blue>{wetness}%  {sheltered}  <white>{weather}  <green>{season}"
         private set
+    var hudActionBarEnabled: Boolean = true
+        private set
     var hudShelteredIndicator: String = "<green>🏠"
         private set
     var hudUnshelteredIndicator: String = "<gray>☁"
@@ -59,6 +61,7 @@ object RealWorldSettings {
         tickIntervalSeconds = config.getInt("tick-interval-seconds", 2).coerceAtLeast(1)
 
         hudActionBarFormat = (config.getString("hud.actionbar-format") ?: hudActionBarFormat).let { TextUtils.translateLegacy(it) }
+        hudActionBarEnabled = config.getBoolean("hud.actionbar-enabled", true)
         hudShelteredIndicator = (config.getString("hud.sheltered-indicator") ?: hudShelteredIndicator).let { TextUtils.translateLegacy(it) }
         hudUnshelteredIndicator = (config.getString("hud.unsheltered-indicator") ?: hudUnshelteredIndicator).let { TextUtils.translateLegacy(it) }
         hudRefreshIntervalSeconds = config.getInt("hud.refresh-interval-seconds", 2).coerceAtLeast(1)

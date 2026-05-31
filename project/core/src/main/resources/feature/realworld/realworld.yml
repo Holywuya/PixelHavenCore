@@ -26,6 +26,9 @@ hud:
   # 可用变量：{temp} 体温 / {hydration} 口渴 / {wetness} 潮湿度 / {sheltered} 遮蔽状态 / {weather} 天气 / {season} 季节
   actionbar-format: "&c🌡 {temp}°C  &b💧 {hydration}/100  &9💦 {wetness}%  {sheltered}  &f{weather}  &a{season}"
 
+  # 是否启用 ActionBar HUD（屏幕底部中央的生存信息）
+  actionbar-enabled: true
+
   # 遮蔽状态指示器（玩家在室内时显示）
   sheltered-indicator: "&a🏠"
   # 未遮蔽状态指示器（玩家在室外时显示）
