@@ -19,10 +19,10 @@ object DeathDropCommand {
     @CommandBody
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("&6=== 死亡掉落命令帮助 ===")
-            sender.msg("&b/deathdrop reload &7- 重载配置")
-            sender.msg("&b/deathdrop add <玩家> <次数> &7- 增加今日免掉落次数")
-            sender.msg("&b/deathdrop set <玩家> <次数> &7- 设置今日剩余免掉落次数")
+            sender.msg("<gold>=== 死亡掉落命令帮助 ===")
+            sender.msg("<aqua>/deathdrop reload <gray>- 重载配置")
+            sender.msg("<aqua>/deathdrop add <玩家> <次数> <gray>- 增加今日免掉落次数")
+            sender.msg("<aqua>/deathdrop set <玩家> <次数> <gray>- 设置今日剩余免掉落次数")
         }
     }
 
@@ -32,7 +32,7 @@ object DeathDropCommand {
             if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             DeathDropSettings.init()
             DeathDropUsageStorage.init()
-            sender.msg("&a死亡掉落配置已重载。")
+            sender.msg("<green>死亡掉落配置已重载。")
         }
     }
 
@@ -45,16 +45,16 @@ object DeathDropCommand {
                     if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                     val targetName = context.getOrNull("player") ?: return@execute
                     val target = resolveOfflinePlayer(targetName) ?: run {
-                        sender.msg("&c未找到玩家: $targetName")
+                        sender.msg("<red>未找到玩家: $targetName")
                         return@execute
                     }
                     val count = argument.toString().trim().toIntOrNull() ?: run {
-                        sender.msg("&c次数必须为整数。")
+                        sender.msg("<red>次数必须为整数。")
                         return@execute
                     }
                     val bonus = DeathDropUsageStorage.addBonusToday(target.uniqueId, count)
                     val remaining = (DeathDropSettings.dailyKeepCount + bonus - DeathDropUsageStorage.getUsedToday(target.uniqueId)).coerceAtLeast(0)
-                    sender.msg("&a已为玩家 &f${target.name ?: target.uniqueId} &a增加今日免掉落次数 &f$count&a，当前剩余 &f$remaining&a 次。")
+                    sender.msg("<green>已为玩家 <white>${target.name ?: target.uniqueId} <green>增加今日免掉落次数 <white$count<green>，当前剩余 <white$remaining<green> 次。")
                 }
             }
         }
@@ -69,18 +69,18 @@ object DeathDropCommand {
                     if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                     val targetName = context.getOrNull("player") ?: return@execute
                     val target = resolveOfflinePlayer(targetName) ?: run {
-                        sender.msg("&c未找到玩家: $targetName")
+                        sender.msg("<red>未找到玩家: $targetName")
                         return@execute
                     }
                     val remainingTarget = argument.toString().trim().toIntOrNull() ?: run {
-                        sender.msg("&c次数必须为整数。")
+                        sender.msg("<red>次数必须为整数。")
                         return@execute
                     }
                     val used = DeathDropUsageStorage.getUsedToday(target.uniqueId)
                     val bonus = (remainingTarget + used - DeathDropSettings.dailyKeepCount).coerceAtLeast(0)
                     DeathDropUsageStorage.setBonusToday(target.uniqueId, bonus)
                     val remaining = (DeathDropSettings.dailyKeepCount + bonus - used).coerceAtLeast(0)
-                    sender.msg("&a已设置玩家 &f${target.name ?: target.uniqueId} &a今日剩余免掉落次数为 &f$remaining&a 次。")
+                    sender.msg("<green>已设置玩家 <white>${target.name ?: target.uniqueId} <green>今日剩余免掉落次数为 <white$remaining<green> 次。")
                 }
             }
         }

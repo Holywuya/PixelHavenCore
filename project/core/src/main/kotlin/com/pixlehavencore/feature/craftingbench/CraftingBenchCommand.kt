@@ -22,17 +22,17 @@ object CraftingBenchCommand {
     @CommandBody
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("&6=== 制作台模块帮助 ===")
-            sender.msg("&b/craftingbench queue &7- 查看自己的制作任务")
-            sender.msg("&b/craftingbench cancel <id> &7- 取消自己的制作任务")
-            sender.msg("&b/craftingbench claim &7- 领取离线完成产物")
-            sender.msg("&b/craftingbench tiers &7- 查看可用工作台等级")
-            sender.msg("&b/craftingbench open <tier> &7- 打开指定工作台 GUI")
-            sender.msg("&b/craftingbench give <player> <tier> &7- 发放对应工作台物品")
-            sender.msg("&b/craftingbench admin-open <player> <tier> &7- 为玩家打开指定工作台 GUI")
-            sender.msg("&b/craftingbench edit <配方ID> &7- 编辑配方GUI")
-            sender.msg("&b/craftingbench reload &7- 重载制作台配置")
-            sender.msg("&7当前状态：&f${if (CraftingBenchService.isEnabled()) "已启用" else "未启用"}")
+            sender.msg("<gold>=== 制作台模块帮助 ===")
+            sender.msg("<aqua>/craftingbench queue <gray>- 查看自己的制作任务")
+            sender.msg("<aqua>/craftingbench cancel <id> <gray>- 取消自己的制作任务")
+            sender.msg("<aqua>/craftingbench claim <gray>- 领取离线完成产物")
+            sender.msg("<aqua>/craftingbench tiers <gray>- 查看可用工作台等级")
+            sender.msg("<aqua>/craftingbench open <tier> <gray>- 打开指定工作台 GUI")
+            sender.msg("<aqua>/craftingbench give <player> <tier> <gray>- 发放对应工作台物品")
+            sender.msg("<aqua>/craftingbench admin-open <player> <tier> <gray>- 为玩家打开指定工作台 GUI")
+            sender.msg("<aqua>/craftingbench edit <配方ID> <gray>- 编辑配方GUI")
+            sender.msg("<aqua>/craftingbench reload <gray>- 重载制作台配置")
+            sender.msg("<gray>当前状态：<white>${if (CraftingBenchService.isEnabled()) "已启用" else "未启用"}")
         }
     }
 
@@ -43,18 +43,18 @@ object CraftingBenchCommand {
             val tasks = CraftingBenchService.getPlayerTasks(player.uniqueId)
             val claimCount = CraftingBenchService.getPendingClaimCount(player.uniqueId)
             if (tasks.isEmpty()) {
-                sender.msg("&e你当前没有制作任务。")
+                sender.msg("<yellow>你当前没有制作任务。")
                 if (claimCount > 0) {
-                    sender.msg("&7待领取产物：&f$claimCount")
+                    sender.msg("<gray>待领取产物：<white>$claimCount")
                 }
                 return@execute
             }
-            sender.msg("&6=== 你的制作任务 ===")
+            sender.msg("<gold>=== 你的制作任务 ===")
             tasks.forEach { task ->
-                sender.msg("&7#${task.taskId} &f${task.recipeId} &7剩余 &f${task.remainingTicks / 20.0}s")
+                sender.msg("<gray>#${task.taskId} <white>${task.recipeId} <gray>剩余 <white>${task.remainingTicks / 20.0}s")
             }
             if (claimCount > 0) {
-                sender.msg("&7待领取产物：&f$claimCount")
+                sender.msg("<gray>待领取产物：<white>$claimCount")
             }
         }
     }
@@ -64,7 +64,7 @@ object CraftingBenchCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
             val player = sender.requirePlayer() ?: return@execute
             val bukkitPlayer = Bukkit.getPlayer(player.uniqueId) ?: run {
-                sender.msg("&c无法解析玩家实例。")
+                sender.msg("<red>无法解析玩家实例。")
                 return@execute
             }
             CraftingBenchService.flushPendingClaims(bukkitPlayer)
@@ -76,14 +76,14 @@ object CraftingBenchCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
             val tierIds = CraftingBenchSettings.getTierIds()
             if (tierIds.isEmpty()) {
-                sender.msg("&e当前未配置任何工作台等级。")
+                sender.msg("<yellow>当前未配置任何工作台等级。")
                 return@execute
             }
-            sender.msg("&6=== 工作台等级 ===")
+            sender.msg("<gold>=== 工作台等级 ===")
             tierIds.forEach { tierId ->
                 val tier = CraftingBenchSettings.getTier(tierId) ?: return@forEach
                 val blockId = CraftingBenchSettings.getPrimaryBlockIdByTier(tierId) ?: "(未映射方块)"
-                sender.msg("&7$tierId &f${tier.displayName} &7速度:&f${tier.speedModifier} &7方块:&f$blockId")
+                sender.msg("<gray>$tierId <white>${tier.displayName} <gray>速度:<white>${tier.speedModifier} <gray>方块:<white>$blockId")
             }
         }
     }
@@ -94,12 +94,12 @@ object CraftingBenchCommand {
             execute<ProxyCommandSender> { sender, _, argument ->
                 val player = sender.requirePlayer() ?: return@execute
                 val bukkitPlayer = Bukkit.getPlayer(player.uniqueId) ?: run {
-                    sender.msg("&c无法解析玩家实例。")
+                    sender.msg("<red>无法解析玩家实例。")
                     return@execute
                 }
                 val tierId = argument.toString().trim()
                 val tier = CraftingBenchSettings.getTier(tierId) ?: run {
-                    sender.msg("&c未知工作台等级: $tierId")
+                    sender.msg("<red>未知工作台等级: $tierId")
                     return@execute
                 }
                 CraftingBenchMenu.open(bukkitPlayer, tier)
@@ -118,24 +118,24 @@ object CraftingBenchCommand {
                     }
                     val targetName = context.getOrNull("player")?.toString()?.trim().orEmpty()
                     val target = Bukkit.getPlayerExact(targetName) ?: run {
-                        sender.msg("&c玩家不存在或不在线: $targetName")
+                        sender.msg("<red>玩家不存在或不在线: $targetName")
                         return@execute
                     }
                     val tierId = argument.toString().trim()
                     val tier = CraftingBenchSettings.getTier(tierId) ?: run {
-                        sender.msg("&c未知工作台等级: $tierId")
+                        sender.msg("<red>未知工作台等级: $tierId")
                         return@execute
                     }
                     val blockId = CraftingBenchSettings.getPrimaryBlockIdByTier(tierId) ?: run {
-                        sender.msg("&c该等级未映射任何 CraftEngine 方块: $tierId")
+                        sender.msg("<red>该等级未映射任何 CraftEngine 方块: $tierId")
                         return@execute
                     }
                     val item = CraftEngineItemsUtil.getItem(blockId, target) ?: run {
-                        sender.msg("&c无法构建工作台物品: $blockId")
+                        sender.msg("<red>无法构建工作台物品: $blockId")
                         return@execute
                     }
                     deliverAdminItem(target, item)
-                    sender.msg("&a已发放 &f${tier.displayName} &a给 &f${target.name}&a。")
+                    sender.msg("<green>已发放 <white>${tier.displayName} <green>给 <white>${target.name}</white><green>。")
                 }
             }
         }
@@ -152,16 +152,16 @@ object CraftingBenchCommand {
                     }
                     val targetName = context.getOrNull("player")?.toString()?.trim().orEmpty()
                     val target = Bukkit.getPlayerExact(targetName) ?: run {
-                        sender.msg("&c玩家不存在或不在线: $targetName")
+                        sender.msg("<red>玩家不存在或不在线: $targetName")
                         return@execute
                     }
                     val tierId = argument.toString().trim()
                     val tier = CraftingBenchSettings.getTier(tierId) ?: run {
-                        sender.msg("&c未知工作台等级: $tierId")
+                        sender.msg("<red>未知工作台等级: $tierId")
                         return@execute
                     }
                     CraftingBenchMenu.open(target, tier)
-                    sender.msg("&a已为 &f${target.name} &a打开 &f${tier.displayName} &a界面。")
+                    sender.msg("<green>已为 <white>${target.name} <green>打开 <white>${tier.displayName} <green>界面。")
                 }
             }
         }
@@ -173,14 +173,14 @@ object CraftingBenchCommand {
             execute<ProxyCommandSender> { sender, context, _ ->
                 val player = sender.requirePlayer() ?: return@execute
                 val taskId = context.getOrNull("id")?.toString()?.toLongOrNull() ?: run {
-                    sender.msg("&c任务 ID 无效。")
+                    sender.msg("<red>任务 ID 无效。")
                     return@execute
                 }
                 val bukkitPlayer = Bukkit.getPlayer(player.uniqueId) ?: run {
-                    sender.msg("&c无法解析玩家实例。")
+                    sender.msg("<red>无法解析玩家实例。")
                     return@execute
                 }
-                sender.msg("&a${CraftingBenchService.cancelTask(bukkitPlayer, taskId)}")
+                sender.msg("<green>${CraftingBenchService.cancelTask(bukkitPlayer, taskId)}")
             }
         }
     }
@@ -188,7 +188,7 @@ object CraftingBenchCommand {
     @CommandBody
     val adminGui = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("&c该功能已重构，请使用 /craftingbench edit <配方ID>")
+            sender.msg("<red>该功能已重构，请使用 /craftingbench edit <配方ID>")
         }
     }
 
@@ -223,7 +223,7 @@ object CraftingBenchCommand {
             submit(async = true) {
                 CraftingBenchService.reload()
                 submit {
-                    sender.msg("&a制作台配置已重载。")
+                    sender.msg("<green>制作台配置已重载。")
                 }
             }
         }
