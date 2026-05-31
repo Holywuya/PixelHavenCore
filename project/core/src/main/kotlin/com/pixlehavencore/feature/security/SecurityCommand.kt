@@ -26,11 +26,11 @@ object SecurityCommand {
                 val viewer = sender.requirePlayer()?.cast<Player>() ?: return@execute
                 val targetName = argument.toString().trim()
                 val target = resolveOfflinePlayer(targetName) ?: run {
-                    sender.msg("&c未找到玩家: $targetName")
+                    sender.msg("<red>未找到玩家: $targetName")
                     return@execute
                 }
                 if (!SecurityService.openInventory(viewer, target)) {
-                    sender.msg("&c打开玩家背包失败。")
+                    sender.msg("<red>打开玩家背包失败。")
                 }
             }
         }
@@ -45,11 +45,11 @@ object SecurityCommand {
                 val viewer = sender.requirePlayer()?.cast<Player>() ?: return@execute
                 val targetName = argument.toString().trim()
                 val target = resolveOfflinePlayer(targetName) ?: run {
-                    sender.msg("&c未找到玩家: $targetName")
+                    sender.msg("<red>未找到玩家: $targetName")
                     return@execute
                 }
                 if (!SecurityService.openEnderChest(viewer, target)) {
-                    sender.msg("&c打开玩家末影箱失败。")
+                    sender.msg("<red>打开玩家末影箱失败。")
                 }
             }
         }
@@ -60,7 +60,7 @@ object SecurityCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
             if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             SecurityService.reload()
-            sender.msg("&a安全模块配置已重载。")
+            sender.msg("<green>安全模块配置已重载。")
         }
     }
 

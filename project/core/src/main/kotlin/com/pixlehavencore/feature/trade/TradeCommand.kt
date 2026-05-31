@@ -19,12 +19,12 @@ object TradeCommand {
     @CommandBody
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("&6=== 面对面交易命令帮助 ===")
-            sender.msg("&b/trade request <玩家> &7- 向玩家发起交易请求")
-            sender.msg("&b/trade accept <玩家> &7- 接受交易请求")
-            sender.msg("&b/trade deny <玩家> &7- 拒绝交易请求")
-            sender.msg("&bShift+右键玩家 &7- 直接发送交易请求")
-            sender.msg("&b/trade reload &7- 重载交易模块配置")
+            sender.msg("<gold>=== 面对面交易命令帮助 ===")
+            sender.msg("<aqua>/trade request <玩家> <gray>- 向玩家发起交易请求")
+            sender.msg("<aqua>/trade accept <玩家> <gray>- 接受交易请求")
+            sender.msg("<aqua>/trade deny <玩家> <gray>- 拒绝交易请求")
+            sender.msg("<aqua>Shift+右键玩家 <gray>- 直接发送交易请求")
+            sender.msg("<aqua>/trade reload <gray>- 重载交易模块配置")
         }
     }
 
@@ -36,7 +36,7 @@ object TradeCommand {
                 val player = sender.requirePlayer() ?: return@execute
                 val target = Bukkit.getPlayerExact(argument.toString().trim())
                 if (target == null) {
-                    sender.msg("&c目标玩家不在线。")
+                    sender.msg("<red>目标玩家不在线。")
                     return@execute
                 }
                 TradeService.requestTrade(player.cast(), target)
@@ -75,7 +75,7 @@ object TradeCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
             if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             TradeService.reload()
-            sender.msg("&a交易模块配置已重载。")
+            sender.msg("<green>交易模块配置已重载。")
         }
     }
 }
