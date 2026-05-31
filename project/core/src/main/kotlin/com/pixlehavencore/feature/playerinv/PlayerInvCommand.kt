@@ -42,20 +42,20 @@ object PlayerInvCommand {
     @CommandBody
     val help = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("&6=== 仓库命令帮助 ===")
-            sender.msg("&b/playerinv &7- 打开自己的仓库")
-            sender.msg("&b/playerinv open <玩家> &7- 管理员打开玩家仓库")
-            sender.msg("&b/playerinv size <玩家> <大小> &7- 管理员设置玩家仓库大小")
-            sender.msg("&b/playerinv shared create <名称> &7- 创建共享仓库")
-            sender.msg("&b/playerinv shared open <名称> &7- 打开共享仓库")
-            sender.msg("&b/playerinv shared add/remove <名称> <玩家> &7- 管理成员")
-            sender.msg("&b/playerinv shared members <名称> &7- 查看共享成员")
-            sender.msg("&b/playerinv shared upgrade <名称> &7- 升级共享仓库")
-            sender.msg("&b/playerinv shared quota <玩家> <数量> &7- 管理员发放创建次数")
-            sender.msg("&b/playerinv shared admin-open <名称> &7- 管理员强制打开共享仓库")
-            sender.msg("&b/playerinv shared owner <玩家> &7- 管理员查看该玩家的共享仓库列表")
-            sender.msg("&b/playerinv shared list <玩家> &7- 管理员列出共享仓库")
-            sender.msg("&b/playerinv reload &7- 重载配置")
+            sender.msg("<gold>=== 仓库命令帮助 ===")
+            sender.msg("<aqua>/playerinv <gray>- 打开自己的仓库")
+            sender.msg("<aqua>/playerinv open <玩家> <gray>- 管理员打开玩家仓库")
+            sender.msg("<aqua>/playerinv size <玩家> <大小> <gray>- 管理员设置玩家仓库大小")
+            sender.msg("<aqua>/playerinv shared create <名称> <gray>- 创建共享仓库")
+            sender.msg("<aqua>/playerinv shared open <名称> <gray>- 打开共享仓库")
+            sender.msg("<aqua>/playerinv shared add/remove <名称> <玩家> <gray>- 管理成员")
+            sender.msg("<aqua>/playerinv shared members <名称> <gray>- 查看共享成员")
+            sender.msg("<aqua>/playerinv shared upgrade <名称> <gray>- 升级共享仓库")
+            sender.msg("<aqua>/playerinv shared quota <玩家> <数量> <gray>- 管理员发放创建次数")
+            sender.msg("<aqua>/playerinv shared admin-open <名称> <gray>- 管理员强制打开共享仓库")
+            sender.msg("<aqua>/playerinv shared owner <玩家> <gray>- 管理员查看该玩家的共享仓库列表")
+            sender.msg("<aqua>/playerinv shared list <玩家> <gray>- 管理员列出共享仓库")
+            sender.msg("<aqua>/playerinv reload <gray>- 重载配置")
         }
     }
 
@@ -104,7 +104,7 @@ object PlayerInvCommand {
                         return@execute
                     }
                     val targetName = context.getOrNull("player") ?: run {
-                        sender.msg("&c用法: /playerinv size <玩家> <大小>")
+                        sender.msg("<red>用法: /playerinv size <玩家> <大小>")
                         return@execute
                     }
                     val target = resolveOfflinePlayer(targetName)
@@ -114,7 +114,7 @@ object PlayerInvCommand {
                     }
                     val size = argument.toString().trim().toIntOrNull()
                     if (size == null) {
-                        sender.msg("&c请输入有效仓库大小（9~54，且为9的倍数）")
+                        sender.msg("<red>请输入有效仓库大小（9~54，且为9的倍数）")
                         return@execute
                     }
                     val normalized = PlayerInvService.normalizeSize(size)
@@ -122,10 +122,10 @@ object PlayerInvCommand {
                         val success = PlayerInvService.setPersonalSize(target, normalized)
                         submit {
                             if (!success) {
-                                sender.msg("&c设置仓库大小失败！")
+                                sender.msg("<red>设置仓库大小失败！")
                                 return@submit
                             }
-                            sender.msg("&a已将玩家 &f${target.name ?: target.uniqueId} &a仓库大小设置为 &f$normalized")
+                            sender.msg("<green>已将玩家 <white>${target.name ?: target.uniqueId} <green>仓库大小设置为 <white>$normalized")
                         }
                     }
                 }
