@@ -35,11 +35,11 @@ bandage-heal-amount: 30.0
 
 # 绷带物品材质
 # 使用此材质的物品可作为绷带治疗骨折
-bandage-material: PAPER
+bandage-material: []
 
 # 石膏物品材质
 # 使用此材质的物品可完全治愈骨折
-cast-material: CLAY_BALL
+cast-material: []
 
 # 骨折等级阈值
 thresholds:

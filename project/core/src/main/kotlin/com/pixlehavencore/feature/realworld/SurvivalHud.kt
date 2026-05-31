@@ -52,7 +52,7 @@ object SurvivalHud {
             ThirstPhase.THIRSTY -> "&6"
             ThirstPhase.SEVERE_THIRST, ThirstPhase.DEHYDRATED -> "&c"
         }
-        val weather = if (state.isClientRaining) WeatherType.RAIN else WeatherType.CLEAR
+        val weather = if (state.isActuallyRaining) WeatherType.RAIN else WeatherType.CLEAR
         val shelterText = when (state.shelterType) {
             ShelterType.NONE -> RealWorldSettings.hudUnshelteredIndicator
             ShelterType.CANOPY -> "🌳"

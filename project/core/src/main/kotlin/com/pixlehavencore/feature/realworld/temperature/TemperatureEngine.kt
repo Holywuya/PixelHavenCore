@@ -284,8 +284,11 @@ object TemperatureEngine {
     private fun computeWetness(player: Player, state: PlayerEnvState, global: GlobalEnvState, tickSeconds: Int) {
         val dt = tickSeconds.coerceAtLeast(0).toDouble()
 
-        // 检查玩家位置是否下雨（使用遮蔽检测）
-        val isRainingHere = !state.isWeatherSheltered && isRaining(player.location, global)
+        // 记录实际天气状态（不受遮蔽影响，用于 HUD 显示）
+        state.isActuallyRaining = isRaining(player.location, global)
+
+        // 检查玩家位置是否在淋雨（考虑遮蔽）
+        val isRainingHere = !state.isWeatherSheltered && state.isActuallyRaining
 
         // 同步客户端天气视觉效果
         syncPlayerWeatherVisual(player, state, isRainingHere)

@@ -37,7 +37,7 @@ scan-interval-seconds: 5
 # 极端环境变化更快，温和环境更平滑
 max-change:
   # 基础限速（°C/tick）
-  base: 0.3
+  base: 0.5
   # 动态缩放（每 1°C 温差增加的上限）
   dynamic-scale: 0.02
 
@@ -51,9 +51,9 @@ temperature:
 # 遮蔽判定配置
 shelter:
   # 玻璃方块是否算作遮蔽物（影响天气暴露判定）
-  glass-counts-as-shelter: false
+  glass-counts-as-shelter: true
   # 树叶方块是否算作遮蔽物
-  leaves-counts-as-shelter: false
+  leaves-counts-as-shelter: true
   # 水平扫描半径（格），用于判定玩家是否在室内
   horizontal-radius: 1
   # 树冠/半遮蔽绝缘百分比

@@ -74,7 +74,7 @@ object RealWorldPlaceholders : PlaceholderExpansion {
 
             // === 布尔判断（用于条件显示） ===
             "is_raining" -> player?.let { p ->
-                RealWorldStorage.getPlayerSnapshot(p.uniqueId)?.isClientRaining?.toString()
+                RealWorldStorage.getPlayerSnapshot(p.uniqueId)?.isActuallyRaining?.toString()
             } ?: ""
             "is_comfortable" -> player?.let { p ->
                 val phase = RealWorldStorage.getPlayerSnapshot(p.uniqueId)?.temperaturePhase
