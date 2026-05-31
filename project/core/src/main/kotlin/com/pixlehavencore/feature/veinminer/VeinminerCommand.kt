@@ -1,6 +1,8 @@
 package com.pixlehavencore.feature.veinminer
 
+import com.pixlehavencore.bridge.TextBridge
 import com.pixlehavencore.util.ADMIN_PERMISSION
+import com.pixlehavencore.util.TextUtils
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.requirePlayer
@@ -20,14 +22,14 @@ object VeinminerCommand {
     @CommandBody
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("&6=== 连锁挖矿帮助 ===")
-            sender.msg("&b/veinminer toggle &7- 切换连锁挖矿开关")
-            sender.msg("&b/veinminer reload &7- 重载连锁挖矿配置")
-            sender.msg("&b/veinminer limit &7- 查看自己的次数信息")
-            sender.msg("&b/veinminer add <玩家> <次数> &7- 增加剩余次数")
-            sender.msg("&b/veinminer remove <玩家> <次数> &7- 减少剩余次数")
-            sender.msg("&b/veinminer set <玩家> <次数> &7- 设置剩余次数")
-            sender.msg("&7当前状态：&f${if (VeinminerSettings.enabled) "已启用" else "未启用"}")
+            sender.msg("<gold>=== 连锁挖矿帮助 ===")
+            sender.msg("<aqua>/veinminer toggle <gray>- 切换连锁挖矿开关")
+            sender.msg("<aqua>/veinminer reload <gray>- 重载连锁挖矿配置")
+            sender.msg("<aqua>/veinminer limit <gray>- 查看自己的次数信息")
+            sender.msg("<aqua>/veinminer add <玩家> <次数> <gray>- 增加剩余次数")
+            sender.msg("<aqua>/veinminer remove <玩家> <次数> <gray>- 减少剩余次数")
+            sender.msg("<aqua>/veinminer set <玩家> <次数> <gray>- 设置剩余次数")
+            sender.msg("<gray>当前状态：<white>${if (VeinminerSettings.enabled) "已启用" else "未启用"}")
         }
     }
 
@@ -55,19 +57,19 @@ object VeinminerCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
             if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             VeinminerSettings.init()
-            sender.msg("&a连锁挖掘配置已重载。")
+            sender.msg("<green>连锁挖掘配置已重载。")
         }
     }
 
     @CommandBody
     val limit = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            val player = sender.requirePlayer("&c只有玩家可以使用该命令。") ?: return@execute
+            val player = sender.requirePlayer("<red>只有玩家可以使用该命令。") ?: return@execute
             val remaining = VeinminerLimitService.getRemaining(player)
             val limit = VeinminerLimitService.getLimitValue(player)
             val used = VeinminerLimitService.getUsed(player)
             VeinminerMessages.send(player, VeinminerSettings.messageLimitCommand, mapOf("remaining" to remaining, "limit" to limit))
-            player.sendMessage("&7已使用: &f$used".replace('&', '§'))
+            player.sendMessage(TextBridge.toLegacy(TextUtils.parseMiniMessage("<gray>已使用: <white>$used</white></gray>")))
         }
     }
 
@@ -111,20 +113,20 @@ object VeinminerCommand {
         if (!sender.requirePermission(ADMIN_PERMISSION)) return
         val cleanTarget = targetName?.trim().orEmpty()
         if (cleanTarget.isBlank()) {
-            sender.msg("&c请输入目标玩家。")
+            sender.msg("<red>请输入目标玩家。")
             return
         }
         val target = Bukkit.getPlayerExact(cleanTarget) ?: run {
-            sender.msg("&c玩家不存在或不在线: $cleanTarget")
+            sender.msg("<red>玩家不存在或不在线: $cleanTarget")
             return
         }
         val proxyTarget = onlinePlayers().firstOrNull { it.uniqueId == target.uniqueId } ?: run {
-            sender.msg("&c无法解析目标玩家代理实例: $cleanTarget")
+            sender.msg("<red>无法解析目标玩家代理实例: $cleanTarget")
             return
         }
         val amount = amountText.trim().toIntOrNull()
         if (amount == null || amount < 0) {
-            sender.msg("&c请输入有效的非负整数次数。")
+            sender.msg("<red>请输入有效的非负整数次数。")
             return
         }
         val result = when (mutation) {
@@ -133,7 +135,7 @@ object VeinminerCommand {
             Mutation.SET -> VeinminerLimitService.setRemaining(proxyTarget, amount)
         }
         if (result == null) {
-            sender.msg("&c该玩家当前没有可用的次数上限配置。")
+            sender.msg("<red>该玩家当前没有可用的次数上限配置。")
             return
         }
         val limit = VeinminerLimitService.getLimitValue(proxyTarget)
@@ -143,8 +145,8 @@ object VeinminerCommand {
             Mutation.REMOVE -> "减少"
             Mutation.SET -> "设置"
         }
-        sender.msg("&a已为 &f${target.name} &a${actionText}次数，当前剩余 &f$result &7/ &f$limit&a，已使用 &f$used&a。")
-        target.sendMessage("&a你的连锁挖矿剩余次数已被管理员调整为 &f$result &7/ &f$limit&a。".replace('&', '§'))
+        sender.msg("<green>已为 <white>${target.name}</white> <green>${actionText}次数，当前剩余 <white>$result</white> <gray>/ <white>$limit</white> <green>，已使用 <white>$used</white></green>。")
+        target.sendMessage(TextUtils.parseMiniMessage("<green>你的连锁挖矿剩余次数已被管理员调整为 <white>$result</white> <gray>/ <white>$limit</white></green>。"))
     }
 
     private enum class Mutation {

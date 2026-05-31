@@ -37,20 +37,20 @@ object SurvivalHud {
 
     private fun renderActionBar(player: Player, state: PlayerEnvState, global: GlobalEnvState) {
         val statusText = buildStatusActionBar(player, state, global)
-        TextBridge.sendActionBar(player, TextUtils.parse(colorize(statusText)))
+        TextBridge.sendActionBar(player, TextUtils.parseMiniMessage(statusText))
     }
 
     private fun buildStatusActionBar(player: Player, state: PlayerEnvState, global: GlobalEnvState): String {
         val tempColor = when (state.temperaturePhase) {
-            TemperaturePhase.COMFORTABLE -> "&a"
-            TemperaturePhase.HEAT, TemperaturePhase.COLD_MILD -> "&6"
-            TemperaturePhase.COLD -> "&e"
-            TemperaturePhase.SEVERE_HEAT, TemperaturePhase.SEVERE_COLD -> "&c"
+            TemperaturePhase.COMFORTABLE -> "<green>"
+            TemperaturePhase.HEAT, TemperaturePhase.COLD_MILD -> "<gold>"
+            TemperaturePhase.COLD -> "<yellow>"
+            TemperaturePhase.SEVERE_HEAT, TemperaturePhase.SEVERE_COLD -> "<red>"
         }
         val hydrationColor = when (state.thirstPhase) {
-            ThirstPhase.FULL -> "&a"
-            ThirstPhase.THIRSTY -> "&6"
-            ThirstPhase.SEVERE_THIRST, ThirstPhase.DEHYDRATED -> "&c"
+            ThirstPhase.FULL -> "<green>"
+            ThirstPhase.THIRSTY -> "<gold>"
+            ThirstPhase.SEVERE_THIRST, ThirstPhase.DEHYDRATED -> "<red>"
         }
         val weather = if (state.isActuallyRaining) WeatherType.RAIN else WeatherType.CLEAR
         val shelterText = when (state.shelterType) {
@@ -75,8 +75,8 @@ object SurvivalHud {
                 val end = format.indexOf('}', i)
                 if (end != -1) {
                     when (format.substring(i, end + 1)) {
-                        "{temp}" -> sb.append(tempColor).append(String.format("%.1f", state.temperature))
-                        "{hydration}" -> sb.append(hydrationColor).append(state.hydration.toInt())
+                        "{temp}" -> sb.append(tempColor).append(String.format("%.1f", state.temperature)).append("</$tempColor")
+                        "{hydration}" -> sb.append(hydrationColor).append(state.hydration.toInt()).append("</$hydrationColor")
                         "{wetness}" -> sb.append((state.wetness * 100).toInt())
                         "{sheltered}" -> sb.append(shelterText).append(fractureText)
                         "{weather}" -> sb.append(weather.displayName)
@@ -122,13 +122,14 @@ object SurvivalHud {
             }
         }
 
+        val legacyTitle = TextBridge.toLegacy(TextUtils.parseMiniMessage(title))
         val bossBar: BossBar = bossBars.get(player.uniqueId) ?: run {
-            val bar = Bukkit.createBossBar(colorize(title), color, BarStyle.SOLID)
+            val bar = Bukkit.createBossBar(legacyTitle, color, BarStyle.SOLID)
             bossBars[player.uniqueId] = bar
             bar
         }
 
-        bossBar.setTitle(colorize(title))
+        bossBar.setTitle(legacyTitle)
         bossBar.color = color
         bossBar.progress = 1.0
         if (!bossBar.players.contains(player)) {
@@ -146,9 +147,5 @@ object SurvivalHud {
         removeBossBar(player)
         FrostOverlay.clear(player)
         HeatOverlay.clear(player)
-    }
-
-    private fun colorize(text: String): String {
-        return text.replace("&", "§")
     }
 }

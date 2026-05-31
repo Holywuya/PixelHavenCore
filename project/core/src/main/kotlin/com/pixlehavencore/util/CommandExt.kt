@@ -27,7 +27,7 @@ private val PERMISSION_ALIASES = mapOf(
  * 发送带颜色代码的消息，支持 MiniMessage 标签和 & 颜色码。
  */
 fun ProxyCommandSender.msg(text: String) =
-    sendMessage(TextBridge.toLegacy(TextUtils.parse(text)))
+    sendMessage(TextBridge.toLegacy(TextUtils.parseMiniMessage(TextUtils.translateLegacy(text))))
 
 /**
  * 全局超级权限：`[ADMIN_PERMISSION]`。

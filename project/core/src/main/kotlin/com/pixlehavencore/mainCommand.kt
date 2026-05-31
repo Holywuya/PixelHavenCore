@@ -44,8 +44,8 @@ object MainCommand {
     @CommandBody
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("&6=== PixleHavenCore 命令帮助 ===")
-            sender.msg("&b/phc reload &7- 重载所有模块配置")
+            sender.msg("<gold>=== PixleHavenCore 命令帮助 ===")
+            sender.msg("<aqua>/phc reload <gray>- 重载所有模块配置")
         }
     }
 
@@ -56,11 +56,11 @@ object MainCommand {
                 return@execute
             }
             if (!reloading.compareAndSet(false, true)) {
-                sender.msg("&e已有全局重载任务正在执行，请稍后再试。")
+                sender.msg("<yellow>已有全局重载任务正在执行，请稍后再试。")
                 return@execute
             }
 
-            sender.msg("&7正在异步重载 PixleHavenCore 全部模块，请稍候...")
+            sender.msg("<gray>正在异步重载 PixleHavenCore 全部模块，请稍候...")
             submit(async = true) {
                 val failed = runCatching { reloadAllModules() }.getOrElse { ex ->
                     warning("[MainCommand] /phc reload fatal: ${ex.stackTraceToString()}")
@@ -68,10 +68,10 @@ object MainCommand {
                 }
                 submit {
                     if (failed.isEmpty()) {
-                        sender.msg("&aPixleHavenCore 全局重载完成。")
+                        sender.msg("<green>PixleHavenCore 全局重载完成。")
                     } else {
-                        sender.msg("&e全局重载已完成，但以下模块重载失败：")
-                        failed.forEach { sender.msg("&c- $it") }
+                        sender.msg("<yellow>全局重载已完成，但以下模块重载失败：")
+                        failed.forEach { sender.msg("<red>- $it") }
                     }
                     reloading.set(false)
                 }

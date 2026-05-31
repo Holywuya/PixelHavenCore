@@ -1,5 +1,6 @@
 package com.pixlehavencore.feature.realworld.foodcorrosion
 
+import com.pixlehavencore.util.TextUtils
 import taboolib.module.configuration.Config
 import taboolib.module.configuration.Configuration
 
@@ -14,9 +15,9 @@ object FoodCorrosionSettings {
         private set
     var expiredItem: String = "ROTTEN_FLESH"
         private set
-    var loreFormat: String = "&7过期时间: {color}{days}d"
+    var loreFormat: String = "<gray>过期时间: {color}{days}d"
         private set
-    var conversionMessage: String = "&e你的食物已经完全腐烂了！"
+    var conversionMessage: String = "<yellow>你的食物已经完全腐烂了！"
         private set
     var excludedItems: Set<String> = setOf(
         "ROTTEN_FLESH",
@@ -36,8 +37,8 @@ object FoodCorrosionSettings {
         enabled = config.getBoolean("enabled", true)
         defaultDays = config.getInt("default-days", 14).coerceIn(1, 365)
         expiredItem = config.getString("expired-item") ?: "ROTTEN_FLESH"
-        loreFormat = config.getString("lore-format") ?: "&7过期时间: {color}{days}d"
-        conversionMessage = config.getString("conversion-message") ?: "&e你的食物已经完全腐烂了！"
+        loreFormat = (config.getString("lore-format") ?: loreFormat).let { TextUtils.translateLegacy(it) }
+        conversionMessage = (config.getString("conversion-message") ?: conversionMessage).let { TextUtils.translateLegacy(it) }
         excludedItems = config.getStringList("excluded-items").toSet()
         itemDays = config.getConfigurationSection("item-days")
             ?.getKeys(false)

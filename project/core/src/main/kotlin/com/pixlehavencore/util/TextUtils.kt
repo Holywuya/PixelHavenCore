@@ -10,6 +10,11 @@ object TextUtils {
      */
     fun parse(text: String): Component = TextBridge.fromAmpersand(text)
 
+    /**
+     * 解析 MiniMessage 标签文本为 Component。
+     */
+    fun parseMiniMessage(text: String): Component = TextBridge.fromMiniMessage(text)
+
     fun parseLore(lines: List<String>): List<Component> = lines.map(::parse)
 
     /**
@@ -27,7 +32,7 @@ object TextUtils {
      * 将 & 和 § 颜色码翻译为 MiniMessage 标签。
      * 提取自 SimpleChatComponentParser.translateLegacyFormattingToMiniMessage()。
      */
-    internal fun translateLegacy(input: String): String {
+    fun translateLegacy(input: String): String {
         val builder = StringBuilder(input.length + 16)
         var index = 0
         while (index < input.length) {

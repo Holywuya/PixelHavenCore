@@ -24,15 +24,15 @@ object RealWorldCommand {
     @CommandBody
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("&6=== 真实世界环境命令帮助 ===")
-            sender.msg("&b/rw status &7- 查看当前季节、天气与在线玩家平均状态")
-            sender.msg("&b/rw player <玩家名> &7- 查看缓存中的玩家环境状态")
-            sender.msg("&b/rw season <季节> &7- 强制切换季节")
-            sender.msg("&b/rw weather <天气> &7- 强制切换天气")
-            sender.msg("&b/rw reset <玩家名> &7- 重置玩家生存数据")
-            sender.msg("&b/rw reload &7- 重载真实世界模块")
-            sender.msg("&b/rw corrosion status &7- 查看食物腐蚀功能状态")
-            sender.msg("&7管理子命令均需要 &fphcore.admin &7权限")
+            sender.msg("<gold>=== 真实世界环境命令帮助 ===")
+            sender.msg("<aqua>/rw status <gray>- 查看当前季节、天气与在线玩家平均状态")
+            sender.msg("<aqua>/rw player <玩家名> <gray>- 查看缓存中的玩家环境状态")
+            sender.msg("<aqua>/rw season <季节> <gray>- 强制切换季节")
+            sender.msg("<aqua>/rw weather <天气> <gray>- 强制切换天气")
+            sender.msg("<aqua>/rw reset <玩家名> <gray>- 重置玩家生存数据")
+            sender.msg("<aqua>/rw reload <gray>- 重载真实世界模块")
+            sender.msg("<aqua>/rw corrosion status <gray>- 查看食物腐蚀功能状态")
+            sender.msg("<gray>管理子命令均需要 <white>phcore.admin <gray>权限")
         }
     }
 
@@ -43,30 +43,30 @@ object RealWorldCommand {
 
             val globalState = RealWorldService.getGlobalStateSnapshot()
             if (globalState == null) {
-                sender.msg("&e真实世界全局状态尚未初始化。")
+                sender.msg("<yellow>真实世界全局状态尚未初始化。")
                 return@execute
             }
 
             val onlinePlayers = getOnlinePlayers()
             val cachedStates = onlinePlayers.mapNotNull { RealWorldStorage.getPlayerSnapshot(it.uniqueId) }
 
-            sender.msg("&6=== 真实世界环境状态 ===")
-            sender.msg("&7季节: &f${globalState.season.displayName} &7(进度 &f${formatDecimal(globalState.seasonProgress * 100)}%&7)")
+            sender.msg("<gold>=== 真实世界环境状态 ===")
+            sender.msg("<gray>季节: <white>${globalState.season.displayName} <gray>(进度 <white>${formatDecimal(globalState.seasonProgress * 100)}%</white><gray>)")
             val weatherType = RealWorldService.getCurrentWeatherType()
             if (weatherType != null) {
-                val forcedHint = if (globalState.forcedWeather != null) " &8(强制)" else ""
-                sender.msg("&7天气: &f${weatherType.displayName}$forcedHint")
+                val forcedHint = if (globalState.forcedWeather != null) " <dark_gray>(强制)" else ""
+                sender.msg("<gray>天气: <white>${weatherType.displayName}$forcedHint")
             }
-            sender.msg("&7在线玩家: &f${onlinePlayers.size} &7人")
-            sender.msg("&7已缓存状态: &f${cachedStates.size} &7人")
+            sender.msg("<gray>在线玩家: <white>${onlinePlayers.size} <gray>人")
+            sender.msg("<gray>已缓存状态: <white>${cachedStates.size} <gray>人")
             if (cachedStates.isEmpty()) {
-                sender.msg("&7平均体温: &f无缓存数据")
-                sender.msg("&7平均口渴: &f无缓存数据")
+                sender.msg("<gray>平均体温: <white>无缓存数据")
+                sender.msg("<gray>平均口渴: <white>无缓存数据")
             } else {
                 val averageTemperature = cachedStates.map { it.temperature }.average()
                 val averageHydration = cachedStates.map { it.hydration }.average()
-                sender.msg("&7平均体温: &f${formatDecimal(averageTemperature)}°C")
-                sender.msg("&7平均口渴: &f${formatDecimal(averageHydration)}/100")
+                sender.msg("<gray>平均体温: <white>${formatDecimal(averageTemperature)}°C")
+                sender.msg("<gray>平均口渴: <white>${formatDecimal(averageHydration)}/100")
             }
         }
     }
@@ -81,23 +81,23 @@ object RealWorldCommand {
                 val targetName = argument.toString().trim()
                 val target = findOnlinePlayer(targetName)
                 if (target == null) {
-                    sender.msg("&c找不到在线玩家 &f$targetName&c。")
+                    sender.msg("<red>找不到在线玩家 <white>$targetName</white><red>。")
                     return@execute
                 }
 
                 val state = RealWorldStorage.getPlayerSnapshot(target.uniqueId)
                 if (state == null) {
-                    sender.msg("&e玩家 &f${target.name} &e当前没有缓存环境数据。")
+                    sender.msg("<yellow>玩家 <white>${target.name} <yellow>当前没有缓存环境数据。")
                     return@execute
                 }
 
-                sender.msg("&6=== 玩家环境状态：${target.name} ===")
-                sender.msg("&7体温: &f${formatDecimal(state.temperature)}°C &7(${state.temperaturePhase.name})")
-                sender.msg("&7口渴: &f${formatDecimal(state.hydration)}/100 &7(${state.thirstPhase.name})")
-                sender.msg("&7骨折: &f${formatDecimal(state.fracture)}/100 &7(${FractureEngine.getFractureDisplayName(FractureEngine.classifyFracture(state.fracture))})")
-                sender.msg("&7遮蔽: &f${when (state.shelterType) { ShelterType.NONE -> "无"; ShelterType.CANOPY -> "树冠"; ShelterType.BUILDING -> "建筑" }}")
-                sender.msg("&7天气遮蔽: &f${if (state.isWeatherSheltered) "是" else "否"}")
-                sender.msg("&7热源: &f${formatHeatSource(state.nearHeatSource)}")
+                sender.msg("<gold>=== 玩家环境状态：${target.name} ===")
+                sender.msg("<gray>体温: <white>${formatDecimal(state.temperature)}°C <gray>(${state.temperaturePhase.name})")
+                sender.msg("<gray>口渴: <white>${formatDecimal(state.hydration)}/100 <gray>(${state.thirstPhase.name})")
+                sender.msg("<gray>骨折: <white>${formatDecimal(state.fracture)}/100 <gray>(${FractureEngine.getFractureDisplayName(FractureEngine.classifyFracture(state.fracture))})")
+                sender.msg("<gray>遮蔽: <white>${when (state.shelterType) { ShelterType.NONE -> "无"; ShelterType.CANOPY -> "树冠"; ShelterType.BUILDING -> "建筑" }}")
+                sender.msg("<gray>天气遮蔽: <white>${if (state.isWeatherSheltered) "是" else "否"}")
+                sender.msg("<gray>热源: <white>${formatHeatSource(state.nearHeatSource)}")
             }
         }
     }
@@ -112,12 +112,12 @@ object RealWorldCommand {
                 val seasonName = argument.toString().trim()
                 val newSeason = Season.fromName(seasonName)
                 if (newSeason == null) {
-                    sender.msg("&c无效季节。可选值: &f${Season.entries.joinToString(", ") { it.name }}")
+                    sender.msg("<red>无效季节。可选值: <white>${Season.entries.joinToString(", ") { it.name }}")
                     return@execute
                 }
 
                 RealWorldService.forceSeason(newSeason)
-                sender.msg("&a季节已切换为 &f${newSeason.displayName}&a。")
+                sender.msg("<green>季节已切换为 <white>${newSeason.displayName}</white><green>。")
             }
         }
     }
@@ -133,20 +133,20 @@ object RealWorldCommand {
                 if (weatherName.equals("AUTO", ignoreCase = true)) {
                     submit {
                         RealWorldService.clearForcedWeather()
-                        sender.msg("&a天气已恢复为噪声驱动（自动）。")
+                        sender.msg("<green>天气已恢复为噪声驱动（自动）。")
                     }
                     return@execute
                 }
 
                 val newWeather = WeatherType.fromName(weatherName)
                 if (newWeather == null) {
-                    sender.msg("&c无效天气。可选值: &f${WeatherType.entries.joinToString(", ") { it.name }}, AUTO")
+                    sender.msg("<red>无效天气。可选值: <white>${WeatherType.entries.joinToString(", ") { it.name }}, AUTO")
                     return@execute
                 }
 
                 submit {
                     RealWorldService.forceWeather(newWeather)
-                    sender.msg("&a天气已强制为 &f${newWeather.displayName}&a。使用 &f/rw weather AUTO &a恢复自动。")
+                    sender.msg("<green>天气已强制为 <white>${newWeather.displayName}</white><green>。使用 <white>/rw weather AUTO <green>恢复自动。")
                 }
             }
         }
@@ -163,12 +163,12 @@ object RealWorldCommand {
                 val onlineTarget = findOnlinePlayer(targetName)
                 val target = onlineTarget ?: Bukkit.getOfflinePlayer(targetName)
                 if (onlineTarget == null && !target.hasPlayedBefore()) {
-                    sender.msg("&c找不到玩家 &f$targetName&c。")
+                    sender.msg("<red>找不到玩家 <white>$targetName</white><red>。")
                     return@execute
                 }
 
                 RealWorldService.resetPlayer(target.uniqueId)
-                sender.msg("&a已重置玩家 &f${target.name ?: targetName} &a的生存数据。")
+                sender.msg("<green>已重置玩家 <white>${target.name ?: targetName}</white> <green>的生存数据。")
             }
         }
     }
@@ -179,7 +179,7 @@ object RealWorldCommand {
             if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
 
             RealWorldService.reload()
-            sender.msg("&a真实世界模块已重载。")
+            sender.msg("<green>真实世界模块已重载。")
         }
     }
 
@@ -193,7 +193,7 @@ object RealWorldCommand {
                 val action = argument.toString().trim().lowercase()
                 when (action) {
                     "status" -> FoodCorrosionCommand.sendStatus(sender)
-                    else -> sender.msg("&c未知操作。可选值: status")
+                    else -> sender.msg("<red>未知操作。可选值: status")
                 }
             }
         }

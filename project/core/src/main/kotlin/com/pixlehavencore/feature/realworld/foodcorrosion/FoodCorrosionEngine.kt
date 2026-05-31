@@ -104,10 +104,10 @@ object FoodCorrosionEngine {
     fun corrosionColor(remainingDays: Int, shelfLife: Int): String {
         val ratio = if (shelfLife > 0) remainingDays.toDouble() / shelfLife else 0.0
         return when {
-            ratio > 0.50 -> "&a"
-            ratio > 0.25 -> "&e"
-            ratio > 0.10 -> "&c"
-            else -> "&4"
+            ratio > 0.50 -> "<green>"
+            ratio > 0.25 -> "<yellow>"
+            ratio > 0.10 -> "<red>"
+            else -> "<dark_red>"
         }
     }
 

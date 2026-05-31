@@ -2,6 +2,7 @@ package com.pixlehavencore.feature.realworld.fracture
 
 import com.pixlehavencore.bridge.TextBridge
 import com.pixlehavencore.feature.realworld.PlayerEnvState
+import com.pixlehavencore.util.TextUtils
 import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.bukkit.event.entity.EntityDamageEvent
@@ -50,18 +51,18 @@ object FractureEngine {
             val message = when (newSeverity) {
                 FractureSeverity.NONE -> ""
                 FractureSeverity.MILD -> if (oldSeverity == FractureSeverity.NONE) {
-                    "&c你的腿部受到轻微骨折，移动速度降低！"
+                    "<red>你的腿部受到轻微骨折，移动速度降低！"
                 } else ""
                 FractureSeverity.MODERATE -> if (oldSeverity.ordinal < FractureSeverity.MODERATE.ordinal) {
-                    "&c你的腿部受到中度骨折，无法疾跑！"
+                    "<red>你的腿部受到中度骨折，无法疾跑！"
                 } else ""
                 FractureSeverity.SEVERE -> if (oldSeverity.ordinal < FractureSeverity.SEVERE.ordinal) {
-                    "&4你的腿部严重骨折，几乎无法移动！"
+                    "<dark_red>你的腿部严重骨折，几乎无法移动！"
                 } else ""
             }
 
             if (message.isNotEmpty()) {
-                TextBridge.sendActionBar(player, message)
+                TextBridge.sendActionBar(player, TextUtils.parseMiniMessage(message))
             }
         }
     }
@@ -90,7 +91,7 @@ object FractureEngine {
 
         // 骨折完全恢复时通知玩家
         if (state.fracture == 0.0 && severity != FractureSeverity.NONE) {
-            TextBridge.sendActionBar(player, "&a你的骨折已经完全恢复！")
+            TextBridge.sendActionBar(player, TextUtils.parseMiniMessage("<green>你的骨折已经完全恢复！"))
             player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.5f)
         }
     }
@@ -101,19 +102,19 @@ object FractureEngine {
     fun useTreatment(player: Player, state: PlayerEnvState, treatment: FractureTreatment): Boolean {
         if (!FractureSettings.enabled) return false
         if (state.fracture <= 0) {
-            TextBridge.sendActionBar(player, "&c你没有骨折，无需治疗！")
+            TextBridge.sendActionBar(player, TextUtils.parseMiniMessage("<red>你没有骨折，无需治疗！"))
             return false
         }
 
         when (treatment) {
             FractureTreatment.BANDAGE -> {
                 state.fracture = (state.fracture - FractureSettings.bandageHealAmount).coerceAtLeast(0.0)
-                TextBridge.sendActionBar(player, "&a使用绷带，骨折值降低 30 点！")
+                TextBridge.sendActionBar(player, TextUtils.parseMiniMessage("<green>使用绷带，骨折值降低 30 点！"))
                 player.playSound(player.location, Sound.ITEM_ARMOR_EQUIP_LEATHER, 1.0f, 1.0f)
             }
             FractureTreatment.CAST -> {
                 state.fracture = 0.0
-                TextBridge.sendActionBar(player, "&a使用石膏，骨折完全治愈！")
+                TextBridge.sendActionBar(player, TextUtils.parseMiniMessage("<green>使用石膏，骨折完全治愈！"))
                 player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.5f)
                 // 完全治愈时恢复速度，绷带部分治愈由下一 tick 的 SurvivalEffectApplier 自然修正
                 player.walkSpeed = 0.2f
@@ -135,14 +136,14 @@ object FractureEngine {
     }
 
     /**
-     * 获取骨折状态的颜色代码
+     * 获取骨折状态的颜色代码（MiniMessage 格式）
      */
     fun getFractureColor(severity: FractureSeverity): String {
         return when (severity) {
-            FractureSeverity.NONE -> "&a"
-            FractureSeverity.MILD -> "&e"
-            FractureSeverity.MODERATE -> "&6"
-            FractureSeverity.SEVERE -> "&c"
+            FractureSeverity.NONE -> "<green>"
+            FractureSeverity.MILD -> "<yellow>"
+            FractureSeverity.MODERATE -> "<gold>"
+            FractureSeverity.SEVERE -> "<red>"
         }
     }
 
