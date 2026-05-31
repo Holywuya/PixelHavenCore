@@ -15,6 +15,7 @@ import com.pixlehavencore.feature.realworld.tick.player.TemperatureTicker
 import com.pixlehavencore.feature.realworld.tick.player.ThirstTicker
 import com.pixlehavencore.feature.realworld.weather.WeatherEngine
 import com.pixlehavencore.feature.realworld.weather.WeatherQuery
+import com.pixlehavencore.feature.realworld.weather.WeatherSettings
 import com.pixlehavencore.util.cancelTaskSafely
 import org.bukkit.Bukkit
 import org.bukkit.GameRules
@@ -82,6 +83,7 @@ object RealWorldService {
         loadOnlinePlayersData()
         FoodCorrosionService.init()
         WeatherEngine.init(Bukkit.getWorlds().first().seed.toInt())
+        lockWorldWeather()
         initTimeControl()
         info("[RealWorld] 模块已启动，在线玩家 ${onlinePlayers().size} 人。")
     }
@@ -106,6 +108,7 @@ object RealWorldService {
         loadOnlinePlayersData()
         FoodCorrosionService.reload()
         WeatherEngine.init(Bukkit.getWorlds().first().seed.toInt())
+        lockWorldWeather()
         initTimeControl()
         info("[RealWorld] 模块已重载，在线玩家 ${onlinePlayers().size} 人。")
     }
@@ -157,13 +160,42 @@ object RealWorldService {
         submit {
             Bukkit.getWorlds().forEach { world ->
                 world.setGameRule(GameRules.ADVANCE_TIME, false)
-                world.setGameRule(GameRules.ADVANCE_WEATHER, false)
             }
         }
 
         startTimeAdvanceTask()
 
         info("[RealWorld] 时间控制已启用：现实 1 小时 = 游戏 1 天")
+    }
+
+    /**
+     * 锁定所有世界为晴天基线。
+     *
+     * 噪声驱动天气依赖 per-player 的 [Player.setPlayerWeather] 覆盖客户端视觉，
+     * 因此世界本身必须保持晴天：
+     * 1. 禁用原版天气循环（ADVANCE_WEATHER），避免世界自行变天；
+     * 2. 主动清除当前可能正在进行的降雨/雷暴（setStorm/setThundering），
+     *    否则若锁定那一刻正在下雨，世界会永久卡在雨天，
+     *    未被 per-player 包覆盖的客户端就会一直渲染下雨。
+     *
+     * 仅在局部天气启用时生效；走全局区域调度（World API 线程要求）。
+     */
+    private fun lockWorldWeather() {
+        if (!WeatherSettings.localEnabled) {
+            return
+        }
+        submit {
+            Bukkit.getWorlds().forEach { applyClearWeatherBaseline(it) }
+        }
+    }
+
+    /** 将单个世界重置为晴天基线（必须在全局区域线程调用）。 */
+    private fun applyClearWeatherBaseline(world: org.bukkit.World) {
+        world.setGameRule(GameRules.ADVANCE_WEATHER, false)
+        world.setStorm(false)
+        world.isThundering = false
+        world.weatherDuration = Int.MAX_VALUE
+        world.clearWeatherDuration = Int.MAX_VALUE
     }
 
     private fun stopTimeControl() {
@@ -287,11 +319,16 @@ object RealWorldService {
 
     @SubscribeEvent
     fun onWorldLoad(event: WorldLoadEvent) {
-        if (!RealWorldSettings.enabled || !SeasonSettings.timeControlEnabled) {
+        if (!RealWorldSettings.enabled) {
             return
         }
-        event.world.setGameRule(GameRules.ADVANCE_TIME, false)
-        info("[RealWorld] 世界 ${event.world.name} 已禁用自动时间流逝")
+        if (SeasonSettings.timeControlEnabled) {
+            event.world.setGameRule(GameRules.ADVANCE_TIME, false)
+            info("[RealWorld] 世界 ${event.world.name} 已禁用自动时间流逝")
+        }
+        if (WeatherSettings.localEnabled) {
+            applyClearWeatherBaseline(event.world)
+        }
     }
 
     @SubscribeEvent
