@@ -18,15 +18,15 @@ object NotificationCommand {
     @CommandBody
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("&6=== 服务器通知命令帮助 ===")
-            sender.msg("&b/notify send <消息> &7- 发送管理员通知")
-            sender.msg("&b/notify auto on &7- 启用自动通知")
-            sender.msg("&b/notify auto off &7- 禁用自动通知")
-            sender.msg("&b/notify auto status &7- 查看自动通知状态")
-            sender.msg("&b/notify auto interval <时间> &7- 设置自动通知间隔")
-            sender.msg("&b/notify reload &7- 重载配置")
-            sender.msg("&b/notify test &7- 发送测试通知")
-            sender.msg("&7时间格式: 30s(30秒), 5m(5分钟), 1h(1小时), 1d(1天)")
+            sender.msg("<gold>=== 服务器通知命令帮助 ===")
+            sender.msg("<aqua>/notify send <消息> <gray>- 发送管理员通知")
+            sender.msg("<aqua>/notify auto on <gray>- 启用自动通知")
+            sender.msg("<aqua>/notify auto off <gray>- 禁用自动通知")
+            sender.msg("<aqua>/notify auto status <gray>- 查看自动通知状态")
+            sender.msg("<aqua>/notify auto interval <时间> <gray>- 设置自动通知间隔")
+            sender.msg("<aqua>/notify reload <gray>- 重载配置")
+            sender.msg("<aqua>/notify test <gray>- 发送测试通知")
+            sender.msg("<gray>时间格式: 30s(30秒), 5m(5分钟), 1h(1小时), 1d(1天)")
         }
     }
 
@@ -35,7 +35,7 @@ object NotificationCommand {
         execute<ProxyCommandSender> { sender, _, argument ->
             if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             if (!NotificationSettings.enabled || !NotificationSettings.adminNotificationsEnabled) {
-                sender.msg("&c服务器通知功能已禁用")
+                sender.msg("<red>服务器通知功能已禁用")
                 return@execute
             }
 
@@ -54,7 +54,7 @@ object NotificationCommand {
             }
 
             NotificationService.sendAdminNotification(player.cast(), message)
-            sender.msg("&a通知已发送！")
+            sender.msg("<green>通知已发送！")
         }
     }
 
@@ -64,7 +64,7 @@ object NotificationCommand {
             execute<ProxyCommandSender> { sender, _, _ ->
                 if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                 if (!NotificationSettings.enabled) {
-                    sender.msg("&c服务器通知功能已禁用")
+                    sender.msg("<red>服务器通知功能已禁用")
                     return@execute
                 }
 
@@ -103,7 +103,7 @@ object NotificationCommand {
 
                 NotificationSettings.setAutoNotificationsInterval(interval)
                 NotificationService.startAutoNotifications()
-                sender.msg("&a自动通知间隔已设置为: &b$interval")
+                sender.msg("<green>自动通知间隔已设置为: <aqua>$interval")
             }
         }
     }
@@ -122,8 +122,8 @@ object NotificationCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
             if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             val player = sender.requirePlayer() ?: return@execute
-            NotificationService.sendAdminNotification(player.cast(), "&e这是一条测试通知消息")
-            sender.msg("&a测试通知已发送！")
+            NotificationService.sendAdminNotification(player.cast(), "<yellow>这是一条测试通知消息")
+            sender.msg("<green>测试通知已发送！")
         }
     }
 }

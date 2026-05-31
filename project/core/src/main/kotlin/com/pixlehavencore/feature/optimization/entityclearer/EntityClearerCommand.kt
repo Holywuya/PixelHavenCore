@@ -18,8 +18,8 @@ object EntityClearerCommand {
     @CommandBody
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("&6=== 实体清理命令帮助 ===")
-            sender.msg("&b/entityclearer reload &7- 重载实体清理配置")
+            sender.msg("<gold>=== 实体清理命令帮助 ===")
+            sender.msg("<aqua>/entityclearer reload <gray>- 重载实体清理配置")
         }
     }
 
@@ -28,7 +28,7 @@ object EntityClearerCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
             if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             EntityClearerService.reload()
-            sender.msg("&a实体清理配置已重载。")
+            sender.msg("<green>实体清理配置已重载。")
         }
     }
 

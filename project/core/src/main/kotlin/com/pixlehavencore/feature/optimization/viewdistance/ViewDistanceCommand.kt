@@ -17,11 +17,11 @@ object ViewDistanceCommand {
     @CommandBody
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("&6=== 视距控制命令帮助 ===")
-            sender.msg("&b/vd get &7- 查看当前视距")
-            sender.msg("&b/vd set <距离> &7- 设置视距")
-            sender.msg("&b/vd reset &7- 重置为默认视距")
-            sender.msg("&b/vd reload &7- 重载配置")
+            sender.msg("<gold>=== 视距控制命令帮助 ===")
+            sender.msg("<aqua>/vd get <gray>- 查看当前视距")
+            sender.msg("<aqua>/vd set <距离> <gray>- 设置视距")
+            sender.msg("<aqua>/vd reset <gray>- 重置为默认视距")
+            sender.msg("<aqua>/vd reload <gray>- 重载配置")
         }
     }
 
@@ -31,7 +31,7 @@ object ViewDistanceCommand {
             if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             val player = sender.requirePlayer() ?: return@execute
             val distance = ViewDistanceService.resolvePlayerDistance(player)
-            sender.msg("&a当前视距为 $distance。")
+            sender.msg("<green>当前视距为 $distance。")
         }
     }
 
@@ -42,12 +42,12 @@ object ViewDistanceCommand {
                 if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                 val value = argument.toIntOrNull()
                 if (value == null) {
-                    sender.msg("&c无效的视距参数。")
+                    sender.msg("<red>无效的视距参数。")
                     return@execute
                 }
                 val player = sender.requirePlayer() ?: return@execute
                 ViewDistanceService.setPlayerDistance(player, value)
-                sender.msg("&a视距已设置为 ${ViewDistanceService.clampByLimits(value)}。")
+                sender.msg("<green>视距已设置为 ${ViewDistanceService.clampByLimits(value)}。")
             }
         }
     }
@@ -59,7 +59,7 @@ object ViewDistanceCommand {
             val player = sender.requirePlayer() ?: return@execute
             ViewDistanceService.clearPlayerDistance(player)
             val target = ViewDistanceService.resolvePlayerDistance(player)
-            sender.msg("&a视距已重置为 $target。")
+            sender.msg("<green>视距已重置为 $target。")
         }
     }
 
@@ -68,7 +68,7 @@ object ViewDistanceCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
             if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             ViewDistanceService.reload()
-            sender.msg("&a视距控制配置已重载。")
+            sender.msg("<green>视距控制配置已重载。")
         }
     }
 }
