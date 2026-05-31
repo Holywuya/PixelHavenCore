@@ -21,21 +21,21 @@ object TitleCommand {
     @CommandBody
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("&8[&6称号系统&8] &7使用 /title help 查看帮助")
+            sender.msg("<dark_gray>[<gold>称号系统<dark_gray>] <gray>使用 /title help 查看帮助")
         }
     }
 
     @CommandBody
     val help = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("&8=== &6称号系统帮助 &8===")
-            sender.msg("&e/title open &7- 打开称号选择界面")
-            sender.msg("&e/title equip <id> &7- 装备指定称号")
-            sender.msg("&e/title unequip &7- 卸下当前称号")
-            sender.msg("&e/title list &7- 查看拥有的称号")
-            sender.msg("&e/title give <玩家> <id> [时长] &7- 发放称号 (管理员)")
-            sender.msg("&e/title take <玩家> <id> &7- 移除称号 (管理员)")
-            sender.msg("&e/title reload &7- 重载配置 (管理员)")
+            sender.msg("<dark_gray>=== <gold>称号系统帮助 <dark_gray>===")
+            sender.msg("<yellow>/title open <gray>- 打开称号选择界面")
+            sender.msg("<yellow>/title equip <id> <gray>- 装备指定称号")
+            sender.msg("<yellow>/title unequip <gray>- 卸下当前称号")
+            sender.msg("<yellow>/title list <gray>- 查看拥有的称号")
+            sender.msg("<yellow>/title give <玩家> <id> [时长] <gray>- 发放称号 (管理员)")
+            sender.msg("<yellow>/title take <玩家> <id> <gray>- 移除称号 (管理员)")
+            sender.msg("<yellow>/title reload <gray>- 重载配置 (管理员)")
         }
     }
 
@@ -43,7 +43,7 @@ object TitleCommand {
     val open = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
             if (!TitleSettings.enabled) {
-                sender.msg("&c称号模块未启用。")
+                sender.msg("<red>称号模块未启用。")
                 return@execute
             }
             val player = sender.requirePlayer() ?: return@execute
@@ -57,7 +57,7 @@ object TitleCommand {
             suggestion<ProxyCommandSender> { _, _ -> TitleService.getAllTitleIds() }
             execute<ProxyCommandSender> { sender, context, _ ->
                 if (!TitleSettings.enabled) {
-                    sender.msg("&c称号模块未启用。")
+                    sender.msg("<red>称号模块未启用。")
                     return@execute
                 }
                 val player = sender.requirePlayer() ?: return@execute
@@ -68,8 +68,8 @@ object TitleCommand {
                     TitleResult.NotOwned -> sender.msg(TitleSettings.msgNotOwned)
                     TitleResult.Expired -> sender.msg(TitleSettings.msgExpired)
                     TitleResult.NoPermission -> sender.msg(TitleSettings.msgNoPermission)
-                    TitleResult.NotFound -> sender.msg("&c称号不存在。")
-                    else -> sender.msg("&c操作失败。")
+                    TitleResult.NotFound -> sender.msg("<red>称号不存在。")
+                    else -> sender.msg("<red>操作失败。")
                 }
             }
         }
@@ -79,7 +79,7 @@ object TitleCommand {
     val unequip = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
             if (!TitleSettings.enabled) {
-                sender.msg("&c称号模块未启用。")
+                sender.msg("<red>称号模块未启用。")
                 return@execute
             }
             val player = sender.requirePlayer() ?: return@execute
@@ -91,20 +91,20 @@ object TitleCommand {
     val list = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
             if (!TitleSettings.enabled) {
-                sender.msg("&c称号模块未启用。")
+                sender.msg("<red>称号模块未启用。")
                 return@execute
             }
             val player = sender.requirePlayer() ?: return@execute
             val previews = TitleService.getTitlePreviews(player.cast<Player>())
             val owned = previews.filter { it.entry != null && !it.isExpired }
             if (owned.isEmpty()) {
-                sender.msg("&7你还没有任何称号。")
+                sender.msg("<gray>你还没有任何称号。")
                 return@execute
             }
-            sender.msg("&8=== &6拥有的称号 &8===")
+            sender.msg("<dark_gray>=== <gold>拥有的称号 <dark_gray>===")
             owned.forEach { preview ->
-                val activeTag = if (preview.isActive) " &a[已装备]" else ""
-                sender.msg("&7- ${preview.definition.displayName}$activeTag")
+                val activeTag = if (preview.isActive) " <green>[已装备]" else ""
+                sender.msg("<gray>- ${preview.definition.displayName}$activeTag")
             }
         }
     }
@@ -161,7 +161,7 @@ object TitleCommand {
 
     private fun handleGive(sender: ProxyCommandSender, playerName: String, titleId: String, durationStr: String) {
         if (!TitleSettings.enabled) {
-            sender.msg("&c称号模块未启用。")
+            sender.msg("<red>称号模块未启用。")
             return
         }
         val duration = TitleService.parseDuration(durationStr)
@@ -180,14 +180,14 @@ object TitleCommand {
                     .resolvePlaceholders("{title}" to (def?.displayName ?: titleId), "{player}" to playerName)
                 sender.msg(msg)
             }
-            TitleResult.NotFound -> sender.msg("&c称号不存在。")
-            else -> sender.msg("&c操作失败。")
+            TitleResult.NotFound -> sender.msg("<red>称号不存在。")
+            else -> sender.msg("<red>操作失败。")
         }
     }
 
     private fun handleTake(sender: ProxyCommandSender, playerName: String, titleId: String) {
         if (!TitleSettings.enabled) {
-            sender.msg("&c称号模块未启用。")
+            sender.msg("<red>称号模块未启用。")
             return
         }
         val target = onlinePlayers().mapNotNull { it.cast<Player>() }.find { it.name.equals(playerName, ignoreCase = true) }
@@ -200,8 +200,8 @@ object TitleCommand {
                     .resolvePlaceholders("{title}" to (def?.displayName ?: titleId), "{player}" to playerName)
                 sender.msg(msg)
             }
-            TitleResult.NotFound -> sender.msg("&c称号不存在。")
-            else -> sender.msg("&c操作失败。")
+            TitleResult.NotFound -> sender.msg("<red>称号不存在。")
+            else -> sender.msg("<red>操作失败。")
         }
     }
 }
