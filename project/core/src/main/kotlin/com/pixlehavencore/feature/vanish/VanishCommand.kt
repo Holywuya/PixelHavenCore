@@ -26,7 +26,7 @@ object VanishCommand {
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
             if (!VanishSettings.enabled) {
-                sender.msg("&c隐身模块当前已禁用。")
+                sender.msg("<red>隐身模块当前已禁用。")
                 return@execute
             }
             if (!sender.requirePermission("phcore.vanish")) return@execute
@@ -45,7 +45,7 @@ object VanishCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
             if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             VanishSettings.init()
-            sender.msg("&a隐身模块配置已重载。")
+            sender.msg("<green>隐身模块配置已重载。")
         }
     }
 }
@@ -61,7 +61,7 @@ object VanishListCommand {
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
             if (!VanishSettings.enabled) {
-                sender.msg("&c隐身模块当前已禁用。")
+                sender.msg("<red>隐身模块当前已禁用。")
                 return@execute
             }
             if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
@@ -70,9 +70,9 @@ object VanishListCommand {
                 sender.msg(VanishSettings.msgNoVanishedPlayers)
                 return@execute
             }
-            sender.msg("&8[隐身] &7当前普通隐身玩家（${vanished.size} 人）：")
+            sender.msg("<dark_gray>[隐身] <gray>当前普通隐身玩家（${vanished.size} 人）：")
             vanished.forEach { p ->
-                sender.msg("  &7- &f${p.name}")
+                sender.msg("  <gray>- <white>${p.name}")
             }
         }
     }
@@ -92,7 +92,7 @@ object VanishShowCommand {
         }
         execute<ProxyCommandSender> { sender, _, argument ->
             if (!VanishSettings.enabled) {
-                sender.msg("&c隐身模块当前已禁用。")
+                sender.msg("<red>隐身模块当前已禁用。")
                 return@execute
             }
             if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
@@ -111,7 +111,7 @@ object VanishShowCommand {
             }
 
             if (arg.isBlank()) {
-                player.msg("&c用法: /vanish-show <玩家名> 或 /vanish-show --all")
+                player.msg("<red>用法: /vanish-show <玩家名> 或 /vanish-show --all")
                 return@execute
             }
 
@@ -126,7 +126,7 @@ object VanishShowCommand {
                     player.msg(VanishSettings.msgShowPlayer.resolvePlaceholders("{player}" to target.name))
                 }
                 VanishService.ShowResult.NOT_VANISHED -> {
-                    player.msg("&7${target.name} 当前没有隐身。")
+                    player.msg("<gray>${target.name} 当前没有隐身。")
                 }
             }
         }
