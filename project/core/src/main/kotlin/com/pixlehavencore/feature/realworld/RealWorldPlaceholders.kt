@@ -36,8 +36,9 @@ object RealWorldPlaceholders : PlaceholderExpansion {
             } ?: ""
             "temperature_colored" -> player?.let { p ->
                 RealWorldStorage.getPlayerSnapshot(p.uniqueId)?.let { state ->
-                    val color = getTemperatureColor(state.temperaturePhase)
-                    "${color}%.1f".format(state.temperature)
+                    val colorTag = getTemperatureColor(state.temperaturePhase)
+                    val closeTag = colorTag.replace("<", "</")
+                    "$colorTag%.1f$closeTag".format(state.temperature)
                 }
             } ?: ""
             "temperature_phase" -> player?.let { p ->
@@ -100,10 +101,10 @@ object RealWorldPlaceholders : PlaceholderExpansion {
     }
 
     private fun getTemperatureColor(phase: TemperaturePhase): String = when (phase) {
-        TemperaturePhase.COMFORTABLE -> "&a"
-        TemperaturePhase.HEAT, TemperaturePhase.COLD_MILD -> "&6"
-        TemperaturePhase.COLD -> "&e"
-        TemperaturePhase.SEVERE_HEAT, TemperaturePhase.SEVERE_COLD -> "&c"
+        TemperaturePhase.COMFORTABLE -> "<green>"
+        TemperaturePhase.HEAT, TemperaturePhase.COLD_MILD -> "<gold>"
+        TemperaturePhase.COLD -> "<yellow>"
+        TemperaturePhase.SEVERE_HEAT, TemperaturePhase.SEVERE_COLD -> "<red>"
     }
 
     private val TemperaturePhase.displayName: String
