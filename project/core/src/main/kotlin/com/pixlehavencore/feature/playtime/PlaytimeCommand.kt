@@ -21,13 +21,13 @@ object PlaytimeCommand {
     @CommandBody
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("&6=== 在线时长命令帮助 ===")
-            sender.msg("&b/playtime &7- 查看自己的在线时长")
-            sender.msg("&b/playtime <玩家> &7- 查看他人在线时长")
-            sender.msg("&b/playtime top [类型] [数量] &7- 查看排行榜")
-            sender.msg("&b/playtime cleanup [天数] &7- 清理旧数据")
-            sender.msg("&b/playtime reload &7- 重载配置")
-            sender.msg("&7类型: total(默认) / today / week / month")
+            sender.msg("<gold>=== 在线时长命令帮助 ===")
+            sender.msg("<aqua>/playtime <gray>- 查看自己的在线时长")
+            sender.msg("<aqua>/playtime <玩家> <gray>- 查看他人在线时长")
+            sender.msg("<aqua>/playtime top [类型] [数量] <gray>- 查看排行榜")
+            sender.msg("<aqua>/playtime cleanup [天数] <gray>- 清理旧数据")
+            sender.msg("<aqua>/playtime reload <gray>- 重载配置")
+            sender.msg("<gray>类型: total(默认) / today / week / month")
         }
     }
 
@@ -40,14 +40,14 @@ object PlaytimeCommand {
                 if (!sender.requirePermission("phcore.playtime.other")) return@execute
                 val target = Bukkit.getOfflinePlayer(targetName)
                 if (!target.hasPlayedBefore() && !target.isOnline) {
-                    sender.msg("&c玩家 $targetName 不存在。")
+                    sender.msg("<red>玩家 $targetName 不存在。")
                     return@execute
                 }
                 val data = PlaytimeService.queryPlaytime(target.uniqueId)
                 if (data != null) {
                     showPlayerData(sender, targetName, data)
                 } else {
-                    sender.msg("&e未找到玩家 $targetName 的在线时长数据。")
+                    sender.msg("<yellow>未找到玩家 $targetName 的在线时长数据。")
                 }
             }
         }
@@ -91,9 +91,9 @@ object PlaytimeCommand {
                 execute<ProxyCommandSender> { sender, context, _ ->
                     if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                     val days = context.getOrNull("days")?.toString()?.toIntOrNull() ?: PlaytimeSettings.cleanupDefaultDays
-                    sender.msg("&7正在清理超过 $days 天未登录的玩家数据...")
+                    sender.msg("<gray>正在清理超过 $days 天未登录的玩家数据...")
                     PlaytimeService.cleanupExecute(days) { count ->
-                        submit { sender.msg("&a清理完成，共删除 $count 条数据。") }
+                        submit { sender.msg("<green>清理完成，共删除 $count 条数据。") }
                     }
                 }
             }
@@ -107,7 +107,7 @@ object PlaytimeCommand {
             PlaytimeSettings.reload()
             PlaytimeStorage.reload()
             PlaytimeService.reload()
-            sender.msg("&a在线时长模块配置已重载。")
+            sender.msg("<green>在线时长模块配置已重载。")
         }
     }
 
@@ -118,15 +118,15 @@ object PlaytimeCommand {
             "month" -> "本月"
             else -> "总"
         }
-        sender.msg("&6=== 在线时长排行（$typeLabel）Top $limit ===")
+        sender.msg("<gold>=== 在线时长排行（$typeLabel）Top $limit ===")
         PlaytimeService.queryLeaderboard(type, limit) { entries ->
             submit {
                 if (entries.isEmpty()) {
-                    sender.msg("&7暂无数据。")
+                    sender.msg("<gray>暂无数据。")
                     return@submit
                 }
                 entries.forEach { entry ->
-                    sender.msg("&e#${entry.rank} &f${entry.playerName} &7- &b${entry.playtimeFormatted}")
+                    sender.msg("<yellow>#${entry.rank} <white>${entry.playerName} <gray>- <aqua>${entry.playtimeFormatted}")
                 }
             }
         }
@@ -134,29 +134,29 @@ object PlaytimeCommand {
 
     private fun showPlayerData(sender: ProxyCommandSender, name: String, data: PlaytimeData) {
         val session = PlaytimeService.getCurrentSessionSeconds(data.playerUuid)
-        sender.msg("&6=== $name 的在线时长 ===")
-        sender.msg("&b总时长: &f${PlaytimeSettings.formatSeconds(data.totalSeconds)}")
-        sender.msg("&b今日: &f${PlaytimeSettings.formatSeconds(data.todaySeconds)}")
-        sender.msg("&b本周: &f${PlaytimeSettings.formatSeconds(data.weekSeconds)}")
-        sender.msg("&b本月: &f${PlaytimeSettings.formatSeconds(data.monthSeconds)}")
+        sender.msg("<gold>=== $name 的在线时长 ===")
+        sender.msg("<aqua>总时长: <white>${PlaytimeSettings.formatSeconds(data.totalSeconds)}")
+        sender.msg("<aqua>今日: <white>${PlaytimeSettings.formatSeconds(data.todaySeconds)}")
+        sender.msg("<aqua>本周: <white>${PlaytimeSettings.formatSeconds(data.weekSeconds)}")
+        sender.msg("<aqua>本月: <white>${PlaytimeSettings.formatSeconds(data.monthSeconds)}")
         if (session > 0) {
-            sender.msg("&b本次会话: &f${PlaytimeSettings.formatSeconds(session)}")
+            sender.msg("<aqua>本次会话: <white>${PlaytimeSettings.formatSeconds(session)}")
         }
     }
 
     private fun showCleanupPreview(sender: ProxyCommandSender, days: Int) {
         val preview = PlaytimeService.cleanupPreview(days)
         if (preview.isEmpty()) {
-            sender.msg("&a没有超过 $days 天未登录的玩家数据。")
+            sender.msg("<green>没有超过 $days 天未登录的玩家数据。")
             return
         }
-        sender.msg("&e以下 &c${preview.size} &e位玩家超过 $days 天未登录：")
+        sender.msg("<yellow>以下 <red>${preview.size} <yellow>位玩家超过 $days 天未登录：")
         preview.take(10).forEach { (_, name) ->
-            sender.msg("&7- $name")
+            sender.msg("<gray>- $name")
         }
         if (preview.size > 10) {
-            sender.msg("&7...及其他 ${preview.size - 10} 位")
+            sender.msg("<gray>...及其他 ${preview.size - 10} 位")
         }
-        sender.msg("&e使用 &b/playtime cleanup $days confirm &e确认删除。")
+        sender.msg("<yellow>使用 <aqua>/playtime cleanup $days confirm <yellow>确认删除。")
     }
 }
