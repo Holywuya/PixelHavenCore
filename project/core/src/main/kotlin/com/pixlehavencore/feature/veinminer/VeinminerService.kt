@@ -60,12 +60,12 @@ object VeinminerService {
         if (remaining <= 1) {
             return false
         }
-        val maxNodes = min(VeinminerSettings.maxChain, remaining)
+        val maxNodes = min(VeinminerSettings.maxChain, remaining + 1)
         val chain = collectChain(source, player, tool, maxNodes)
         if (chain.size <= 1) {
             return false
         }
-        if (!VeinminerLimitService.consume(proxyPlayer, chain.size)) {
+        if (!VeinminerLimitService.consume(proxyPlayer, chain.size - 1)) {
             VeinminerMessages.send(proxyPlayer, VeinminerSettings.messageLimitDenied)
             return false
         }
