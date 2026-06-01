@@ -20,6 +20,7 @@ object VeinminerService {
 
     private val cooldowns = PlayerSessionMap<Long>({ 0L })
     private val mining = PlayerSessionMap<Boolean>({ false })
+    private val lastConsumeTime = PlayerSessionMap<Long>({ 0L })
     private val offsetCache = ConcurrentHashMap<Int, List<Offset>>()
 
     fun handleBlockBreak(player: Player, source: Block): Boolean {
@@ -65,7 +66,15 @@ object VeinminerService {
         if (chain.size <= 1) {
             return false
         }
-        if (!VeinminerLimitService.consume(proxyPlayer, chain.size - 1)) {
+        val consumeAmount = chain.size - 1
+        // 防止重复消耗（Folia 多线程环境下可能触发多次）
+        val now = System.currentTimeMillis()
+        val lastConsume = lastConsumeTime[proxyPlayer.uniqueId] ?: 0L
+        if (now - lastConsume < 100) {
+            return false
+        }
+        lastConsumeTime[proxyPlayer.uniqueId] = now
+        if (!VeinminerLimitService.consume(proxyPlayer, consumeAmount)) {
             VeinminerMessages.send(proxyPlayer, VeinminerSettings.messageLimitDenied)
             return false
         }
