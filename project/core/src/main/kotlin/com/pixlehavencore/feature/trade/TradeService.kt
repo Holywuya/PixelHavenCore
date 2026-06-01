@@ -15,6 +15,7 @@ import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 import taboolib.common.platform.function.submit
 import taboolib.module.ui.buildMenu
+import taboolib.platform.util.buildItem
 import taboolib.module.ui.type.Chest
 import taboolib.platform.util.submit as submitOnEntity
 import taboolib.platform.util.submit as submitOnLocation
@@ -591,16 +592,12 @@ object TradeService {
     }
 
     private fun infoItem(left: String, right: String): ItemStack {
-        return ItemStack(Material.BOOK).apply {
-            itemMeta = itemMeta?.apply {
-                customName(TextUtils.parseItem("&e交易信息"))
-                lore(listOf(
-                    TextUtils.parseItem("&7左侧玩家: &f$left"),
-                    TextUtils.parseItem("&7右侧玩家: &f$right"),
-                    TextUtils.parseItem("&7双方确认后才会完成交换"),
-                    TextUtils.parseItem("&7修改物品或金额会重置确认")
-                ))
-            }
+        return buildItem(Material.BOOK) {
+            name = "&e交易信息"
+            lore += "&7左侧玩家: &f$left"
+            lore += "&7右侧玩家: &f$right"
+            lore += "&7双方确认后才会完成交换"
+            lore += "&7修改物品或金额会重置确认"
         }
     }
 
@@ -610,40 +607,30 @@ object TradeService {
         val otherSide = if (leftSide) "右侧" else "左侧"
         val selfStatus = if (selfConfirmed) "&a已确认" else "&c未确认"
         val otherStatus = if (otherConfirmed) "&a已确认" else "&c未确认"
-        return ItemStack(material).apply {
-            itemMeta = itemMeta?.apply {
-                customName(TextUtils.parseItem("&e$side 确认按钮"))
-                lore(listOf(
-                    TextUtils.parseItem("&7$side 状态: $selfStatus"),
-                    TextUtils.parseItem("&7$otherSide 状态: $otherStatus"),
-                    TextUtils.parseItem("&7$side 报价: &f${formatMoney(money)}"),
-                    TextUtils.parseItem("&7确认后会锁定该侧的交易操作")
-                ))
-            }
+        return buildItem(material) {
+            name = "&e$side 确认按钮"
+            lore += "&7$side 状态: $selfStatus"
+            lore += "&7$otherSide 状态: $otherStatus"
+            lore += "&7$side 报价: &f${formatMoney(money)}"
+            lore += "&7确认后会锁定该侧的交易操作"
         }
     }
 
     private fun moneyItem(leftSide: Boolean, amount: BigDecimal): ItemStack {
         val side = if (leftSide) "左侧" else "右侧"
-        return ItemStack(Material.GOLD_INGOT).apply {
-            itemMeta = itemMeta?.apply {
-                customName(TextUtils.parseItem("&6$side 金币报价: &f${formatMoney(amount)}"))
-                lore(listOf(
-                    TextUtils.parseItem("&7当前编辑的是${side}的金币报价"),
-                    TextUtils.parseItem("&7点击后通过聊天输入金额"),
-                    TextUtils.parseItem("&7输入 cancel 取消本次输入"),
-                    TextUtils.parseItem("&7税收会在交易完成时结算")
-                ))
-            }
+        return buildItem(Material.GOLD_INGOT) {
+            name = "&6$side 金币报价: &f${formatMoney(amount)}"
+            lore += "&7当前编辑的是${side}的金币报价"
+            lore += "&7点击后通过聊天输入金额"
+            lore += "&7输入 cancel 取消本次输入"
+            lore += "&7税收会在交易完成时结算"
         }
     }
 
     private fun cancelItem(): ItemStack {
-        return ItemStack(Material.BARRIER).apply {
-            itemMeta = itemMeta?.apply {
-                customName(TextUtils.parseItem("&c取消交易"))
-                lore(listOf(TextUtils.parseItem("&7点击后立即取消并退回双方物品")))
-            }
+        return buildItem(Material.BARRIER) {
+            name = "&c取消交易"
+            lore += "&7点击后立即取消并退回双方物品"
         }
     }
 
