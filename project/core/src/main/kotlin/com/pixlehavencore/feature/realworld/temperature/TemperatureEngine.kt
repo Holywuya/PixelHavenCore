@@ -16,6 +16,15 @@ object TemperatureEngine {
         global: GlobalEnvState,
         tickIntervalSeconds: Int,
     ) {
+        // 死亡保护：体温不变化
+        if (state.deathProtectionTimer > 0.0) {
+            state.deathProtectionTimer -= tickIntervalSeconds.coerceAtLeast(0).toDouble()
+            // 在保护期内只更新遮蔽状态和潮湿度，不计算体温
+            ShelterDetector.updateState(player, state, tickIntervalSeconds)
+            computeWetness(player, state, global, tickIntervalSeconds)
+            return
+        }
+
         val location = player.location
         val biomeName = location.block.biome.toString().lowercase()
         val worldTime = location.world?.time ?: 6000L

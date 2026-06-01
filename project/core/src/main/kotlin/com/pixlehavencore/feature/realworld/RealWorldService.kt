@@ -3,6 +3,7 @@ package com.pixlehavencore.feature.realworld
 import com.pixlehavencore.feature.realworld.foodcorrosion.FoodCorrosionService
 import com.pixlehavencore.feature.realworld.season.SeasonEngine
 import com.pixlehavencore.feature.realworld.season.SeasonSettings
+import com.pixlehavencore.feature.realworld.temperature.TemperatureSettings
 import com.pixlehavencore.feature.realworld.tick.GlobalSubsystemTicker
 import com.pixlehavencore.feature.realworld.tick.GlobalTickContext
 import com.pixlehavencore.feature.realworld.tick.PlayerSubsystemTicker
@@ -20,6 +21,7 @@ import com.pixlehavencore.util.cancelTaskSafely
 import org.bukkit.Bukkit
 import org.bukkit.GameRules
 import org.bukkit.entity.Player
+import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.event.world.WorldLoadEvent
@@ -329,6 +331,23 @@ object RealWorldService {
         if (WeatherSettings.localEnabled) {
             applyClearWeatherBaseline(event.world)
         }
+    }
+
+    @SubscribeEvent
+    fun onPlayerDeath(event: PlayerDeathEvent) {
+        if (!RealWorldSettings.enabled) {
+            return
+        }
+        val player = event.entity
+        val uuid = player.uniqueId
+        RealWorldStorage.withPlayerState(uuid) { state ->
+            // 体温恢复到舒适温度区间中值
+            val comfortMidpoint = (TemperatureSettings.comfortMin + TemperatureSettings.comfortMax) / 2.0
+            state.temperature = comfortMidpoint
+            // 设置 30 秒体温保护
+            state.deathProtectionTimer = 30.0
+        }
+        RealWorldStorage.markPlayerDirty(uuid)
     }
 
     @SubscribeEvent

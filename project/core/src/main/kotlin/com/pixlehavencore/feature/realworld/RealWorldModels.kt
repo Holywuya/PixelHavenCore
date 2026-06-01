@@ -107,6 +107,7 @@ data class PlayerEnvState(
     var lastWaterTemp: Double = 20.0,
     var isClientRaining: Boolean = false,
     var isActuallyRaining: Boolean = false,
+    var deathProtectionTimer: Double = 0.0,
 )
 
 data class GlobalEnvState(
