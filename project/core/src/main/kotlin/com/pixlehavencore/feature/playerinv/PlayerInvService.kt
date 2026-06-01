@@ -648,14 +648,14 @@ object PlayerInvService {
             else item?.clone()
         }
 
-        // 结算仓库中的食物腐蚀时间
-        saveContents.forEach { item ->
-            if (item != null && !item.type.isAir) {
-                FoodCorrosionEngine.finalizeStorageExit(item)
-            }
-        }
-
         submit(async = true) {
+            // 异步结算仓库中的食物腐蚀时间（操作的是克隆副本，线程安全）
+            saveContents.forEach { item ->
+                if (item != null && !item.type.isAir) {
+                    FoodCorrosionEngine.finalizeStorageExit(item)
+                }
+            }
+
             val success = when (session.type) {
                 SessionType.PERSONAL -> savePersonal(session.owner, inventory.size, saveContents)
                 SessionType.SHARED -> {
