@@ -12,7 +12,9 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.meta.ItemMeta
 import taboolib.module.ui.openMenu
+import taboolib.platform.util.modifyMeta
 import taboolib.module.ui.type.Chest
 import taboolib.platform.util.PlayerSessionMap
 import taboolib.platform.util.submit as submitOnEntity
@@ -207,10 +209,10 @@ object TitleMenu {
         TextBridge.setDisplayName(base, TextBridge.fromMiniMessage(preview.definition.displayName))
         TextBridge.setLore(base, buildTitleLore(preview))
         if (preview.isActive) {
-            val meta = base.itemMeta ?: return base
-            meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 1, true)
-            meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS)
-            base.itemMeta = meta
+            base.modifyMeta<ItemMeta> {
+                addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 1, true)
+                addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS)
+            }
         }
         return base
     }
