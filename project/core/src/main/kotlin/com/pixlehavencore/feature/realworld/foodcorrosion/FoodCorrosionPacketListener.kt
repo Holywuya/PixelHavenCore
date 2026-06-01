@@ -84,7 +84,7 @@ object FoodCorrosionPacketListener : PacketListener {
         }
 
         val newLore = filtered.toMutableList()
-        newLore.add(TextUtils.parseItem(text))
+        newLore.add(TextUtils.parseMiniMessage(text).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
         TextBridge.setLore(item, newLore)
         return item
     }
