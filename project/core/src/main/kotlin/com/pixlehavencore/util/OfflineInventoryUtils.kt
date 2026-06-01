@@ -5,8 +5,10 @@ import org.bukkit.OfflinePlayer
 import org.bukkit.inventory.ItemStack
 import taboolib.common.platform.function.submit
 import taboolib.common.platform.function.warning
+import taboolib.common.util.supplierLazy
 import java.io.File
 import java.io.FileInputStream
+import java.lang.reflect.Method
 import java.util.UUID
 
 object OfflineInventoryUtils {
@@ -15,6 +17,42 @@ object OfflineInventoryUtils {
         val inventory: Array<ItemStack?>,
         val enderChest: Array<ItemStack?>
     )
+
+    private val nbtAccounterClass = supplierLazy<Unit, Class<*>> {
+        Class.forName("net.minecraft.nbt.NbtAccounter")
+    }
+
+    private val unlimitedAccounter = supplierLazy<Unit, Any> {
+        nbtAccounterClass[Unit].getMethod("unlimitedHeap").invoke(null)
+    }
+
+    private val nbtIoClass = supplierLazy<Unit, Class<*>> {
+        Class.forName("net.minecraft.nbt.NbtIo")
+    }
+
+    private val readMethod = supplierLazy<Unit, Method> { _ ->
+        nbtIoClass[Unit].methods.firstOrNull {
+            it.name == "readCompressed" && it.parameterTypes.size == 2
+        } ?: error("找不到 NbtIo.readCompressed")
+    }
+
+    private val itemStackClass = supplierLazy<Unit, Class<*>> {
+        Class.forName("net.minecraft.world.item.ItemStack")
+    }
+
+    private val parseMethod = supplierLazy<Unit, Method> { _ ->
+        itemStackClass[Unit].methods.firstOrNull {
+            it.name == "parseOptional" && it.parameterTypes.size == 2
+        } ?: error("找不到 ItemStack.parseOptional")
+    }
+
+    private val craftItemStackClass = supplierLazy<Unit, Class<*>> {
+        Class.forName("org.bukkit.craftbukkit.inventory.CraftItemStack")
+    }
+
+    private val asBukkitCopy = supplierLazy<Unit, Method> { _ ->
+        craftItemStackClass[Unit].getMethod("asBukkitCopy", itemStackClass[Unit])
+    }
 
     /**
      * Folia 线程安全警告：此方法通过 NMS 反射访问服务器内部（CraftServer.getServer()、NbtIo、ItemStack.parseOptional），
@@ -31,15 +69,8 @@ object OfflineInventoryUtils {
         if (!playerDataFile.exists()) return null
 
         return runCatching {
-            val accounterClass = Class.forName("net.minecraft.nbt.NbtAccounter")
-            val unlimitedAccounter = accounterClass.getMethod("unlimitedHeap").invoke(null)
-            val nbtIoClass = Class.forName("net.minecraft.nbt.NbtIo")
-            val readMethod = nbtIoClass.methods.firstOrNull {
-                it.name == "readCompressed" && it.parameterTypes.size == 2
-            } ?: error("找不到 NbtIo.readCompressed")
-
             val rootTag = FileInputStream(playerDataFile).use { stream ->
-                readMethod.invoke(null, stream, unlimitedAccounter)
+                readMethod[Unit].invoke(null, stream, unlimitedAccounter[Unit])
             }
 
             val inventory = parseItemList(rootTag, "Inventory", 41, registryAccess)
@@ -68,20 +99,13 @@ object OfflineInventoryUtils {
         val listSize = listClass.getMethod("size").invoke(listTag) as Int
         val result = arrayOfNulls<ItemStack>(size)
 
-        val itemStackClass = Class.forName("net.minecraft.world.item.ItemStack")
-        val parseMethod = itemStackClass.methods.firstOrNull {
-            it.name == "parseOptional" && it.parameterTypes.size == 2
-        } ?: error("找不到 ItemStack.parseOptional")
-        val craftItemStackClass = Class.forName("org.bukkit.craftbukkit.inventory.CraftItemStack")
-        val asBukkitCopy = craftItemStackClass.getMethod("asBukkitCopy", itemStackClass)
-
         for (index in 0 until listSize) {
             val entry = listClass.getMethod("getCompound", Int::class.javaPrimitiveType).invoke(listTag, index)
             val slotByte = entry.javaClass.getMethod("getByte", String::class.java).invoke(entry, "Slot") as Byte
             val slot = normalizeSlot(slotByte.toInt())
             if (slot !in result.indices) continue
-            val nmsItem = parseMethod.invoke(null, registryAccess, entry)
-            val bukkitItem = asBukkitCopy.invoke(null, nmsItem) as? ItemStack ?: continue
+            val nmsItem = parseMethod[Unit].invoke(null, registryAccess, entry)
+            val bukkitItem = asBukkitCopy[Unit].invoke(null, nmsItem) as? ItemStack ?: continue
             result[slot] = bukkitItem
         }
         return result

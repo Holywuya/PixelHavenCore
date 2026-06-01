@@ -7,6 +7,9 @@ import org.bukkit.Location
 import org.bukkit.entity.Entity
 import taboolib.common.platform.function.info
 import taboolib.common.platform.function.warning
+import taboolib.common.util.supplierLazy
+import java.lang.reflect.Method
+import java.lang.reflect.Field
 
 data class MythicMobInfo(
     val id: String,
@@ -78,26 +81,44 @@ object MythicMobsBridge {
         }.getOrNull()
     }
 
-    private fun resolveMobLevel(activeMob: Any): Int {
-        val byMethod = listOf("getLevel", "level")
+    private val levelMethod = supplierLazy<Any, Method?>(typeIsolation = true) { activeMob ->
+        listOf("getLevel", "level")
             .firstNotNullOfOrNull { methodName ->
                 runCatching {
                     activeMob.javaClass.methods
                         .firstOrNull { it.name == methodName && it.parameterCount == 0 }
-                        ?.invoke(activeMob) as? Number
                 }.getOrNull()
             }
-            ?.toInt()
-        if (byMethod != null && byMethod > 0) {
-            return byMethod
-        }
-        val byField = runCatching {
+    }
+
+    private val levelField = supplierLazy<Any, Field?>(typeIsolation = true) { activeMob ->
+        runCatching {
             activeMob.javaClass.declaredFields
                 .firstOrNull { it.name.equals("level", ignoreCase = true) }
                 ?.apply { isAccessible = true }
-                ?.get(activeMob) as? Number
-        }.getOrNull()?.toInt()
-        return byField?.coerceAtLeast(1) ?: 1
+        }.getOrNull()
+    }
+
+    private fun resolveMobLevel(activeMob: Any): Int {
+        val method = levelMethod[activeMob]
+        if (method != null) {
+            val byMethod = runCatching {
+                method.invoke(activeMob) as? Number
+            }.getOrNull()?.toInt()
+            if (byMethod != null && byMethod > 0) {
+                return byMethod
+            }
+        }
+        val field = levelField[activeMob]
+        if (field != null) {
+            val byField = runCatching {
+                field.get(activeMob) as? Number
+            }.getOrNull()?.toInt()
+            if (byField != null) {
+                return byField.coerceAtLeast(1)
+            }
+        }
+        return 1
     }
 
     fun spawnMob(mobId: String, location: Location, level: Int = 1): Entity? {

@@ -3,6 +3,7 @@ package com.pixlehavencore.util
 import net.milkbowl.vault2.economy.Economy
 import org.bukkit.Bukkit
 import org.bukkit.OfflinePlayer
+import taboolib.common.util.supplierLazy
 import java.math.BigDecimal
 import java.util.UUID
 
@@ -131,7 +132,11 @@ object EconomyUtils {
         }.getOrDefault(false)
     }
 
+    private val economyProvider = supplierLazy<Unit, Economy?> {
+        Bukkit.getServicesManager().getRegistration(Economy::class.java)?.provider
+    }
+
     private fun getEconomy(): Economy? {
-        return Bukkit.getServicesManager().getRegistration(Economy::class.java)?.provider
+        return economyProvider[Unit]
     }
 }

@@ -2,6 +2,13 @@ package com.pixlehavencore.util
 
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import taboolib.common.util.supplierLazy
+import java.lang.reflect.Method
+
+private val cancelMethod = supplierLazy<Any, Method?>(typeIsolation = true) { task ->
+    task.javaClass.methods
+        .firstOrNull { it.name == "cancel" && it.parameterTypes.isEmpty() }
+}
 
 /**
  * 通过反射安全取消 TabooLib 异步/定时任务。
@@ -10,9 +17,7 @@ import java.util.concurrent.ConcurrentHashMap
 fun Any?.cancelTaskSafely() {
     if (this == null) return
     runCatching {
-        this.javaClass.methods
-            .firstOrNull { it.name == "cancel" && it.parameterTypes.isEmpty() }
-            ?.invoke(this)
+        cancelMethod[this]?.invoke(this)
     }
 }
 
