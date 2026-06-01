@@ -6,7 +6,6 @@ import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Player
-import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.ItemMeta
 import org.bukkit.persistence.PersistentDataType
@@ -193,43 +192,5 @@ object FoodCorrosionEngine {
                 "{days}" to remainingDays.toString(),
                 "{color}" to color,
             )
-    }
-
-    /**
-     * 检查并处理容器中的食物腐蚀。
-     * - 无 creation_day：打上标记（初始化）
-     * - 有 creation_day 且已过期：替换为腐肉
-     * @return 需要替换的物品列表 {slot -> 过期物品}
-     */
-    fun tickContainer(inventory: Inventory): Map<Int, ItemStack> {
-        if (!FoodCorrosionSettings.enabled) return emptyMap()
-        val expired = mutableMapOf<Int, ItemStack>()
-        for ((slot, item) in inventory.contents.withIndex()) {
-            if (item == null || item.type.isAir) continue
-            if (!isCorrosiveFood(item)) continue
-            setCreationTimeIfAbsent(item)
-            if (computeRemainingDays(item) <= 0) {
-                val expiredMaterial = Material.matchMaterial(FoodCorrosionSettings.expiredItem)
-                    ?: Material.ROTTEN_FLESH
-                expired[slot] = ItemStack(expiredMaterial, item.amount)
-            }
-        }
-        return expired
-    }
-
-    /**
-     * 判断 InventoryType 是否为存储容器。
-     */
-    fun isStorageContainer(type: org.bukkit.event.inventory.InventoryType): Boolean {
-        return when (type) {
-            org.bukkit.event.inventory.InventoryType.CHEST,
-            org.bukkit.event.inventory.InventoryType.BARREL,
-            org.bukkit.event.inventory.InventoryType.DISPENSER,
-            org.bukkit.event.inventory.InventoryType.DROPPER,
-            org.bukkit.event.inventory.InventoryType.HOPPER,
-            org.bukkit.event.inventory.InventoryType.ENDER_CHEST,
-            -> true
-            else -> type.name.contains("SHULKER_BOX")
-        }
     }
 }
