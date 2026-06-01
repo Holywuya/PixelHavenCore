@@ -21,8 +21,10 @@ import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.meta.ItemMeta
 import org.bukkit.persistence.PersistentDataType
 import taboolib.common.platform.function.info
+import taboolib.platform.util.modifyMeta
 import taboolib.common.platform.function.submit
 import taboolib.module.ui.buildMenu
 import taboolib.module.ui.type.Chest
@@ -897,9 +899,9 @@ object PlayerInvService {
         TextBridge.setLore(item, TextUtils.parseItemLore(lore) as List<net.kyori.adventure.text.Component>)
         // action null 时不写入 PDC，点击时 getManageAction 返回 null，handleManageClick 直接 return true（无操作）
         if (action != null) {
-            val meta = item.itemMeta ?: return item
-            meta.persistentDataContainer.set(manageActionKey, PersistentDataType.STRING, action)
-            item.itemMeta = meta
+            item.modifyMeta<ItemMeta> {
+                persistentDataContainer.set(manageActionKey, PersistentDataType.STRING, action)
+            }
         }
         return item
     }
@@ -1031,13 +1033,13 @@ object PlayerInvService {
         TextBridge.setLore(item, TextUtils.parseItemLore(PlayerInvSettings.sharedLockedLore.map {
             it.resolvePlaceholders("{cost}" to "%.2f".format(PlayerInvSettings.sharedUnlockCost))
         }) as List<net.kyori.adventure.text.Component>)
-        val meta = item.itemMeta ?: return item
-        meta.persistentDataContainer.set(lockedSlotKey, PersistentDataType.BYTE, 1)
-        if (highlight) {
-            meta.addEnchant(Enchantment.LURE, 1, true)
-            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS)
+        item.modifyMeta<ItemMeta> {
+            persistentDataContainer.set(lockedSlotKey, PersistentDataType.BYTE, 1)
+            if (highlight) {
+                addEnchant(Enchantment.LURE, 1, true)
+                addItemFlags(ItemFlag.HIDE_ENCHANTS)
+            }
         }
-        item.itemMeta = meta
         return item
     }
 
