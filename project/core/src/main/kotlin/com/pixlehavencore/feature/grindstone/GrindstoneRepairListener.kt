@@ -7,6 +7,7 @@ import org.bukkit.inventory.meta.Damageable
 import taboolib.common.platform.event.SubscribeEvent
 import taboolib.common.platform.function.adaptPlayer
 import taboolib.platform.util.isRightClick
+import taboolib.platform.util.modifyMeta
 import com.pixlehavencore.feature.veinminer.VeinminerMessages
 import kotlin.random.Random
 
@@ -63,8 +64,9 @@ object GrindstoneRepairListener {
             event.isCancelled = true
             return
         }
-        meta.damage = (meta.damage - restore).coerceAtLeast(0)
-        main.itemMeta = meta
+        main.modifyMeta<Damageable> {
+            damage = (damage - restore).coerceAtLeast(0)
+        }
         player.inventory.setItemInMainHand(main)
         consumeOffhand(offhand, materialRule.amount)
         VeinminerMessages.send(proxyPlayer, GrindstoneRepairSettings.messageSuccess, mapOf("amount" to restore))
