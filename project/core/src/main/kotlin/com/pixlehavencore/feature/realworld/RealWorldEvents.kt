@@ -3,13 +3,16 @@ package com.pixlehavencore.feature.realworld
 import com.pixlehavencore.feature.realworld.fracture.FractureEngine
 import com.pixlehavencore.feature.realworld.fracture.FractureSettings
 import com.pixlehavencore.feature.realworld.fracture.FractureTreatment
+import com.pixlehavencore.feature.realworld.foodcorrosion.FoodCorrosionEngine
 import com.pixlehavencore.feature.realworld.thirst.ThirstEngine
 import com.pixlehavencore.feature.realworld.thirst.ThirstSettings
+import com.pixlehavencore.util.TextUtils
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityDamageEvent
+import org.bukkit.event.inventory.InventoryOpenEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerItemConsumeEvent
 import org.bukkit.inventory.EquipmentSlot
@@ -129,6 +132,31 @@ object RealWorldEvents {
 
     private fun isWaterBottle(type: Material, meta: PotionMeta?): Boolean {
         return type == Material.POTION && meta?.basePotionType == PotionType.WATER
+    }
+
+    @SubscribeEvent(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onInventoryOpen(event: InventoryOpenEvent) {
+        if (!RealWorldSettings.enabled) return
+
+        val inventory = event.inventory
+        if (!FoodCorrosionEngine.isStorageContainer(inventory.type)) return
+
+        val player = event.player as? Player ?: return
+        val generation = RealWorldService.lifecycleGeneration
+
+        player.submitOnEntity {
+            if (!RealWorldService.isActive(generation)) return@submitOnEntity
+            val expired = FoodCorrosionEngine.tickContainer(inventory)
+            if (expired.isEmpty()) return@submitOnEntity
+            for ((slot, item) in expired) {
+                inventory.setItem(slot, item)
+            }
+            if (expired.isNotEmpty()) {
+                player.sendMessage(
+                    TextUtils.parseMiniMessage("<yellow>容器中有 ${expired.size} 个食物已经腐烂了！")
+                )
+            }
+        }
     }
 }
 
