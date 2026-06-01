@@ -33,6 +33,14 @@ object TemperatureSettings {
         private set
     var armorInsulationLeather: Double = 0.08
         private set
+    var armorInsulationChainmail: Double = 0.04
+        private set
+    var armorInsulationIron: Double = 0.06
+        private set
+    var armorInsulationGold: Double = 0.05
+        private set
+    var armorInsulationDiamond: Double = 0.10
+        private set
     var armorInsulationNetherite: Double = 0.12
         private set
     var armorInsulationMax: Double = 0.7
@@ -112,6 +120,10 @@ object TemperatureSettings {
         shelterLeavesCountAsShelter = config.getBoolean("shelter.leaves-counts-as-shelter", false)
         shelterHorizontalRadius = config.getInt("shelter.horizontal-radius", 1).coerceIn(0, MAX_SHELTER_HORIZONTAL_RADIUS)
         armorInsulationLeather = config.getDouble("armor-insulation.leather", 0.08).coerceAtLeast(0.0)
+        armorInsulationChainmail = config.getDouble("armor-insulation.chainmail", 0.04).coerceAtLeast(0.0)
+        armorInsulationIron = config.getDouble("armor-insulation.iron", 0.06).coerceAtLeast(0.0)
+        armorInsulationGold = config.getDouble("armor-insulation.gold", 0.05).coerceAtLeast(0.0)
+        armorInsulationDiamond = config.getDouble("armor-insulation.diamond", 0.10).coerceAtLeast(0.0)
         armorInsulationNetherite = config.getDouble("armor-insulation.netherite", 0.12).coerceAtLeast(0.0)
         armorInsulationMax = config.getDouble("armor-insulation.max", 0.7).coerceIn(0.0, 1.0)
         severeHeatThreshold = config.getDouble("thresholds.severe-heat", 42.0)

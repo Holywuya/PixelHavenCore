@@ -263,6 +263,30 @@ object TemperatureEngine {
                 Material.LEATHER_BOOTS,
                 -> TemperatureSettings.armorInsulationLeather
 
+                Material.CHAINMAIL_HELMET,
+                Material.CHAINMAIL_CHESTPLATE,
+                Material.CHAINMAIL_LEGGINGS,
+                Material.CHAINMAIL_BOOTS,
+                -> TemperatureSettings.armorInsulationChainmail
+
+                Material.IRON_HELMET,
+                Material.IRON_CHESTPLATE,
+                Material.IRON_LEGGINGS,
+                Material.IRON_BOOTS,
+                -> TemperatureSettings.armorInsulationIron
+
+                Material.GOLDEN_HELMET,
+                Material.GOLDEN_CHESTPLATE,
+                Material.GOLDEN_LEGGINGS,
+                Material.GOLDEN_BOOTS,
+                -> TemperatureSettings.armorInsulationGold
+
+                Material.DIAMOND_HELMET,
+                Material.DIAMOND_CHESTPLATE,
+                Material.DIAMOND_LEGGINGS,
+                Material.DIAMOND_BOOTS,
+                -> TemperatureSettings.armorInsulationDiamond
+
                 Material.NETHERITE_HELMET,
                 Material.NETHERITE_CHESTPLATE,
                 Material.NETHERITE_LEGGINGS,

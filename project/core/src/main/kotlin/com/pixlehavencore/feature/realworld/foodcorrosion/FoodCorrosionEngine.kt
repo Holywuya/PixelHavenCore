@@ -102,7 +102,7 @@ object FoodCorrosionEngine {
         player.inventory.setItem(slot, expiredItem)
         val message = FoodCorrosionSettings.conversionMessage
         if (message.isNotEmpty()) {
-            player.sendMessage(TextUtils.parse(message))
+            player.sendMessage(TextUtils.parseMiniMessage(message))
         }
     }
 
