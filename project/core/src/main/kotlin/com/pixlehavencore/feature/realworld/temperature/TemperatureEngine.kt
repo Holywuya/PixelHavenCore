@@ -16,6 +16,11 @@ object TemperatureEngine {
         global: GlobalEnvState,
         tickIntervalSeconds: Int,
     ) {
+        // 减少死亡保护冷却时间
+        if (state.deathProtectionCooldown > 0.0) {
+            state.deathProtectionCooldown -= tickIntervalSeconds.coerceAtLeast(0).toDouble()
+        }
+
         // 死亡保护：体温不变化
         if (state.deathProtectionTimer > 0.0) {
             state.deathProtectionTimer -= tickIntervalSeconds.coerceAtLeast(0).toDouble()

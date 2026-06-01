@@ -341,11 +341,17 @@ object RealWorldService {
         val player = event.entity
         val uuid = player.uniqueId
         RealWorldStorage.withPlayerState(uuid) { state ->
+            // 检查冷却时间（10分钟）
+            if (state.deathProtectionCooldown > 0.0) {
+                return@withPlayerState
+            }
             // 体温恢复到舒适温度区间中值
             val comfortMidpoint = (TemperatureSettings.comfortMin + TemperatureSettings.comfortMax) / 2.0
             state.temperature = comfortMidpoint
-            // 设置 30 秒体温保护
-            state.deathProtectionTimer = 30.0
+            // 设置 15 秒体温保护
+            state.deathProtectionTimer = 15.0
+            // 设置 10 分钟冷却
+            state.deathProtectionCooldown = 600.0
         }
         RealWorldStorage.markPlayerDirty(uuid)
     }
