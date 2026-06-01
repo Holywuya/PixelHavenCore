@@ -58,32 +58,16 @@ object FoodCorrosionPacketListener : PacketListener {
     private fun appendCorrosionLore(item: ItemStack): ItemStack? {
         val meta = item.itemMeta ?: return null
 
+        // 检查是否已有过期时间 lore，避免重复添加
+        val existingLore = TextBridge.getLore(item) ?: emptyList()
+        val lastLine = existingLore.lastOrNull()?.let { TextBridge.toPlain(it) }
+        if (lastLine != null && lastLine.contains("过期时间")) return null
+
         val remainingDays = FoodCorrosionEngine.computeRemainingDays(item)
-        val displayedDays = FoodCorrosionEngine.getDisplayedDays(item)
-
-        // 天数未变化则跳过，避免频繁刷新 lore
-        if (displayedDays != null && displayedDays == remainingDays) return null
-
-        // 记录本次显示的天数
-        FoodCorrosionEngine.setDisplayedDays(item, remainingDays)
-
         val shelfLife = FoodCorrosionEngine.getItemDays(item.type)
         val text = FoodCorrosionEngine.buildCorrosionLoreText(remainingDays, shelfLife)
 
-        // 需要重新获取 lore（setDisplayedDays 修改了 itemMeta）
-        val existingLore = TextBridge.getLore(item) ?: emptyList()
-        val filtered = if (existingLore.isNotEmpty()) {
-            val lastLine = TextBridge.toPlain(existingLore.last())
-            if (lastLine.contains("过期时间")) {
-                existingLore.dropLast(1)
-            } else {
-                existingLore
-            }
-        } else {
-            existingLore
-        }
-
-        val newLore = filtered.toMutableList()
+        val newLore = existingLore.toMutableList()
         newLore.add(TextUtils.parseMiniMessage(text).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
         TextBridge.setLore(item, newLore)
         return item
