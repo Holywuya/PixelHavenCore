@@ -7,6 +7,7 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.Damageable
 import com.pixlehavencore.util.InventoryUtils
 import taboolib.common.platform.ProxyGameMode
+import taboolib.platform.util.modifyMeta
 import taboolib.common.platform.ProxyPlayer
 import taboolib.common.platform.function.adaptPlayer
 import taboolib.platform.util.submit as submitOnLocation
@@ -232,9 +233,10 @@ object VeinminerService {
             return true
         }
         if (!meta.isUnbreakable && meta is Damageable) {
-            meta.damage = meta.damage + 1
-            tool.itemMeta = meta
-            if (meta.damage >= tool.type.maxDurability) {
+            tool.modifyMeta<Damageable> {
+                damage += 1
+            }
+            if ((meta as Damageable).damage + 1 >= tool.type.maxDurability) {
                 player.inventory.setItemInMainHand(ItemStack(Material.AIR))
                 return false
             }

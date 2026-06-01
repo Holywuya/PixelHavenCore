@@ -7,7 +7,9 @@ import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.meta.ItemMeta
 import org.bukkit.persistence.PersistentDataType
+import taboolib.platform.util.modifyMeta
 
 object FoodCorrosionEngine {
 
@@ -31,27 +33,30 @@ object FoodCorrosionEngine {
     fun getCreationDay(item: ItemStack): Int? {
         val meta = item.itemMeta ?: return null
         val pdc = meta.persistentDataContainer
-        return pdc.get(CREATION_DAY_KEY, PersistentDataType.INTEGER)
+        val day = pdc.get(CREATION_DAY_KEY, PersistentDataType.INTEGER)
             ?: pdc.get(OLD_CREATION_TIME_KEY, PersistentDataType.LONG)?.toInt()?.also {
-                pdc.remove(OLD_CREATION_TIME_KEY)
-                pdc.set(CREATION_DAY_KEY, PersistentDataType.INTEGER, it)
-                item.itemMeta = meta
+                item.modifyMeta<ItemMeta> {
+                    persistentDataContainer.remove(OLD_CREATION_TIME_KEY)
+                    persistentDataContainer.set(CREATION_DAY_KEY, PersistentDataType.INTEGER, it)
+                }
             }
+        return day
     }
 
     fun setCreationTimeIfAbsent(item: ItemStack) {
         val meta = item.itemMeta ?: return
         val pdc = meta.persistentDataContainer
         if (pdc.has(CREATION_DAY_KEY, PersistentDataType.INTEGER)) return
-        if (pdc.has(OLD_CREATION_TIME_KEY, PersistentDataType.LONG)) {
-            val oldDay = pdc.get(OLD_CREATION_TIME_KEY, PersistentDataType.LONG)?.toInt() ?: getCurrentGameDay()
-            pdc.remove(OLD_CREATION_TIME_KEY)
-            pdc.set(CREATION_DAY_KEY, PersistentDataType.INTEGER, oldDay)
-        } else {
-            pdc.set(CREATION_DAY_KEY, PersistentDataType.INTEGER, getCurrentGameDay())
+        item.modifyMeta<ItemMeta> {
+            if (persistentDataContainer.has(OLD_CREATION_TIME_KEY, PersistentDataType.LONG)) {
+                val oldDay = persistentDataContainer.get(OLD_CREATION_TIME_KEY, PersistentDataType.LONG)?.toInt() ?: getCurrentGameDay()
+                persistentDataContainer.remove(OLD_CREATION_TIME_KEY)
+                persistentDataContainer.set(CREATION_DAY_KEY, PersistentDataType.INTEGER, oldDay)
+            } else {
+                persistentDataContainer.set(CREATION_DAY_KEY, PersistentDataType.INTEGER, getCurrentGameDay())
+            }
+            persistentDataContainer.remove(OLD_CORROSION_KEY)
         }
-        pdc.remove(OLD_CORROSION_KEY)
-        item.itemMeta = meta
     }
 
     fun getDisplayedDays(item: ItemStack): Int? {
@@ -60,9 +65,9 @@ object FoodCorrosionEngine {
     }
 
     fun setDisplayedDays(item: ItemStack, days: Int) {
-        val meta = item.itemMeta ?: return
-        meta.persistentDataContainer.set(DISPLAYED_DAYS_KEY, PersistentDataType.INTEGER, days)
-        item.itemMeta = meta
+        item.modifyMeta<ItemMeta> {
+            persistentDataContainer.set(DISPLAYED_DAYS_KEY, PersistentDataType.INTEGER, days)
+        }
     }
 
     fun computeRemainingDays(item: ItemStack): Int {
