@@ -17,6 +17,7 @@ object FoodCorrosionEngine {
     private val DISPLAYED_DAYS_KEY = NamespacedKey("phcore", "food_displayed_days")
     private val OLD_CREATION_TIME_KEY = NamespacedKey("phcore", "food_creation_time")
     private val OLD_CORROSION_KEY = NamespacedKey("phcore", "food_corrosion")
+    private val STORAGE_ENTER_DAY_KEY = NamespacedKey("phcore", "food_storage_enter_day")
 
     fun getCurrentGameDay(): Int {
         val world = Bukkit.getWorlds().firstOrNull() ?: return 0
@@ -67,6 +68,74 @@ object FoodCorrosionEngine {
     fun setDisplayedDays(item: ItemStack, days: Int) {
         item.modifyMeta<ItemMeta> {
             persistentDataContainer.set(DISPLAYED_DAYS_KEY, PersistentDataType.INTEGER, days)
+        }
+    }
+
+    /**
+     * 标记食物进入仓库的当前游戏天数。
+     * 当物品放入仓库时调用。
+     */
+    fun markStorageEnter(item: ItemStack) {
+        if (!isCorrosiveFood(item)) return
+        setCreationTimeIfAbsent(item)
+        val meta = item.itemMeta ?: return
+        val pdc = meta.persistentDataContainer
+        if (pdc.has(STORAGE_ENTER_DAY_KEY, PersistentDataType.INTEGER)) return
+        item.modifyMeta<ItemMeta> {
+            persistentDataContainer.set(STORAGE_ENTER_DAY_KEY, PersistentDataType.INTEGER, getCurrentGameDay())
+        }
+    }
+
+    /**
+     * 批量标记食物进入仓库。
+     */
+    fun markStorageEnterForItems(items: List<ItemStack?>) {
+        for (item in items) {
+            if (item != null && !item.type.isAir) {
+                markStorageEnter(item)
+            }
+        }
+    }
+
+    /**
+     * 结算仓库中的食物腐蚀时间。
+     * 将仓库中的时间除以减速倍率后，更新 creation_day。
+     * 当物品从仓库取出或仓库关闭时调用。
+     */
+    fun finalizeStorageExit(item: ItemStack) {
+        if (!isCorrosiveFood(item)) return
+        val meta = item.itemMeta ?: return
+        val pdc = meta.persistentDataContainer
+        val storageEnterDay = pdc.get(STORAGE_ENTER_DAY_KEY, PersistentDataType.INTEGER) ?: return
+        val currentDay = getCurrentGameDay()
+        val daysInStorage = currentDay - storageEnterDay
+        if (daysInStorage <= 0) {
+            item.modifyMeta<ItemMeta> {
+                persistentDataContainer.remove(STORAGE_ENTER_DAY_KEY)
+            }
+            return
+        }
+        val slowFactor = FoodCorrosionSettings.storageSlowdownFactor
+        val effectiveDaysInStorage = daysInStorage / slowFactor
+        val creationDay = pdc.get(CREATION_DAY_KEY, PersistentDataType.INTEGER) ?: return
+        val daysBeforeStorage = storageEnterDay - creationDay
+        val totalEffectiveDays = daysBeforeStorage + effectiveDaysInStorage.toInt()
+        val newCreationDay = currentDay - totalEffectiveDays
+        item.modifyMeta<ItemMeta> {
+            persistentDataContainer.set(CREATION_DAY_KEY, PersistentDataType.INTEGER, newCreationDay)
+            persistentDataContainer.remove(STORAGE_ENTER_DAY_KEY)
+            persistentDataContainer.remove(DISPLAYED_DAYS_KEY)
+        }
+    }
+
+    /**
+     * 批量结算仓库食物。
+     */
+    fun finalizeStorageExitForItems(items: List<ItemStack?>) {
+        for (item in items) {
+            if (item != null && !item.type.isAir) {
+                finalizeStorageExit(item)
+            }
         }
     }
 

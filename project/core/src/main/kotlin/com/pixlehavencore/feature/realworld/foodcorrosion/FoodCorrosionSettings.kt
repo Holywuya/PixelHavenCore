@@ -29,6 +29,8 @@ object FoodCorrosionSettings {
         private set
     var itemDays: Map<String, Int> = emptyMap()
         private set
+    var storageSlowdownFactor: Int = 20
+        private set
 
     fun init() = reload()
 
@@ -44,5 +46,6 @@ object FoodCorrosionSettings {
             ?.getKeys(false)
             ?.associateWith { config.getInt("item-days.$it", defaultDays) }
             ?: emptyMap()
+        storageSlowdownFactor = config.getInt("storage-slowdown-factor", 20).coerceIn(1, 100)
     }
 }
