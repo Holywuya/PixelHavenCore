@@ -1,6 +1,7 @@
 package com.pixlehavencore.feature.realworld.temperature
 
 import com.pixlehavencore.feature.realworld.*
+import com.pixlehavencore.feature.realworld.enchantment.EnchantmentRegistry
 import com.pixlehavencore.feature.realworld.season.SeasonEngine
 import com.pixlehavencore.feature.realworld.weather.WeatherQuery
 import org.bukkit.Location
@@ -256,7 +257,7 @@ object TemperatureEngine {
         var insulation = 0.0
         for (armorPiece in player.inventory.armorContents) {
             val material = armorPiece?.type ?: continue
-            insulation += when (material) {
+            val baseInsulation = when (material) {
                 Material.LEATHER_HELMET,
                 Material.LEATHER_CHESTPLATE,
                 Material.LEATHER_LEGGINGS,
@@ -295,6 +296,12 @@ object TemperatureEngine {
 
                 else -> 0.0
             }
+
+            // 检查温度抵抗附魔，每级增加 20% 绝缘值
+            val enchantment = org.bukkit.Registry.ENCHANTMENT.get(EnchantmentRegistry.TEMPERATURE_RESISTANCE_KEY.key())
+            val enchantLevel = if (enchantment != null) armorPiece.getEnchantmentLevel(enchantment) else 0
+            val enchantBonus = if (enchantLevel > 0) 1.0 + enchantLevel * 0.2 else 1.0
+            insulation += baseInsulation * enchantBonus
         }
         return insulation
     }
