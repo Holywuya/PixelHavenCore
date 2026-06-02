@@ -297,10 +297,10 @@ object TemperatureEngine {
                 else -> 0.0
             }
 
-            // 检查温度抵抗附魔，每级增加 20% 绝缘值
+            // 检查温度抵抗附魔，每级增加 15% 绝缘值
             val enchantment = org.bukkit.Registry.ENCHANTMENT.get(EnchantmentRegistry.TEMPERATURE_RESISTANCE_KEY.key())
             val enchantLevel = if (enchantment != null) armorPiece.getEnchantmentLevel(enchantment) else 0
-            val enchantBonus = if (enchantLevel > 0) 1.0 + enchantLevel * 0.2 else 1.0
+            val enchantBonus = if (enchantLevel > 0) 1.0 + enchantLevel * 0.15 else 1.0
             insulation += baseInsulation * enchantBonus
         }
         return insulation
