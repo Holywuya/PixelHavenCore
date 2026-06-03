@@ -188,8 +188,13 @@ object ConfigAlignService {
      * 发现需要对齐的托管 YAML 资源路径（仅 settings.yml 和 feature/ 下的文件）。
      */
     private fun discoverManagedResources(): List<String> {
-        val source = File(PixleHavenCore::class.java.protectionDomain.codeSource.location.toURI())
-        return ArimResourceScanner.scanYamlFromCodeSource(source) { isManagedResource(it) }
+        return runCatching {
+            val source = File(PixleHavenCore::class.java.protectionDomain.codeSource.location.toURI())
+            ArimResourceScanner.scanYamlFromCodeSource(source) { isManagedResource(it) }
+        }.getOrElse { ex ->
+            warning("[Config] 无法扫描托管资源配置: ${ex.message}")
+            emptyList()
+        }
     }
 
     private fun isManagedResource(path: String): Boolean {

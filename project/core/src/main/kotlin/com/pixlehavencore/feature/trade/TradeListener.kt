@@ -29,6 +29,14 @@ object TradeListener {
         if (!player.isSneaking) {
             return
         }
+        // 检查距离（防止远程交易请求）
+        if (player.location.distance(target.location) > 5.0) {
+            return
+        }
+        // 检查目标是否在战斗状态（可选）
+        if (target.hasPermission("phcore.trade.bypass")) {
+            return
+        }
         TradeService.requestTradeByInteract(player, target)
         event.isCancelled = true
     }

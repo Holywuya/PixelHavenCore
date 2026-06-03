@@ -13,12 +13,17 @@ object ArimResourceScanner {
 
     fun scanYamlFromCodeSource(source: File, include: (String) -> Boolean): List<String> {
         return if (source.isFile) {
-            ZipFile(source).use { zip ->
-                zip.entries().asSequence()
-                    .map { it.name }
-                    .filter { include(it) }
-                    .sorted()
-                    .toList()
+            runCatching {
+                ZipFile(source).use { zip ->
+                    zip.entries().asSequence()
+                        .map { it.name }
+                        .filter { include(it) }
+                        .sorted()
+                        .toList()
+                }
+            }.getOrElse { ex ->
+                taboolib.common.platform.function.warning("[ArimResourceScanner] 读取 JAR 文件失败: ${ex.message}")
+                emptyList()
             }
         } else {
             scanYamlFromDirectory(source)

@@ -45,8 +45,9 @@ object KeyCommandService {
         cooldown[player.uniqueId] = now
 
         player.submitOnEntity(delay = 1L) {
+            val playerName = player.name.replace(Regex("[^a-zA-Z0-9_]"), "")
             val formatted = command
-                .resolvePlaceholders("{player}" to player.name)
+                .resolvePlaceholders("{player}" to playerName)
                 .removePrefix("/")
                 .trim()
             if (formatted.isNotBlank()) {
