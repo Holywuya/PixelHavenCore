@@ -24,6 +24,9 @@ object VanishService {
     /** 普通隐身玩家（Folia 线程安全：PlayerSessionMap，true = 已隐身） */
     private val normalVanished = PlayerSessionMap<Boolean>({ false })
 
+    /** 隐身玩家 UUID 索引，避免全表扫描 */
+    private val normalVanishedUuids = ConcurrentHashMap.newKeySet<UUID>()
+
     /**
      * vanishViewers[observerUUID] = Set<targetUUID>
      * 记录某观察者通过 /vanish-show 显式解除了哪些普通隐身玩家的隐身效果。
@@ -50,13 +53,12 @@ object VanishService {
     fun isAnyVanished(player: Player): Boolean = isNormalVanished(player)
 
     /** 返回当前所有已隐身玩家的 UUID 集合快照 */
-    private fun normalVanishedUuids(): Set<UUID> =
-        normalVanished.entries().filter { pair: Pair<UUID, Boolean> -> pair.second }.map { it.first }.toSet()
+    private fun getNormalVanishedUuids(): Set<UUID> = normalVanishedUuids.toSet()
 
     /** 返回所有普通隐身玩家（在线）的快照列表 */
     fun getNormalVanishedPlayers(): List<Player> {
         // Folia: 使用 onlinePlayers() 快照避免 Bukkit.getPlayer() 的线程安全问题
-        val vanishedSet = normalVanishedUuids()
+        val vanishedSet = getNormalVanishedUuids()
         if (vanishedSet.isEmpty()) return emptyList()
         return onlinePlayers().mapNotNull { proxy ->
             proxy.cast<Player>()?.takeIf { it.uniqueId in vanishedSet }
@@ -87,6 +89,7 @@ object VanishService {
 
     private fun enableNormalVanish(player: Player) {
         normalVanished[player.uniqueId] = true
+        normalVanishedUuids.add(player.uniqueId)
         applyVanishToAllObservers(player)
         player.submitOnEntity {
             applyVanishingEffect(player)
@@ -96,6 +99,7 @@ object VanishService {
 
     private fun disableNormalVanish(player: Player) {
         normalVanished[player.uniqueId] = false
+        normalVanishedUuids.remove(player.uniqueId)
         // 清理该玩家在所有观察者的 viewerMap 中的记录
         vanishViewers.values.forEach { it.remove(player.uniqueId) }
         revealToAllObservers(player)
@@ -154,7 +158,7 @@ object VanishService {
             }
 
             // Folia: 使用 onlinePlayers() 快照安全查找，避免 Bukkit.getPlayer() 的线程安全问题
-            val vanishedSet = normalVanishedUuids()
+            val vanishedSet = getNormalVanishedUuids()
             if (vanishedSet.isEmpty()) return@submitOnEntity
             onlinePlayers().mapNotNull { it.cast<Player>() }.forEach { vanished ->
                 if (vanished.uniqueId in vanishedSet && vanished.uniqueId != observer.uniqueId) {
@@ -210,6 +214,7 @@ object VanishService {
      */
     fun handlePlayerQuit(player: Player) {
         // normalVanished 由 PlayerSessionMap 自动清理，无需手动 remove
+        normalVanishedUuids.remove(player.uniqueId)
         vanishViewers.remove(player.uniqueId)
         // 从其他观察者的 viewerMap 中也清除（避免内存泄漏）
         vanishViewers.values.forEach { it.remove(player.uniqueId) }
@@ -259,6 +264,7 @@ object VanishService {
     fun stop() {
         // 清理所有隐身状态
         normalVanished.clear()
+        normalVanishedUuids.clear()
         vanishViewers.clear()
     }
 }

@@ -598,6 +598,8 @@ object TaxService {
     }
 
     private fun normalizeAmount(value: BigDecimal): BigDecimal {
+        // 优化：如果已经是整数且非负，直接返回原对象，避免创建临时对象
+        if (value.scale() == 0 && value.signum() >= 0) return value
         return value.setScale(0, RoundingMode.HALF_UP).coerceAtLeast(BigDecimal.ZERO)
     }
 

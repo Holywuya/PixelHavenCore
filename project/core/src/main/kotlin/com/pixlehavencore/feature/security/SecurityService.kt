@@ -44,7 +44,7 @@ object SecurityService {
                     return@submitOnEntity
                 }
                 val inventory = Bukkit.createInventory(null as org.bukkit.inventory.InventoryHolder?, 54, title)
-                inventory.setContents(contents.copyOf(54))
+                inventory.setContents(contents)
                 opened[System.identityHashCode(inventory)] = viewer.uniqueId
                 viewer.openInventory(inventory)
             }
@@ -64,7 +64,7 @@ object SecurityService {
                     return@submitOnEntity
                 }
                 val inventory = Bukkit.createInventory(null as org.bukkit.inventory.InventoryHolder?, 27, title)
-                inventory.setContents(contents.copyOf(27))
+                inventory.setContents(contents)
                 opened[System.identityHashCode(inventory)] = viewer.uniqueId
                 viewer.openInventory(inventory)
             }

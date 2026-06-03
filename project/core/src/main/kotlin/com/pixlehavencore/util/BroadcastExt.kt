@@ -17,12 +17,11 @@ fun broadcastColored(message: String) {
 }
 
 fun broadcastComponent(component: Component) {
-    val legacy = TextBridge.toLegacy(component)
     submit {
         onlinePlayers().toList().forEach { proxy ->
             val player = proxy.cast<Player>() ?: return@forEach
             player.submitOnEntity {
-                player.sendMessage(legacy)
+                player.sendMessage(component)
             }
         }
     }
@@ -35,15 +34,14 @@ fun broadcastComponent(component: Component) {
  * 替换 VanishService.notifyAdmins() 中的内联广播逻辑。
  */
 fun broadcastToPermission(message: String, permission: String, exclude: UUID? = null) {
-    val legacy = TextBridge.toLegacy(TextUtils.parse(message))
+    val component = TextUtils.parse(message)
     submit {
         onlinePlayers().toList().forEach { proxy ->
             if (exclude != null && proxy.uniqueId == exclude) return@forEach
+            if (!proxy.hasPermission(permission)) return@forEach
             val player = proxy.cast<Player>() ?: return@forEach
             player.submitOnEntity {
-                if (player.hasPermission(permission)) {
-                    player.sendMessage(legacy)
-                }
+                player.sendMessage(component)
             }
         }
     }
