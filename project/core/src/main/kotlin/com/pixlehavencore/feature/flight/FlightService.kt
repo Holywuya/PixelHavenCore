@@ -162,7 +162,13 @@ object FlightService {
 
     fun setRemainingSeconds(player: Player, seconds: Int) {
         val uuid = player.uniqueId
-        playerData[uuid] = FlightPlayerData(remainingSeconds = seconds.coerceAtLeast(0))
+        val currentData = playerData[uuid]
+        val newData = if (currentData != null) {
+            currentData.copy(remainingSeconds = seconds.coerceAtLeast(0))
+        } else {
+            FlightPlayerData(remainingSeconds = seconds.coerceAtLeast(0))
+        }
+        playerData[uuid] = newData
         if (seconds > 0 && isWorldEnabled(player.world.name)) {
             player.submitOnEntity {
                 player.allowFlight = true
