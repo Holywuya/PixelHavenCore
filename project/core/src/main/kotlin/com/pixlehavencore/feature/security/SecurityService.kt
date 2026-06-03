@@ -7,6 +7,7 @@ import org.bukkit.Bukkit
 import org.bukkit.OfflinePlayer
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.InventoryClickEvent
+import org.bukkit.event.inventory.InventoryCloseEvent
 import org.bukkit.event.inventory.InventoryDragEvent
 import org.bukkit.inventory.Inventory
 import taboolib.common.platform.event.SubscribeEvent
@@ -87,5 +88,11 @@ object SecurityService {
         if (owner == player.uniqueId && event.rawSlots.any { it < event.view.topInventory.size }) {
             event.isCancelled = true
         }
+    }
+
+    @SubscribeEvent
+    fun onClose(event: InventoryCloseEvent) {
+        // 清理 opened Map 防止内存泄漏
+        opened.remove(System.identityHashCode(event.inventory))
     }
 }

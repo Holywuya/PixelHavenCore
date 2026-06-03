@@ -244,17 +244,23 @@ object TemperatureEngine {
         state.temperaturePhase = classifyTemperature(state.temperature)
     }
 
+    /**
+     * 查询 Bukkit 原生群系温度（0.0~2.0），失败返回 null。
+     */
+    private fun queryNativeBiomeTemperature(location: Location): Double? {
+        val world = location.world ?: return null
+        return try {
+            world.getTemperature(location.blockX, location.blockY, location.blockZ)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     fun getBiomeBaseTemperature(location: Location, biomeName: String): Double {
-        // 优先使用 Bukkit API 从世界获取原生温度
-        location.world?.let { world ->
-            try {
-                val nativeTemp = world.getTemperature(location.blockX, location.blockY, location.blockZ)
-                // Minecraft 原生温度范围：-0.5 到 2.0
-                // 转换为摄氏度：-0.5 → -12.5°C, 0.0 → 0°C, 1.0 → 25°C, 2.0 → 50°C
-                return nativeTemp * 25.0
-            } catch (e: Exception) {
-                // API 调用失败，fallback 到名称匹配
-            }
+        queryNativeBiomeTemperature(location)?.let { nativeTemp ->
+            // Minecraft 原生温度范围：-0.5 到 2.0
+            // 转换为摄氏度：-0.5 → -12.5°C, 0.0 → 0°C, 1.0 → 25°C, 2.0 → 50°C
+            return nativeTemp * 25.0
         }
 
         // Fallback：基于名称的硬编码映射（保留用于兼容）
@@ -279,15 +285,10 @@ object TemperatureEngine {
     }
 
     fun getBiomeWaterTemp(location: Location, biomeName: String): Double {
-        location.world?.let { world ->
-            try {
-                val nativeTemp = world.getTemperature(location.blockX, location.blockY, location.blockZ)
-                // 原生温度 0.0~2.0 映射到水温 2~24°C
-                // 0.0(冰冻)→2°C, 0.5(海洋)→12°C, 0.95(丛林)→22°C, 2.0(下界)→24°C(上限)
-                return (2.0 + nativeTemp * 11.0).coerceIn(2.0, 24.0)
-            } catch (e: Exception) {
-                // fallback
-            }
+        queryNativeBiomeTemperature(location)?.let { nativeTemp ->
+            // 原生温度 0.0~2.0 映射到水温 2~24°C
+            // 0.0(冰冻)→2°C, 0.5(海洋)→12°C, 0.95(丛林)→22°C, 2.0(下界)→24°C(上限)
+            return (2.0 + nativeTemp * 11.0).coerceIn(2.0, 24.0)
         }
 
         val normalizedName = biomeName.lowercase()
@@ -339,15 +340,10 @@ object TemperatureEngine {
     }
 
     fun getBiomeDayNightFactor(location: Location, biomeName: String): Double {
-        location.world?.let { world ->
-            try {
-                val nativeTemp = world.getTemperature(location.blockX, location.blockY, location.blockZ)
-                // 干燥/炎热群系温差大，潮湿/水域群系温差小
-                // nativeTemp 0.0~2.0 映射到因子 0.5~1.5
-                return (0.5 + nativeTemp * 0.5).coerceIn(0.5, 1.5)
-            } catch (e: Exception) {
-                // fallback
-            }
+        queryNativeBiomeTemperature(location)?.let { nativeTemp ->
+            // 干燥/炎热群系温差大，潮湿/水域群系温差小
+            // nativeTemp 0.0~2.0 映射到因子 0.5~1.5
+            return (0.5 + nativeTemp * 0.5).coerceIn(0.5, 1.5)
         }
 
         val normalizedName = biomeName.lowercase()

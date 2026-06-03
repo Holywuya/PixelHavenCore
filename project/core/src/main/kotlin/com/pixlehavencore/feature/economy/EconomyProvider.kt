@@ -173,10 +173,9 @@ class VaultUnlockedEconomy : Economy {
                 ?: return response(amount, currentBalance, EconomyResponse.ResponseType.FAILURE, "INSUFFICIENT_FUNDS")
             return response(amount, balance, EconomyResponse.ResponseType.SUCCESS, "")
         }
-        if (!EconomyStorageService.has(accountID, resolvedCurrency, amount)) {
-            return response(amount, currentBalance, EconomyResponse.ResponseType.FAILURE, "INSUFFICIENT_FUNDS")
-        }
-        val balance = EconomyStorageService.withdraw(accountID, resolvedCurrency, amount)
+        // 使用原子化的 tryWithdraw 避免 TOCTOU 竞态条件
+        val balance = EconomyStorageService.tryWithdraw(accountID, resolvedCurrency, amount)
+            ?: return response(amount, currentBalance, EconomyResponse.ResponseType.FAILURE, "INSUFFICIENT_FUNDS")
         return response(amount, balance, EconomyResponse.ResponseType.SUCCESS, "")
     }
 

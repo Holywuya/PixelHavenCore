@@ -300,9 +300,16 @@ object MoneyCommand {
             Mode.SET -> {
                 val current = EconomyUtils.getBalance(target, currency)
                 if (current > BigDecimal.ZERO) {
-                    EconomyUtils.withdraw(target, current, currency)
+                    if (!EconomyUtils.withdraw(target, current, currency)) {
+                        sender.msg("<red>清零余额失败。")
+                        return
+                    }
                 }
                 if (amount > BigDecimal.ZERO && !EconomyUtils.depositInternal(target, amount, currency)) {
+                    // 回滚：将之前清零的金额存回
+                    if (current > BigDecimal.ZERO) {
+                        EconomyUtils.depositInternal(target, current, currency)
+                    }
                     sender.msg("<red>设置余额失败。")
                     return
                 }

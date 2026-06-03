@@ -255,4 +255,10 @@ object VanishService {
         OK,
         NOT_VANISHED
     }
+
+    fun stop() {
+        // 清理所有隐身状态
+        normalVanished.clear()
+        vanishViewers.clear()
+    }
 }

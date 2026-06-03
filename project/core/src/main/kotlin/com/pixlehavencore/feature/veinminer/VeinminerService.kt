@@ -245,7 +245,9 @@ object VeinminerService {
             tool.modifyMeta<Damageable> {
                 damage += 1
             }
-            if ((meta as Damageable).damage + 1 >= tool.type.maxDurability) {
+            // 重新读取 meta 进行判断，避免使用过时的副本
+            val updatedMeta = tool.itemMeta
+            if (updatedMeta is Damageable && updatedMeta.damage >= tool.type.maxDurability) {
                 player.inventory.setItemInMainHand(ItemStack(Material.AIR))
                 return false
             }

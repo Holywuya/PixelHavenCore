@@ -353,9 +353,10 @@ object TaxService {
         val previousDue = calculateDue(previousIncome, previousDebt)
         val newDue = calculateDue(normalizedIncome, normalizedDebt)
 
-        totalIncome.set(normalizeAmount(totalIncome.get().subtract(previousIncome).add(normalizedIncome)))
-        totalDebt.set(normalizeAmount(totalDebt.get().subtract(previousDebt).add(normalizedDebt)))
-        totalDueTax.set(normalizeAmount(totalDueTax.get().subtract(previousDue).add(newDue)))
+        // 使用 updateAndGet 确保原子性更新
+        totalIncome.updateAndGet { current -> normalizeAmount(current.subtract(previousIncome).add(normalizedIncome)) }
+        totalDebt.updateAndGet { current -> normalizeAmount(current.subtract(previousDebt).add(normalizedDebt)) }
+        totalDueTax.updateAndGet { current -> normalizeAmount(current.subtract(previousDue).add(newDue)) }
 
         if (normalizedIncome > BigDecimal.ZERO) {
             incomePools[accountId] = normalizedIncome

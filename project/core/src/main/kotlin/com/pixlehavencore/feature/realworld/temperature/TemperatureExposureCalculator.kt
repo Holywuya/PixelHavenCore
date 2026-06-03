@@ -48,19 +48,18 @@ object TemperatureExposureCalculator {
         direction: ExposureDirection,
         settings: TemperatureExposureSettings,
     ): Double {
-        return when (direction) {
+        val (threshold, overshoot) = when (direction) {
             ExposureDirection.COLD -> {
                 val boundary = comfortMin - settings.coldThreshold
-                val overshoot = (boundary - effectiveEnvTemp).coerceAtLeast(0.0)
-                (1.0 + overshoot / settings.coldThreshold.coerceAtLeast(0.1)).coerceIn(1.0, 3.0)
+                settings.coldThreshold to (boundary - effectiveEnvTemp).coerceAtLeast(0.0)
             }
             ExposureDirection.HEAT -> {
                 val boundary = comfortMax + settings.heatThreshold
-                val overshoot = (effectiveEnvTemp - boundary).coerceAtLeast(0.0)
-                (1.0 + overshoot / settings.heatThreshold.coerceAtLeast(0.1)).coerceIn(1.0, 3.0)
+                settings.heatThreshold to (effectiveEnvTemp - boundary).coerceAtLeast(0.0)
             }
-            ExposureDirection.NONE -> 0.0
+            ExposureDirection.NONE -> return 0.0
         }
+        return (1.0 + overshoot / threshold.coerceAtLeast(0.1)).coerceIn(1.0, 3.0)
     }
 
     fun updatePressures(

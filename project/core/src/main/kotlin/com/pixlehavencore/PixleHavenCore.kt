@@ -45,6 +45,7 @@ import com.pixlehavencore.feature.title.TitlePlaceholders
 import com.pixlehavencore.util.BaikirutoItemsUtil
 import com.pixlehavencore.util.CraftEngineItemsUtil
 import com.pixlehavencore.util.EconomyUtils
+import com.pixlehavencore.util.ItemUtils
 import taboolib.common.platform.Plugin
 import taboolib.common.platform.function.info
 
@@ -152,5 +153,9 @@ object PixleHavenCore : Plugin() {
         DurabilityService.stop()
         FlightService.stop()
         RealWorldService.stop()
+        VeinminerLimitService.stop()
+        TradeService.stop()
+        VanishService.stop()
+        ItemUtils.clearHeadCache()
     }
 }

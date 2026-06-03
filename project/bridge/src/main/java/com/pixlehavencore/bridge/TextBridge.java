@@ -123,7 +123,7 @@ public final class TextBridge {
 
     /** 设置 displayName（Component），强制无斜体 */
     public static void setDisplayName(ItemStack item, Component name) {
-        if (item == null || item.isEmpty()) return;
+        if (item == null || item.isEmpty() || name == null) return;
         item.editMeta(meta ->
                 meta.customName(name.decoration(TextDecoration.ITALIC, false)));
     }
@@ -157,10 +157,12 @@ public final class TextBridge {
 
     /** 设置 lore（Component 列表），强制无斜体 */
     public static void setLore(ItemStack item, List<Component> lore) {
-        if (item == null || item.isEmpty()) return;
+        if (item == null || item.isEmpty() || lore == null) return;
         List<Component> noItalic = new ArrayList<>(lore.size());
         for (Component line : lore) {
-            noItalic.add(line.decoration(TextDecoration.ITALIC, false));
+            if (line != null) {
+                noItalic.add(line.decoration(TextDecoration.ITALIC, false));
+            }
         }
         item.editMeta(meta -> meta.lore(noItalic));
     }

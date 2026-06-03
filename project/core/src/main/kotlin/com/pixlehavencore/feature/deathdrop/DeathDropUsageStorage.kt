@@ -98,7 +98,10 @@ object DeathDropUsageStorage {
         if (actual != null) return actual
         submitAsync {
             val loaded = loadRecord(player, dateKey)
-            cache[cacheKey] = loaded
+            // 合并数据而非替换对象，确保所有引用指向同一个实例
+            val existing = cache[cacheKey] ?: return@submitAsync
+            existing.used.set(loaded.used.get())
+            existing.bonus.set(loaded.bonus.get())
         }
         return newRecord
     }

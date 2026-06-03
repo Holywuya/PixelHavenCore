@@ -159,4 +159,7 @@ object ItemUtils {
         }
     }
 
+    fun clearHeadCache() {
+        headCache.clear()
+    }
 }

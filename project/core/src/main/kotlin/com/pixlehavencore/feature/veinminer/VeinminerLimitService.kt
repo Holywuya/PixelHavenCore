@@ -208,4 +208,10 @@ object VeinminerLimitService {
             }
         }
     }
+
+    fun stop() {
+        // 清理资源
+        nextResetAt = null
+        lastFixedMarker = 0L
+    }
 }

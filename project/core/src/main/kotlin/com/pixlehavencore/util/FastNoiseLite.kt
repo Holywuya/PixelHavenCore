@@ -115,7 +115,7 @@ class FastNoiseLite(private var seed: Int = 1337) {
         k *= PRIME_Z
 
         var value = 0.0f
-        var attn0 = 0.6f - xf0 * xf0 - yf0 * yf0 + zf0 * zf0
+        var attn0 = 0.6f - xf0 * xf0 - yf0 * yf0 - zf0 * zf0
 
         for (c in 0..1) {
             if (attn0 > 0.0f) {

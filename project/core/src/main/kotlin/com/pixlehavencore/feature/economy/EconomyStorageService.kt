@@ -126,6 +126,40 @@ object EconomyStorageService {
         return rawWithdraw(accountId, currency, amount)
     }
 
+    /**
+     * 原子化的尝试扣款操作，在同一个锁内完成余额检查和扣款
+     * @return 扣款后的余额，如果余额不足返回 null
+     */
+    fun tryWithdraw(accountId: UUID, currency: String, amount: BigDecimal): BigDecimal? {
+        val result: BigDecimal
+        var notifyDelta = BigDecimal.ZERO
+        var shouldNotify = false
+        synchronized(accountLocks[accountId]) {
+            val resolved = EconomySettings.resolveCurrency(currency)
+            val map = balances.computeIfAbsent(accountId) { ConcurrentHashMap() }
+            val normalizedAmount = normalizeAmount(amount)
+            val before = map[resolved] ?: BigDecimal.ZERO
+            // 在锁内检查余额是否充足
+            if (before < normalizedAmount) {
+                return null
+            }
+            val updated = before.subtract(normalizedAmount)
+            val raw = if (updated.signum() <= 0) BigDecimal.ZERO else updated
+            val balance = correctAmount(accountId, resolved, raw)
+            map[resolved] = balance
+            dirtyAccounts += accountId
+            result = balance
+            if (resolved == EconomySettings.defaultCurrency && balanceChangeListener != null) {
+                notifyDelta = balance.subtract(before)
+                shouldNotify = notifyDelta != BigDecimal.ZERO
+            }
+        }
+        if (shouldNotify) {
+            balanceChangeListener?.onBalanceChange(accountId, notifyDelta, false)
+        }
+        return result
+    }
+
     fun rawWithdraw(accountId: UUID, currency: String, amount: BigDecimal, exempt: Boolean = false): BigDecimal {
         val result: BigDecimal
         var notifyDelta = BigDecimal.ZERO

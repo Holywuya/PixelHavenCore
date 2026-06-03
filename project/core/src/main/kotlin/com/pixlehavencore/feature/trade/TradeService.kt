@@ -410,7 +410,7 @@ object TradeService {
                 if (!EconomyUtils.deposit(right, leftMoney)) throw TradeRollbackException("右侧存款失败")
             }
         } catch (ex: TradeRollbackException) {
-            if (leftDeposited && leftMoney > BigDecimal.ZERO) EconomyUtils.withdraw(left, rightMoney)
+            if (leftDeposited) EconomyUtils.withdraw(left, rightMoney)
             if (rightWithdrawn) EconomyUtils.depositInternal(right, rightMoney)
             if (leftWithdrawn) EconomyUtils.depositInternal(left, leftMoney)
             taboolib.common.platform.function.warning("[Trade] 交易资金操作失败，已回滚: ${ex.message}")
@@ -677,5 +677,15 @@ object TradeService {
         }
 
         fun tryStartCompleting(): Boolean = completing.compareAndSet(false, true)
+    }
+
+    fun stop() {
+        // 退还所有进行中交易的物品
+        sessions.values().filterNotNull().toSet().forEach { session -> abort(session, true) }
+        sessions.clear()
+        requests.clear()
+        moneyInputs.clear()
+        interactCooldown.clear()
+        sessionSuspendClose.clear()
     }
 }
