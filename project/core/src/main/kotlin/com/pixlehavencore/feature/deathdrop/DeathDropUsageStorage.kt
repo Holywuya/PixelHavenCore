@@ -44,6 +44,7 @@ object DeathDropUsageStorage {
                 handler = DatabaseUtils.newPlayerDataHandler(TABLE_NAME, syncTick = 200L)
             }.onFailure { ex ->
                 warning("[DeathDropUsage] 初始化 PlayerDatabase 失败: ${ex.message}")
+                warning("[DeathDropUsage] 死亡保护次数数据将无法持久化，请检查数据库配置！")
                 close()
             }
         }

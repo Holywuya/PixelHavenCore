@@ -216,13 +216,18 @@ object EconomyStorageService {
         val ids = dirtyAccounts.toList()
         if (ids.isEmpty()) return
         val currentHandler = handler ?: return
-        runCatching {
-            ids.forEach { accountId ->
+        var failedCount = 0
+        ids.forEach { accountId ->
+            runCatching {
                 persistAccount(currentHandler, accountId)
                 dirtyAccounts.remove(accountId)
+            }.onFailure { ex ->
+                failedCount++
+                warning("[经济系统] 保存账户 $accountId 失败: ${ex.message}")
             }
-        }.onFailure { ex ->
-            warning("[经济系统] 保存失败: ${ex.message}")
+        }
+        if (failedCount > 0) {
+            warning("[经济系统] 本次保存完成，$failedCount 个账户保存失败")
         }
     }
 
