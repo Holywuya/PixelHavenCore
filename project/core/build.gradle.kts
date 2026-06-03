@@ -11,7 +11,6 @@ dependencies {
     compileOnly(project(":project:bridge"))
     compileOnly(kotlin("stdlib"))
     compileOnly(fileTree(rootProject.file("libs")))
-    testImplementation(kotlin("test"))
 }
 
 taboolib { subproject = true }
