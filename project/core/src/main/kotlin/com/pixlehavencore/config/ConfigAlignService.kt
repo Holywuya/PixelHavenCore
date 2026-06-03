@@ -134,8 +134,9 @@ object ConfigAlignService {
         // 1. 删除服务器文件中有但模板中没有的键（叶子节点，避免误删父节点）
         //    白名单内的动态 section 下的键完全跳过，保护用户自定义数据
         val keysToRemove = currentKeys - templateKeys
+        // 使用拓扑排序，从最深层的键开始删除，避免留下空 section
         keysToRemove
-            .filter { key -> !currentKeys.any { other -> other != key && other.startsWith("$key.") } }
+            .sortedByDescending { it.count { c -> c == '.' } }  // 先删深层键
             .filter { key -> !isDynamicKey(resourcePath, key) }
             .forEach { key ->
                 current.set(key, null)
