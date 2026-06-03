@@ -12,11 +12,9 @@ import org.bukkit.entity.Player
  * 遮蔽判定子系统。
  *
  * 检测玩家头顶是否有遮蔽（屋顶/树冠），输出 [ShelterType] 和天气遮蔽状态。
- * 内置 5 秒缓存，避免每个 tick 重复扫描。
+ * 使用可配置缓存时间，避免每个 tick 重复扫描。
  */
 object ShelterDetector {
-
-    private const val SHELTER_CACHE_SECONDS = 5.0
 
     /**
      * 更新玩家遮蔽状态（带缓存）。
@@ -39,7 +37,7 @@ object ShelterDetector {
         state.shelterCacheBlockX = eyeBlock.x
         state.shelterCacheBlockY = eyeBlock.y
         state.shelterCacheBlockZ = eyeBlock.z
-        state.shelterCacheTimer = SHELTER_CACHE_SECONDS
+        state.shelterCacheTimer = TemperatureSettings.shelterCacheSeconds.toDouble()
     }
 
     fun isUnderSolidRoof(location: Location): Boolean {
