@@ -94,17 +94,17 @@ object OfflineInventoryUtils {
 
     private fun parseItemList(rootTag: Any, key: String, size: Int, registryAccess: Any): Array<ItemStack?> {
         val compoundClass = rootTag.javaClass
-        val listTag = compoundClass.getMethod("getList", String::class.java, Int::class.javaPrimitiveType).invoke(rootTag, key, 10)
+        val listTag = compoundClass.getMethod("getList", String::class.java, Int::class.javaPrimitiveType).invoke(rootTag, key, 10) ?: return arrayOfNulls(size)
         val listClass = listTag.javaClass
-        val listSize = listClass.getMethod("size").invoke(listTag) as Int
+        val listSize = (listClass.getMethod("size").invoke(listTag) as? Int) ?: return arrayOfNulls(size)
         val result = arrayOfNulls<ItemStack>(size)
 
         for (index in 0 until listSize) {
-            val entry = listClass.getMethod("getCompound", Int::class.javaPrimitiveType).invoke(listTag, index)
-            val slotByte = entry.javaClass.getMethod("getByte", String::class.java).invoke(entry, "Slot") as Byte
+            val entry = listClass.getMethod("getCompound", Int::class.javaPrimitiveType).invoke(listTag, index) ?: continue
+            val slotByte = (entry.javaClass.getMethod("getByte", String::class.java).invoke(entry, "Slot") as? Byte) ?: continue
             val slot = normalizeSlot(slotByte.toInt())
             if (slot !in result.indices) continue
-            val nmsItem = parseMethod[Unit].invoke(null, registryAccess, entry)
+            val nmsItem = parseMethod[Unit].invoke(null, registryAccess, entry) ?: continue
             val bukkitItem = asBukkitCopy[Unit].invoke(null, nmsItem) as? ItemStack ?: continue
             result[slot] = bukkitItem
         }

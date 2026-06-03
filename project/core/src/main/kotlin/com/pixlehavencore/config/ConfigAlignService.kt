@@ -162,7 +162,8 @@ object ConfigAlignService {
 
         // 3. 同步 version 字段
         val templateVersion = template.get("version")
-        if (templateVersion != null && current.get("version") != templateVersion) {
+        val currentVersion = current.get("version")
+        if (templateVersion != null && !templateVersion.toString().equals(currentVersion?.toString())) {
             current.set("version", templateVersion)
             changed = true
             info("[Config] [$resourcePath] 更新配置版本: $templateVersion")

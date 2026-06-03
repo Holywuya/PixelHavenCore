@@ -25,7 +25,13 @@ object EconomyUtils {
             } else {
                 economy.balance(DEFAULT_PLUGIN, player.uniqueId, "", resolvedCurrency)
             }
-        }.getOrDefault(BigDecimal.ZERO)
+        }.getOrElse { ex ->
+            if (ex is Exception) {
+                BigDecimal.ZERO
+            } else {
+                throw ex  // 重新抛出非 Exception 的 Throwable（如 OOM、StackOverflow）
+            }
+        }
     }
 
     fun getBalance(accountId: UUID, currency: String? = null): BigDecimal {
@@ -37,7 +43,13 @@ object EconomyUtils {
             } else {
                 economy.balance(DEFAULT_PLUGIN, accountId, "", resolvedCurrency)
             }
-        }.getOrDefault(BigDecimal.ZERO)
+        }.getOrElse { ex ->
+            if (ex is Exception) {
+                BigDecimal.ZERO
+            } else {
+                throw ex  // 重新抛出非 Exception 的 Throwable（如 OOM、StackOverflow）
+            }
+        }
     }
 
     fun has(player: OfflinePlayer, amount: BigDecimal, currency: String? = null): Boolean {

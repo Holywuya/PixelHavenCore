@@ -144,13 +144,19 @@ class VaultUnlockedEconomy : Economy {
         return resolveBalance(accountID, resolvedCurrency)
     }
 
-    override fun has(pluginName: String, accountID: UUID, amount: BigDecimal): Boolean = resolveBalance(accountID, EconomySettings.defaultCurrency) >= amount
+    override fun has(pluginName: String, accountID: UUID, amount: BigDecimal): Boolean {
+        return runCatching {
+            resolveBalance(accountID, EconomySettings.defaultCurrency) >= amount
+        }.getOrDefault(false)
+    }
 
     override fun has(pluginName: String, accountID: UUID, worldName: String, amount: BigDecimal): Boolean = has(pluginName, accountID, amount)
 
     override fun has(pluginName: String, accountID: UUID, worldName: String, currency: String, amount: BigDecimal): Boolean {
-        val resolvedCurrency = EconomySettings.resolveCurrency(currency)
-        return resolveBalance(accountID, resolvedCurrency) >= amount
+        return runCatching {
+            val resolvedCurrency = EconomySettings.resolveCurrency(currency)
+            resolveBalance(accountID, resolvedCurrency) >= amount
+        }.getOrDefault(false)
     }
 
     @Deprecated("Vault legacy overload", level = DeprecationLevel.HIDDEN)

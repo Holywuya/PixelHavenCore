@@ -18,7 +18,7 @@ import java.util.UUID
 
 object SurvivalHud {
 
-    private val bossBars = PlayerSessionMap<BossBar>({ throw IllegalStateException() })
+    private val bossBars = PlayerSessionMap<BossBar>({ throw IllegalStateException("BossBar not found for player") })
 
     fun render(player: Player, state: PlayerEnvState, global: GlobalEnvState) {
         player.submitOnEntity {

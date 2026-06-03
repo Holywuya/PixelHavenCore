@@ -22,7 +22,7 @@ import java.util.UUID
 
 object TitleMenu {
 
-    private val openViews = PlayerSessionMap<TitleMenuHolder>({ throw IllegalStateException() })
+    private val openViews = PlayerSessionMap<TitleMenuHolder>({ throw IllegalStateException("TitleMenuHolder not found for player") })
 
     fun open(player: Player, category: String? = null, page: Int = 0) {
         if (!TitleSettings.enabled) return
@@ -59,12 +59,14 @@ object TitleMenu {
             }
             player.submitOnEntity {
                 val topInventory = player.openInventory.topInventory
-                if (holder.backingInventory !== topInventory) {
+                if (holder?.backingInventory !== topInventory) {
                     openViews.remove(playerId)
                     return@submitOnEntity
                 }
-                renderInventory(holder.backingInventory, player, holder)
-                player.updateInventory()
+                if (holder != null) {
+                    renderInventory(holder.backingInventory, player, holder)
+                    player.updateInventory()
+                }
             }
         }
     }
@@ -79,7 +81,7 @@ object TitleMenu {
 
     fun getOpenHolder(inventory: Inventory): TitleMenuHolder? {
         openViews.entries().forEach { (_, holder) ->
-            if (holder.backingInventory === inventory) return holder
+            if (holder?.backingInventory === inventory) return holder
         }
         return null
     }
