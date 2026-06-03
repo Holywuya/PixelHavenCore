@@ -172,13 +172,8 @@ object TitleStorage {
             )
         }.onFailure { ex ->
             warning("[Title] 加载玩家 $playerName 数据失败: ${ex.message}")
-            dataCache[playerUuid] = PlayerTitleState(
-                playerUuid = playerUuid,
-                playerName = playerName,
-                activeTitleId = null,
-                ownedTitles = emptyList(),
-                updatedAt = System.currentTimeMillis(),
-            )
+            warning("[Title] 玩家称号数据将无法持久化，请检查数据库配置！")
+            // 不创建默认数据，避免覆盖玩家已有的称号数据
         }
     }
 

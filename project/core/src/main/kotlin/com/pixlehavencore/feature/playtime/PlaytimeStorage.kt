@@ -274,14 +274,8 @@ object PlaytimeStorage {
             }
         }.onFailure { ex ->
             warning("[在线时长] 加载玩家 $playerName 数据失败: ${ex.message}")
-            synchronized(dataLocks[playerUuid]) {
-                dataCache[playerUuid] = PlaytimeData(
-                    playerUuid = playerUuid,
-                    playerName = playerName,
-                    totalSeconds = 0L, todaySeconds = 0L, weekSeconds = 0L, monthSeconds = 0L,
-                    lastLoginTime = 0L, lastLogoutTime = 0L, updatedAt = System.currentTimeMillis()
-                )
-            }
+            warning("[在线时长] 玩家数据将无法持久化，请检查数据库配置！")
+            // 不创建默认数据，避免覆盖玩家已有的数据
         }
     }
 

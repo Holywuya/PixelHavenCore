@@ -59,6 +59,7 @@ object EconomyStorageService {
     }
 
     fun getBalance(accountId: UUID, currency: String): BigDecimal {
+        if (!ready) return BigDecimal.ZERO
         val resolved = EconomySettings.resolveCurrency(currency)
         return balances[accountId]?.get(resolved) ?: BigDecimal.ZERO
     }
