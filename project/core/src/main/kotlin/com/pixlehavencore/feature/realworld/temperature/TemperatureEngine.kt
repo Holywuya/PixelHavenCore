@@ -146,12 +146,20 @@ object TemperatureEngine {
 
         // 方块辐射扫描
         state.heatSourceScanTimer -= tickIntervalSeconds.coerceAtLeast(0)
-        if (state.heatSourceScanTimer <= 0.0) {
+        val scanDecision = shouldRefreshHeatSourceScan(player, state, biomeBaseTemperature)
+        if (scanDecision.shouldRefresh) {
             val scanResult = BlockRadiationScanner.scan(player, biomeBaseTemperature)
             state.nearHeatSource = scanResult.first
             state.temperatureBlockModifier = scanResult.second
-            val interval = TemperatureSettings.heatSourceScanIntervalSeconds.toDouble()
-            state.heatSourceScanTimer = interval
+            updateHeatSourceScanCache(player, state, biomeBaseTemperature)
+
+            val baseInterval = TemperatureSettings.heatSourceScanIntervalSeconds.toDouble()
+            val intervalMultiplier = if (scanDecision.isStationary) {
+                TemperatureSettings.heatScanStationaryMultiplier.toDouble()
+            } else {
+                1.0
+            }
+            state.heatSourceScanTimer = baseInterval * intervalMultiplier
         }
 
         val blockRadiationModifier = state.temperatureBlockModifier
@@ -470,5 +478,49 @@ object TemperatureEngine {
 
     private fun isRaining(location: Location, global: GlobalEnvState): Boolean {
         return WeatherQuery.getWeatherAt(location, global).type == WeatherType.RAIN
+    }
+
+    private data class HeatSourceScanDecision(
+        val shouldRefresh: Boolean,
+        val isStationary: Boolean,
+    )
+
+    private fun shouldRefreshHeatSourceScan(
+        player: Player,
+        state: PlayerEnvState,
+        biomeBaseTemperature: Double,
+    ): HeatSourceScanDecision {
+        val location = player.location
+        val worldName = location.world?.name.orEmpty()
+        val movedToDifferentBlock =
+            state.heatSourceCacheBlockX != location.blockX ||
+                state.heatSourceCacheBlockY != location.blockY ||
+                state.heatSourceCacheBlockZ != location.blockZ
+        val changedWorld = state.heatSourceCacheWorldName != worldName
+        val changedBiomeTemperature = Math.abs(
+            state.heatSourceCacheBiomeTemperature - biomeBaseTemperature,
+        ) > TemperatureSettings.heatScanBiomeTempThreshold
+        val shouldRefresh = state.heatSourceScanTimer <= 0.0 ||
+            movedToDifferentBlock ||
+            changedWorld ||
+            changedBiomeTemperature
+
+        return HeatSourceScanDecision(
+            shouldRefresh = shouldRefresh,
+            isStationary = !movedToDifferentBlock && !changedWorld,
+        )
+    }
+
+    private fun updateHeatSourceScanCache(
+        player: Player,
+        state: PlayerEnvState,
+        biomeBaseTemperature: Double,
+    ) {
+        val location = player.location
+        state.heatSourceCacheBlockX = location.blockX
+        state.heatSourceCacheBlockY = location.blockY
+        state.heatSourceCacheBlockZ = location.blockZ
+        state.heatSourceCacheWorldName = location.world?.name.orEmpty()
+        state.heatSourceCacheBiomeTemperature = biomeBaseTemperature
     }
 }
