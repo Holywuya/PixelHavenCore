@@ -116,7 +116,11 @@ object FoodCorrosionEngine {
             return
         }
         val slowFactor = FoodCorrosionSettings.storageSlowdownFactor
-        val effectiveDaysInStorage = daysInStorage / slowFactor
+        val effectiveDaysInStorage = if (slowFactor > 0) {
+            Math.ceil(daysInStorage.toDouble() / slowFactor).toInt()
+        } else {
+            daysInStorage
+        }
         val creationDay = pdc.get(CREATION_DAY_KEY, PersistentDataType.INTEGER) ?: return
         val daysBeforeStorage = storageEnterDay - creationDay
         val totalEffectiveDays = daysBeforeStorage + effectiveDaysInStorage.toInt()

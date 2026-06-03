@@ -12,6 +12,7 @@ import org.bukkit.entity.Monster
 import taboolib.common.platform.function.submit
 
 import taboolib.platform.util.submit as submitOnEntity
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -19,7 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger
 object EntityClearerService {
 
     private const val CHUNKS_PER_TICK = 12
-    private val countdownNotified = mutableSetOf<Long>()
+    private val countdownNotified = ConcurrentHashMap.newKeySet<Long>()
     private var schedulerTask: Any? = null
     private var clearWorkerTask: Any? = null
     private var clearQueue: ConcurrentLinkedQueue<Chunk> = ConcurrentLinkedQueue()

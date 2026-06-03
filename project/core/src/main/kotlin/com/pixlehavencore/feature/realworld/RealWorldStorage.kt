@@ -302,10 +302,11 @@ object RealWorldStorage {
     }
 
     private fun samePersistedPlayerState(current: PlayerEnvState?, snapshot: PlayerEnvState): Boolean {
-        return current != null &&
-            current.hydration == snapshot.hydration &&
-            current.temperature == snapshot.temperature &&
-            current.fracture == snapshot.fracture
+        if (current == null) return false
+        val tolerance = 0.001
+        return Math.abs(current.hydration - snapshot.hydration) < tolerance &&
+            Math.abs(current.temperature - snapshot.temperature) < tolerance &&
+            Math.abs(current.fracture - snapshot.fracture) < tolerance
     }
 
     private fun samePersistedGlobalState(current: GlobalEnvState, snapshot: GlobalEnvState): Boolean {

@@ -30,6 +30,7 @@ import taboolib.common.platform.function.info
 import taboolib.common.platform.function.onlinePlayers
 import taboolib.common.platform.function.submit
 import taboolib.common.platform.function.submitAsync
+import taboolib.common.platform.function.warning
 import taboolib.platform.util.PlayerSessionMap
 import taboolib.platform.util.submit as submitOnEntity
 import java.util.UUID
@@ -84,7 +85,12 @@ object RealWorldService {
         startAutoSaveTask()
         loadOnlinePlayersData()
         FoodCorrosionService.init()
-        WeatherEngine.init(Bukkit.getWorlds().first().seed.toInt())
+        val defaultWorld = Bukkit.getWorlds().firstOrNull()
+        if (defaultWorld != null) {
+            WeatherEngine.init(defaultWorld.seed)
+        } else {
+            warning("[RealWorld] 未找到默认世界，天气引擎初始化跳过")
+        }
         lockWorldWeather()
         initTimeControl()
         info("[RealWorld] 模块已启动，在线玩家 ${onlinePlayers().size} 人。")
@@ -109,7 +115,12 @@ object RealWorldService {
         startAutoSaveTask()
         loadOnlinePlayersData()
         FoodCorrosionService.reload()
-        WeatherEngine.init(Bukkit.getWorlds().first().seed.toInt())
+        val defaultWorld = Bukkit.getWorlds().firstOrNull()
+        if (defaultWorld != null) {
+            WeatherEngine.init(defaultWorld.seed)
+        } else {
+            warning("[RealWorld] 未找到默认世界，天气引擎初始化跳过")
+        }
         lockWorldWeather()
         initTimeControl()
         info("[RealWorld] 模块已重载，在线玩家 ${onlinePlayers().size} 人。")

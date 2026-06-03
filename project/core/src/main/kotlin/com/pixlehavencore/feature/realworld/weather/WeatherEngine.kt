@@ -16,7 +16,7 @@ object WeatherEngine {
     /**
      * 初始化天气引擎
      */
-    fun init(worldSeed: Int) {
+    fun init(worldSeed: Long) {
         if (WeatherSettings.localEnabled) {
             ChunkWeatherEngine.init(worldSeed, WeatherSettings.localNoiseFrequency)
             WeatherCache.setMaxSize(WeatherSettings.localCacheMaxSize)

@@ -14,8 +14,8 @@ object ChunkWeatherEngine {
     val isInitialized: Boolean
         get() = rainNoise != null
 
-    fun init(worldSeed: Int, frequency: Float = 0.015f) {
-        rainNoise = FastNoiseLite(worldSeed).apply {
+    fun init(worldSeed: Long, frequency: Float = 0.015f) {
+        rainNoise = FastNoiseLite(worldSeed.toInt()).apply {
             setFrequency(frequency)
         }
     }
