@@ -1,7 +1,6 @@
 package com.pixlehavencore.feature.realworld.temperature
 
 import com.pixlehavencore.feature.realworld.*
-import com.pixlehavencore.feature.realworld.enchantment.EnchantmentRegistry
 import com.pixlehavencore.feature.realworld.season.SeasonEngine
 import com.pixlehavencore.feature.realworld.weather.WeatherQuery
 import org.bukkit.Location
@@ -10,6 +9,101 @@ import org.bukkit.WeatherType as BukkitWeatherType
 import org.bukkit.entity.Player
 
 object TemperatureEngine {
+
+    private fun exposureSettings(): TemperatureExposureSettings {
+        return TemperatureExposureSettings(
+            coldThreshold = TemperatureSettings.exposureColdThreshold,
+            heatThreshold = TemperatureSettings.exposureHeatThreshold,
+            baseGainPerSecond = TemperatureSettings.exposureBaseGainPerSecond,
+            minGainPerSecond = TemperatureSettings.exposureMinGainPerSecond,
+            recoveryPerSecond = TemperatureSettings.exposureRecoveryPerSecond,
+            minExtremeMultiplier = TemperatureSettings.exposureMinExtremeMultiplier,
+            maxExtremeMultiplier = TemperatureSettings.exposureMaxExtremeMultiplier,
+            waterGainMultiplier = TemperatureSettings.exposureWaterGainMultiplier,
+            blockProtectionMax = TemperatureSettings.exposureBlockProtectionMax,
+            blockProtectionFullModifier = TemperatureSettings.exposureBlockProtectionFullModifier,
+        )
+    }
+
+    private fun recoverExposurePressure(state: PlayerEnvState, tickIntervalSeconds: Int) {
+        val pressures = TemperatureExposureCalculator.updatePressures(
+            coldPressure = state.coldExposurePressure,
+            heatPressure = state.heatExposurePressure,
+            direction = ExposureDirection.NONE,
+            severity = 0.0,
+            protectionScore = 0.0,
+            isInWater = false,
+            tickSeconds = tickIntervalSeconds.coerceAtLeast(0).toDouble(),
+            settings = exposureSettings(),
+        )
+        state.coldExposurePressure = pressures.cold
+        state.heatExposurePressure = pressures.heat
+    }
+
+    private fun getExposureProtectionScore(
+        totalInsulation: Double,
+        blockRadiationModifier: Double,
+        direction: ExposureDirection,
+    ): Double {
+        val armorAndShelterProtection = if (TemperatureSettings.armorInsulationMax > 0.0) {
+            totalInsulation / TemperatureSettings.armorInsulationMax
+        } else {
+            0.0
+        }
+        val blockProtection = TemperatureExposureCalculator.blockProtection(
+            direction = direction,
+            blockModifier = blockRadiationModifier,
+            settings = exposureSettings(),
+        )
+        return (armorAndShelterProtection + blockProtection).coerceIn(0.0, 1.0)
+    }
+
+    private fun updateAndGetExposureMultiplier(
+        state: PlayerEnvState,
+        effectiveEnvTemp: Double,
+        totalInsulation: Double,
+        blockRadiationModifier: Double,
+        isInWater: Boolean,
+        tickIntervalSeconds: Int,
+    ): Double {
+        val settings = exposureSettings()
+        val direction = TemperatureExposureCalculator.detectDirection(
+            effectiveEnvTemp = effectiveEnvTemp,
+            comfortMin = TemperatureSettings.comfortMin,
+            comfortMax = TemperatureSettings.comfortMax,
+            settings = settings,
+        )
+        val severity = TemperatureExposureCalculator.severity(
+            effectiveEnvTemp = effectiveEnvTemp,
+            comfortMin = TemperatureSettings.comfortMin,
+            comfortMax = TemperatureSettings.comfortMax,
+            direction = direction,
+            settings = settings,
+        )
+        val protectionScore = getExposureProtectionScore(
+            totalInsulation = totalInsulation,
+            blockRadiationModifier = blockRadiationModifier,
+            direction = direction,
+        )
+        val pressures = TemperatureExposureCalculator.updatePressures(
+            coldPressure = state.coldExposurePressure,
+            heatPressure = state.heatExposurePressure,
+            direction = direction,
+            severity = severity,
+            protectionScore = protectionScore,
+            isInWater = isInWater,
+            tickSeconds = tickIntervalSeconds.coerceAtLeast(0).toDouble(),
+            settings = settings,
+        )
+        state.coldExposurePressure = pressures.cold
+        state.heatExposurePressure = pressures.heat
+
+        if (direction == ExposureDirection.NONE) {
+            return 1.0
+        }
+        val activePressure = TemperatureExposureCalculator.activePressure(pressures, direction)
+        return TemperatureExposureCalculator.multiplier(activePressure, settings)
+    }
 
     fun compute(
         player: Player,
@@ -28,6 +122,7 @@ object TemperatureEngine {
             // 在保护期内只更新遮蔽状态和潮湿度，不计算体温
             ShelterDetector.updateState(player, state, tickIntervalSeconds)
             computeWetness(player, state, global, tickIntervalSeconds)
+            recoverExposurePressure(state, tickIntervalSeconds)
             return
         }
 
@@ -127,7 +222,15 @@ object TemperatureEngine {
         val maxChange = TemperatureSettings.maxChangeBase + Math.abs(envDelta) * TemperatureSettings.maxChangeDynamicScale
         val absorptionRate = TemperatureSettings.absorptionRate
         val rawChange = envDelta * (1.0 - Math.exp(-absorptionRate * Math.abs(envDelta)))
-        val change = rawChange.coerceIn(-maxChange, maxChange)
+        val exposureMultiplier = updateAndGetExposureMultiplier(
+            state = state,
+            effectiveEnvTemp = effectiveEnvTemp,
+            totalInsulation = totalInsulation,
+            blockRadiationModifier = blockRadiationModifier,
+            isInWater = isInWater,
+            tickIntervalSeconds = tickIntervalSeconds,
+        )
+        val change = (rawChange * exposureMultiplier).coerceIn(-maxChange, maxChange)
 
         state.temperature += change
         state.temperaturePhase = classifyTemperature(state.temperature)
@@ -297,11 +400,7 @@ object TemperatureEngine {
                 else -> 0.0
             }
 
-            // 检查温度抵抗附魔，每级增加 15% 绝缘值
-            val enchantment = org.bukkit.Registry.ENCHANTMENT.get(EnchantmentRegistry.TEMPERATURE_RESISTANCE_KEY.key())
-            val enchantLevel = if (enchantment != null) armorPiece.getEnchantmentLevel(enchantment) else 0
-            val enchantBonus = if (enchantLevel > 0) 1.0 + enchantLevel * 0.15 else 1.0
-            insulation += baseInsulation * enchantBonus
+            insulation += baseInsulation
         }
         return insulation
     }
