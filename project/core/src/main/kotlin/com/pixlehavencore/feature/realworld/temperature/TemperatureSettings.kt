@@ -99,6 +99,32 @@ object TemperatureSettings {
         private set
     var waterExitBlendThreshold: Double = 0.5
         private set
+    var exposureColdThreshold: Double = 10.0
+        private set
+    var exposureHeatThreshold: Double = 8.0
+        private set
+    var exposureBaseGainPerSecond: Double = 0.018
+        private set
+    var exposureMinGainPerSecond: Double = 0.0025
+        private set
+    var exposureRecoveryPerSecond: Double = 0.01
+        private set
+    var exposureMinExtremeMultiplier: Double = 0.35
+        private set
+    var exposureMaxExtremeMultiplier: Double = 1.0
+        private set
+    var exposureWaterGainMultiplier: Double = 1.5
+        private set
+    var exposureBlockProtectionMax: Double = 0.4
+        private set
+    var exposureBlockProtectionFullModifier: Double = 20.0
+        private set
+    var heatScanStationaryMultiplier: Int = 3
+        private set
+    var heatScanBiomeTempThreshold: Double = 2.0
+        private set
+    var shelterCacheSeconds: Int = 3
+        private set
 
     private const val MAX_SHELTER_HORIZONTAL_RADIUS = 2
 
@@ -168,5 +194,19 @@ object TemperatureSettings {
         regulationEnabled = config.getBoolean("regulation.enabled", true)
         regulationStrength = config.getDouble("regulation.strength", 0.05).coerceAtLeast(0.0)
         waterExitBlendThreshold = config.getDouble("water.exit-blend-threshold", 0.5).coerceIn(0.0, 1.0)
+        exposureColdThreshold = config.getDouble("exposure.cold-threshold", 10.0).coerceAtLeast(0.0)
+        exposureHeatThreshold = config.getDouble("exposure.heat-threshold", 8.0).coerceAtLeast(0.0)
+        exposureBaseGainPerSecond = config.getDouble("exposure.base-gain-per-second", 0.018).coerceAtLeast(0.0)
+        exposureMinGainPerSecond = config.getDouble("exposure.min-gain-per-second", 0.0025).coerceAtLeast(0.0)
+        exposureRecoveryPerSecond = config.getDouble("exposure.recovery-per-second", 0.01).coerceAtLeast(0.0)
+        exposureMinExtremeMultiplier = config.getDouble("exposure.min-extreme-multiplier", 0.35).coerceIn(0.0, 1.0)
+        exposureMaxExtremeMultiplier = config.getDouble("exposure.max-extreme-multiplier", 1.0)
+            .coerceIn(exposureMinExtremeMultiplier, 10.0)
+        exposureWaterGainMultiplier = config.getDouble("exposure.water-gain-multiplier", 1.5).coerceAtLeast(1.0)
+        exposureBlockProtectionMax = config.getDouble("exposure.block-protection-max", 0.4).coerceIn(0.0, 1.0)
+        exposureBlockProtectionFullModifier = config.getDouble("exposure.block-protection-full-modifier", 20.0).coerceAtLeast(0.1)
+        heatScanStationaryMultiplier = config.getInt("performance.heat-scan-stationary-multiplier", 3).coerceAtLeast(1)
+        heatScanBiomeTempThreshold = config.getDouble("performance.heat-scan-biome-temp-threshold", 2.0).coerceAtLeast(0.0)
+        shelterCacheSeconds = config.getInt("performance.shelter-cache-seconds", 3).coerceAtLeast(1)
     }
 }
