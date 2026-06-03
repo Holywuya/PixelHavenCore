@@ -82,7 +82,13 @@ object EconomyUtils {
             } else {
                 economy.withdraw(DEFAULT_PLUGIN, player.uniqueId, "", resolvedCurrency, amount).transactionSuccess()
             }
-        }.getOrDefault(false)
+        }.getOrElse { ex ->
+            if (ex is Exception) {
+                false
+            } else {
+                throw ex  // 重新抛出非 Exception 的 Throwable（如 OOM、StackOverflow）
+            }
+        }
     }
 
     fun withdraw(accountId: UUID, amount: BigDecimal, currency: String? = null): Boolean {
@@ -95,7 +101,13 @@ object EconomyUtils {
             } else {
                 economy.withdraw(DEFAULT_PLUGIN, accountId, "", resolvedCurrency, amount).transactionSuccess()
             }
-        }.getOrDefault(false)
+        }.getOrElse { ex ->
+            if (ex is Exception) {
+                false
+            } else {
+                throw ex  // 重新抛出非 Exception 的 Throwable（如 OOM、StackOverflow）
+            }
+        }
     }
 
     fun deposit(player: OfflinePlayer, amount: BigDecimal, currency: String? = null): Boolean {
@@ -128,7 +140,13 @@ object EconomyUtils {
             } else {
                 economy.deposit(pluginName, player.uniqueId, "", resolvedCurrency, amount).transactionSuccess()
             }
-        }.getOrDefault(false)
+        }.getOrElse { ex ->
+            if (ex is Exception) {
+                false
+            } else {
+                throw ex  // 重新抛出非 Exception 的 Throwable（如 OOM、StackOverflow）
+            }
+        }
     }
 
     private fun deposit(accountId: UUID, amount: BigDecimal, currency: String?, pluginName: String): Boolean {
@@ -141,7 +159,13 @@ object EconomyUtils {
             } else {
                 economy.deposit(pluginName, accountId, "", resolvedCurrency, amount).transactionSuccess()
             }
-        }.getOrDefault(false)
+        }.getOrElse { ex ->
+            if (ex is Exception) {
+                false
+            } else {
+                throw ex  // 重新抛出非 Exception 的 Throwable（如 OOM、StackOverflow）
+            }
+        }
     }
 
     private val economyProvider = supplierLazy<Unit, Economy?> {

@@ -15,9 +15,11 @@ object PlaceholderUtils {
      */
     fun String.resolvePlaceholders(map: Map<String, String>): String {
         if (map.isEmpty()) return this
-        var result = this
         // 按 key 长度降序替换，避免短 key 误匹配长 key 的前缀
-        map.entries.sortedByDescending { it.key.length }.forEach { (key, value) ->
+        val sortedEntries = map.entries.sortedByDescending { it.key.length }
+        var result = this
+        for ((key, value) in sortedEntries) {
+            if (key !in result) continue  // 跳过不存在的占位符，避免不必要的字符串操作
             result = result.replace(key, value)
         }
         return result
