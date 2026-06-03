@@ -38,6 +38,15 @@ class PerKeyLock<K> {
     operator fun get(key: K): Any = map.computeIfAbsent(key) { Any() }
     fun remove(key: K) { map.remove(key) }
     fun clear() { map.clear() }
+    fun size(): Int = map.size
+    
+    /**
+     * 清理指定集合中不存在的锁
+     * 用于在玩家离线等场景清理不再需要的锁
+     */
+    fun cleanup(activeKeys: Set<K>) {
+        map.keys.retainAll(activeKeys)
+    }
 }
 
 /** 解析时长字符串为毫秒。支持 "30d"/"7h"/"60m"/"30s"/"permanent"。默认单位：天。 */

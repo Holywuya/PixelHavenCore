@@ -119,7 +119,7 @@ object OfflineInventoryUtils {
             102 -> 38
             103 -> 39
             -106, 150 -> 40
-            else -> raw
+            else -> -1  // 返回 -1 表示无效的 slot
         }
     }
 

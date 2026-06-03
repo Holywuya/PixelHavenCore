@@ -10,9 +10,9 @@ object RandomUtils {
     }
 
     fun nextInt(min: Int, max: Int): Int {
-        val lower = min.coerceAtLeast(1)
-        val upper = max.coerceAtLeast(lower)
-        return if (upper <= lower) lower else ThreadLocalRandom.current().nextInt(lower, upper + 1)
+        if (min > max) return min
+        if (min == max) return min
+        return ThreadLocalRandom.current().nextInt(min, max + 1)
     }
 
     fun nextDouble(min: Double, max: Double): Double {
