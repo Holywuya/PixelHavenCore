@@ -81,26 +81,27 @@ object MythicMobsBridge {
         }.getOrNull()
     }
 
-    private val levelMethod = supplierLazy<Any, Method?>(typeIsolation = true) { activeMob ->
+    private val levelMethod = supplierLazy<Class<*>, Method?>(typeIsolation = true) { mobClass ->
         listOf("getLevel", "level")
             .firstNotNullOfOrNull { methodName ->
                 runCatching {
-                    activeMob.javaClass.methods
+                    mobClass.methods
                         .firstOrNull { it.name == methodName && it.parameterCount == 0 }
                 }.getOrNull()
             }
     }
 
-    private val levelField = supplierLazy<Any, Field?>(typeIsolation = true) { activeMob ->
+    private val levelField = supplierLazy<Class<*>, Field?>(typeIsolation = true) { mobClass ->
         runCatching {
-            activeMob.javaClass.declaredFields
+            mobClass.declaredFields
                 .firstOrNull { it.name.equals("level", ignoreCase = true) }
                 ?.apply { isAccessible = true }
         }.getOrNull()
     }
 
     private fun resolveMobLevel(activeMob: Any): Int {
-        val method = levelMethod[activeMob]
+        val mobClass = activeMob.javaClass
+        val method = levelMethod[mobClass]
         if (method != null) {
             val byMethod = runCatching {
                 method.invoke(activeMob) as? Number
@@ -109,7 +110,7 @@ object MythicMobsBridge {
                 return byMethod
             }
         }
-        val field = levelField[activeMob]
+        val field = levelField[mobClass]
         if (field != null) {
             val byField = runCatching {
                 field.get(activeMob) as? Number
