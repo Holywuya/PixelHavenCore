@@ -246,10 +246,6 @@ object CraftingBenchService {
         }
     }
 
-    private fun countInventoryMaterial(player: Player, spec: String): Int {
-        return player.inventory.contents.filterNotNull().filter { ItemUtils.matchesSpec(spec, it) }.sumOf { it.amount }
-    }
-
     /**
      * 单次遍历背包统计多种材料规格的库存量，避免对每种材料独立遍历整个背包。
      */

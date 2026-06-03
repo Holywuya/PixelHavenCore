@@ -7,8 +7,12 @@ import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.WeatherType as BukkitWeatherType
 import org.bukkit.entity.Player
+import java.util.concurrent.ConcurrentHashMap
 
 object TemperatureEngine {
+
+    /** biomeName 小写缓存，避免频繁创建字符串 */
+    private val biomeNameCache = ConcurrentHashMap<String, String>()
 
     private fun exposureSettings(): TemperatureExposureSettings {
         return TemperatureExposureSettings(
@@ -264,7 +268,8 @@ object TemperatureEngine {
         }
 
         // Fallback：基于名称的硬编码映射（保留用于兼容）
-        val normalizedName = biomeName.lowercase()
+        // 使用缓存避免频繁创建字符串
+        val normalizedName = biomeNameCache.computeIfAbsent(biomeName) { it.lowercase() }
         return when {
             normalizedName.contains("nether") || normalizedName.contains("basalt") || normalizedName.contains("crimson") || normalizedName.contains("warped") -> 40.0
             normalizedName.contains("desert") || normalizedName.contains("badlands") -> 35.0
@@ -291,7 +296,8 @@ object TemperatureEngine {
             return (2.0 + nativeTemp * 11.0).coerceIn(2.0, 24.0)
         }
 
-        val normalizedName = biomeName.lowercase()
+        // 使用缓存避免频繁创建字符串
+        val normalizedName = biomeNameCache.computeIfAbsent(biomeName) { it.lowercase() }
         return when {
             normalizedName.contains("jungle") || normalizedName.contains("bamboo") -> 24.0
             normalizedName.contains("swamp") || normalizedName.contains("mangrove") -> 22.0
