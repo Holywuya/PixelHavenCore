@@ -2,7 +2,6 @@ import io.izzel.taboolib.gradle.*
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-    compileOnly("ink.ptms:nms-all:1.0.0")
     compileOnly("me.clip:placeholderapi:2.11.6")
     compileOnly("net.milkbowl.vault:VaultUnlockedAPI:2.16")
     compileOnly("net.momirealms:craft-engine-core:26.5")
@@ -12,6 +11,7 @@ dependencies {
     compileOnly(project(":project:bridge"))
     compileOnly(kotlin("stdlib"))
     compileOnly(fileTree(rootProject.file("libs")))
+    testImplementation(kotlin("test"))
 }
 
 taboolib { subproject = true }
