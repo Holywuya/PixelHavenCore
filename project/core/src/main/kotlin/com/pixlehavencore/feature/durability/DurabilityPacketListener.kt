@@ -76,6 +76,22 @@ object DurabilityPacketListener : PacketListener {
             )
 
         val existingLore = TextBridge.getLore(item) ?: emptyList()
+        
+        // 检查最后一行是否已经是正确的耐久度信息，如果是就跳过更新
+        if (existingLore.isNotEmpty()) {
+            val lastLine = TextBridge.toPlain(existingLore.last())
+            val expectedText = format
+                .resolvePlaceholders(
+                    "{current}" to currentDurability.toString(),
+                    "{max}" to maxDurability.toString(),
+                    "{color}" to color
+                )
+                .replace(Regex("§[0-9a-fk-orA-FK-OR]"), "") // 移除颜色代码进行比较
+            if (lastLine.replace(Regex("§[0-9a-fk-orA-FK-OR]"), "") == expectedText) {
+                return null // 已经是正确的耐久度信息，跳过更新
+            }
+        }
+
         val filtered = if (existingLore.isNotEmpty()) {
             val lastLine = TextBridge.toPlain(existingLore.last())
             if (lastLine.contains("耐久")) {

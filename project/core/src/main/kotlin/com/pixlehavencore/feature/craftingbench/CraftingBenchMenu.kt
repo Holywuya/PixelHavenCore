@@ -24,9 +24,13 @@ object CraftingBenchMenu {
     internal const val SLOT_DETAIL_BACK = 53
 
     private val openViews = PlayerSessionMap<CraftingBenchMenuHolder>({ throw IllegalStateException() })
+    
+    // 配方缓存：玩家 UUID -> (缓存时间, 配方列表)
+    private val recipeCache = java.util.concurrent.ConcurrentHashMap<UUID, Pair<Long, List<RecipePreview>>>()
+    private const val CACHE_TTL_MS = 1000L // 缓存有效期 1 秒
 
     fun open(player: Player, tier: BenchTier, category: String? = null, page: Int = 0) {
-        val allPreviews = CraftingBenchService.getAvailableRecipes(player, tier)
+        val allPreviews = getCachedRecipes(player, tier)
         val filtered = if (category != null) allPreviews.filter { it.recipe.category == category } else allPreviews
         val pageSize = CraftingBenchSettings.guiPageSize
         val maxPage = if (filtered.isEmpty()) 0 else (filtered.size - 1) / pageSize
@@ -43,6 +47,7 @@ object CraftingBenchMenu {
             map(
                 "#########",
                 "|.......|",
+
                 "|.......|",
                 "|.......|",
                 "|.......|",
@@ -286,6 +291,20 @@ object CraftingBenchMenu {
         return item
     }
 
+    /**
+     * 获取缓存的配方列表，避免每次打开 GUI 都重新计算
+     */
+    private fun getCachedRecipes(player: Player, tier: BenchTier): List<RecipePreview> {
+        val now = System.currentTimeMillis()
+        val cached = recipeCache[player.uniqueId]
+        if (cached != null && now - cached.first < CACHE_TTL_MS) {
+            return cached.second
+        }
+        val recipes = CraftingBenchService.getAvailableRecipes(player, tier)
+        recipeCache[player.uniqueId] = now to recipes
+        return recipes
+    }
+
 }
 
 enum class CraftingBenchMenuMode {
@@ -303,3 +322,6 @@ class CraftingBenchMenuHolder(
 ) {
     lateinit var backingInventory: Inventory
 }
+
+// 将 getCachedRecipes 方法移到 CraftingBenchMenu 对象内部
+// 添加到 open 方法之后

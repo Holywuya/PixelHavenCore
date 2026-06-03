@@ -17,12 +17,17 @@ import org.bukkit.entity.Player
 object BlockRadiationScanner {
 
     private const val SCAN_RANGE = 5
+    private const val MAX_DIST_SQ = SCAN_RANGE * SCAN_RANGE
 
+    // 在构建时就过滤掉超出球体范围的条目，减少内存使用和迭代次数
     private val scanOffsets = buildList {
         for (x in -SCAN_RANGE..SCAN_RANGE) {
             for (y in -SCAN_RANGE..SCAN_RANGE) {
                 for (z in -SCAN_RANGE..SCAN_RANGE) {
-                    add(ScanOffset(x, y, z, x * x + y * y + z * z))
+                    val distSq = x * x + y * y + z * z
+                    if (distSq <= MAX_DIST_SQ) {
+                        add(ScanOffset(x, y, z, distSq))
+                    }
                 }
             }
         }
@@ -45,11 +50,8 @@ object BlockRadiationScanner {
         var nearestSource: HeatSource? = null
         var nearestDistSq = Int.MAX_VALUE
 
-        val maxDistSq = SCAN_RANGE * SCAN_RANGE
+        // 所有偏移量已经在构建时过滤，无需再次检查
         for (offset in scanOffsets) {
-            // 球体裁剪：跳过超出半径的方块
-            if (offset.distSqInt > maxDistSq) continue
-
             val block = originBlock.getRelative(offset.x, offset.y, offset.z)
             val temp = temperatureBlocks[block.type] ?: continue
             if (!isBlockActive(block)) continue

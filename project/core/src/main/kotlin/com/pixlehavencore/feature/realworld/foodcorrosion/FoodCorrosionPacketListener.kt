@@ -8,6 +8,7 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerWi
 import io.github.retrooper.packetevents.util.SpigotConversionUtil
 import com.pixlehavencore.bridge.TextBridge
 import net.kyori.adventure.text.Component
+import org.bukkit.Material
 import org.bukkit.inventory.ItemStack
 import com.pixlehavencore.util.TextUtils
 
@@ -39,6 +40,11 @@ object FoodCorrosionPacketListener : PacketListener {
         val items = wrapper.items
         var changed = false
         val newItems = items.map { peItem ->
+            // 快速检查：如果物品类型不是食物，跳过转换
+            val materialName = peItem.type.name.toString()
+            val material = Material.matchMaterial(materialName) ?: return@map peItem
+            if (!material.isEdible) return@map peItem
+            
             val bukkitItem = SpigotConversionUtil.toBukkitItemStack(peItem)
             if (!FoodCorrosionEngine.isCorrosiveFood(bukkitItem)) return@map peItem
             val modified = appendCorrosionLore(bukkitItem)
