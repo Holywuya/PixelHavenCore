@@ -36,19 +36,21 @@ object WeatherCache {
 
         val weather = compute()
 
-        if (cache.size >= maxCacheSize) {
-            // O(n) 单次遍历找最旧条目移除，避免 O(n log n) 排序
-            var oldestKey: Long? = null
-            var oldestTimestamp = Long.MAX_VALUE
-            for (entry in cache.entries) {
-                if (entry.value.timestamp < oldestTimestamp) {
-                    oldestTimestamp = entry.value.timestamp
-                    oldestKey = entry.key
+        synchronized(cache) {
+            if (cache.size >= maxCacheSize) {
+                // O(n) 单次遍历找最旧条目移除，避免 O(n log n) 排序
+                var oldestKey: Long? = null
+                var oldestTimestamp = Long.MAX_VALUE
+                for (entry in cache.entries) {
+                    if (entry.value.timestamp < oldestTimestamp) {
+                        oldestTimestamp = entry.value.timestamp
+                        oldestKey = entry.key
+                    }
                 }
+                oldestKey?.let { cache.remove(it) }
             }
-            oldestKey?.let { cache.remove(it) }
+            cache[key] = CachedWeather(weather, now)
         }
-        cache[key] = CachedWeather(weather, now)
 
         return weather
     }

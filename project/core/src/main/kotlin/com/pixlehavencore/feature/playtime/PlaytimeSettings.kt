@@ -61,7 +61,7 @@ object PlaytimeSettings {
     }
 
     fun formatSeconds(seconds: Long): String {
-        if (seconds <= 0) return "0分钟"
+        if (seconds <= 0) return "0秒"
         val days = seconds / 86400
         val hours = (seconds % 86400) / 3600
         val minutes = (seconds % 3600) / 60
