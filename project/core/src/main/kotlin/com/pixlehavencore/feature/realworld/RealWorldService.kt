@@ -290,22 +290,23 @@ object RealWorldService {
         if (!RealWorldSettings.enabled) {
             return
         }
+        var eventToFire: RealWorldSeasonChangedEvent? = null
         synchronized(globalStateLock) {
             val state = globalState ?: return
             val previousSeason = state.season
             state.season = season
             state.seasonProgress = 0.0
             if (previousSeason != season) {
-                Bukkit.getPluginManager().callEvent(
-                    RealWorldSeasonChangedEvent(
-                        previousSeason = previousSeason,
-                        season = season,
-                        seasonProgress = 0.0,
-                    ),
+                eventToFire = RealWorldSeasonChangedEvent(
+                    previousSeason = previousSeason,
+                    season = season,
+                    seasonProgress = 0.0,
                 )
             }
             RealWorldStorage.markGlobalDirty(state)
         }
+        // 在锁外触发事件，避免死锁
+        eventToFire?.let { Bukkit.getPluginManager().callEvent(it) }
     }
 
     fun forceWeather(weather: WeatherType) {

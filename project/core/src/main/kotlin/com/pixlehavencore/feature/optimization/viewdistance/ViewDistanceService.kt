@@ -280,8 +280,8 @@ object ViewDistanceService {
     private object ViewDistanceAdapter {
         private val viewDistanceMethods = ConcurrentHashMap<Class<*>, Method?>()
         private val simulationDistanceMethods = ConcurrentHashMap<Class<*>, Method?>()
-        private var warnedUnsupported = false
-        private var warnedInvokeFailed = false
+        @Volatile private var warnedUnsupported = false
+        @Volatile private var warnedInvokeFailed = false
 
         fun applyViewDistance(player: Player, value: Int): Boolean {
             val method = findMethod(player, "setViewDistance", viewDistanceMethods)
