@@ -444,8 +444,8 @@ object TemperatureEngine {
         // 检查玩家位置是否在淋雨（考虑遮蔽）
         val isRainingHere = !state.isWeatherSheltered && state.isActuallyRaining
 
-        // 同步客户端天气视觉效果
-        syncPlayerWeatherVisual(player, state, isRainingHere)
+        // 同步客户端天气视觉效果（跟随实际天气，遮蔽不影响视觉）
+        syncPlayerWeatherVisual(player, state, state.isActuallyRaining)
 
         when {
             player.isInWater -> state.wetness += TemperatureSettings.wetnessRateSubmerge * dt
