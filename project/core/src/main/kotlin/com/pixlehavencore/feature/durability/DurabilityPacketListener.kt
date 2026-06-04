@@ -64,7 +64,7 @@ object DurabilityPacketListener : PacketListener {
         if (maxDurability <= 0) return null
 
         val currentDamage = meta.damage
-        val currentDurability = maxDurability - currentDamage
+        val currentDurability = (maxDurability - currentDamage).coerceAtLeast(0)
         val color = durabilityColor(currentDurability.toInt(), maxDurability.toInt())
 
         val format = DurabilitySettings.loreFormat
