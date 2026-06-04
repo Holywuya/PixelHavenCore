@@ -88,6 +88,7 @@ object EconomyStorageService {
     }
 
     fun has(accountId: UUID, currency: String, amount: BigDecimal): Boolean {
+        if (!ready) return false
         if (amount.signum() <= 0) return true
         synchronized(accountLocks[accountId]) {
             return getBalance(accountId, currency) >= amount

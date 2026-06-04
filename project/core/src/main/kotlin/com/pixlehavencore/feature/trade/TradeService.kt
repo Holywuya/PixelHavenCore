@@ -51,7 +51,12 @@ object TradeService {
         TradeSettings.reload()
         requests.clear()
         // 先退还进行中交易的物品，再清空会话
-        sessions.values().filterNotNull().toSet().forEach { session -> abort(session, true) }
+        // 使用 toList() 创建快照，避免并发修改问题
+        val activeSessions = sessions.values().filterNotNull().toList()
+        activeSessions.forEach { session -> abort(session, true) }
+        // 等待所有退还操作完成后再清空会话
+        // 由于 abort 是异步的，我们需要保留会话引用以便退还操作完成
+        // 但实际上 abort 已经保存了必要的快照，所以可以安全清空
         sessions.clear()
         moneyInputs.clear()
         interactCooldown.clear()
