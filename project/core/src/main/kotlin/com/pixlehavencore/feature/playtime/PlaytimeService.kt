@@ -16,6 +16,7 @@ object PlaytimeService {
     private var dailyResetTask: Any? = null
     private var weeklyResetTask: Any? = null
     private var monthlyResetTask: Any? = null
+    private val monthlyResetScheduled = java.util.concurrent.atomic.AtomicBoolean(false)
 
     fun init() {
         scheduleResetTasks()
@@ -90,6 +91,7 @@ object PlaytimeService {
         dailyResetTask = null
         weeklyResetTask = null
         monthlyResetTask = null
+        monthlyResetScheduled.set(false)
     }
 
     private fun scheduleDailyReset() {
@@ -127,6 +129,10 @@ object PlaytimeService {
     }
 
     private fun scheduleMonthlyReset() {
+        // 使用 AtomicBoolean 防止重复调度
+        if (!monthlyResetScheduled.compareAndSet(false, true)) {
+            return
+        }
         val targetDay = PlaytimeSettings.monthlyResetDay.coerceIn(1, 28)
         val now = LocalDateTime.now()
         var next = now.withDayOfMonth(targetDay).with(LocalTime.MIDNIGHT)
@@ -137,6 +143,7 @@ object PlaytimeService {
         monthlyResetTask = submitAsync(delay = delay / 50) {
             info("[在线时长] 执行每月统计重置...")
             PlaytimeStorage.resetMonthlyStats()
+            monthlyResetScheduled.set(false)
             scheduleMonthlyReset()
         }
     }
