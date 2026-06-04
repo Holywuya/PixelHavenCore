@@ -247,50 +247,48 @@ object FlightService {
                 val uuid = player.uniqueId
                 val data = playerData[uuid] ?: continue
 
-                // 旁观模式跳过
-                if (player.gameMode == GameMode.SPECTATOR) {
-                    continue
-                }
-
-                // 绕过玩家：不消耗、不限制、不显示
-                if (isBypass(player)) {
-                    if (!player.allowFlight) {
-                        player.submitOnEntity { player.allowFlight = true }
+                // Folia: 将玩家状态读取和处理都移到实体线程
+                player.submitOnEntity {
+                    // 旁观模式跳过
+                    if (player.gameMode == GameMode.SPECTATOR) {
+                        return@submitOnEntity
                     }
-                    continue
-                }
 
-                if (!isWorldEnabled(player.world.name)) {
-                    if (player.allowFlight) {
-                        player.submitOnEntity {
+                    // 绕过玩家：不消耗、不限制、不显示
+                    if (isBypass(player)) {
+                        if (!player.allowFlight) {
+                            player.allowFlight = true
+                        }
+                        return@submitOnEntity
+                    }
+
+                    if (!isWorldEnabled(player.world.name)) {
+                        if (player.allowFlight) {
                             player.isFlying = false
                             player.allowFlight = false
+                            playerData[uuid] = data.copy(manualDisable = false)
                         }
-                        playerData[uuid] = data.copy(manualDisable = false)
+                        return@submitOnEntity
                     }
-                    continue
-                }
 
-                // 注意：player.isFlying 在非实体线程读取，最多延迟一个 tick 刷新，可接受
-                if (player.isFlying) {
-                    if (data.isUnlimited) {
-                        sendFlightActionBar(player, data)
-                        continue
-                    }
-                    if (data.effectiveSeconds <= 0) {
-                        player.submitOnEntity {
+                    if (player.isFlying) {
+                        if (data.isUnlimited) {
+                            sendFlightActionBar(player, data)
+                            return@submitOnEntity
+                        }
+                        if (data.effectiveSeconds <= 0) {
                             player.isFlying = false
                             player.allowFlight = false
+                            playerData[uuid] = data.copy(manualDisable = false)
+                            if (FlightSettings.msgTimeExpired.isNotBlank()) {
+                                TextBridge.sendActionBar(player, TextUtils.parse(FlightSettings.msgTimeExpired))
+                            }
+                            return@submitOnEntity
                         }
-                        playerData[uuid] = data.copy(manualDisable = false)
-                        if (FlightSettings.msgTimeExpired.isNotBlank()) {
-                            TextBridge.sendActionBar(player, TextUtils.parse(FlightSettings.msgTimeExpired))
-                        }
-                        continue
+                        val newData = decrementTime(data)
+                        playerData[uuid] = newData
+                        sendFlightActionBar(player, newData)
                     }
-                    val newData = decrementTime(data)
-                    playerData[uuid] = newData
-                    sendFlightActionBar(player, newData)
                 }
             }
         }

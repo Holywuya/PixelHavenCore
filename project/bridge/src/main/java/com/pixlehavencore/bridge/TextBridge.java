@@ -77,7 +77,9 @@ public final class TextBridge {
         if (lines == null || lines.isEmpty()) return List.of();
         List<Component> result = new ArrayList<>(lines.size());
         for (String line : lines) {
-            result.add(fromAmpersand(line));
+            if (line != null) {
+                result.add(fromAmpersand(line));
+            }
         }
         return result;
     }
@@ -87,7 +89,9 @@ public final class TextBridge {
         if (components == null || components.isEmpty()) return List.of();
         List<String> result = new ArrayList<>(components.size());
         for (Component line : components) {
-            result.add(toLegacy(line));
+            if (line != null) {
+                result.add(toLegacy(line));
+            }
         }
         return result;
     }
@@ -97,7 +101,9 @@ public final class TextBridge {
         if (components == null || components.isEmpty()) return List.of();
         List<String> result = new ArrayList<>(components.size());
         for (Component line : components) {
-            result.add(toPlain(line));
+            if (line != null) {
+                result.add(toPlain(line));
+            }
         }
         return result;
     }

@@ -28,10 +28,6 @@ object NotificationService {
         }
 
         startAutoNotifications()
-
-        if (NotificationSettings.autoNotificationsEnabled) {
-            info("服务器通知模块已启用 - 自动通知间隔: ${NotificationSettings.autoNotificationsInterval}")
-        }
     }
 
     fun reload() {

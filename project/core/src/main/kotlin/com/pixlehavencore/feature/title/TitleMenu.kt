@@ -140,6 +140,9 @@ object TitleMenu {
         val cols = 9 - baseCol
         val clickRow = slot / 9
         val clickCol = slot % 9
+        val maxRow = TitleSettings.guiRows - 1
+        // 检查是否在边框行（第一行和最后一行）
+        if (clickRow <= 0 || clickRow >= maxRow) return -1
         if (clickRow < baseRow || clickCol < baseCol || clickCol >= baseCol + cols) return -1
         return (clickRow - baseRow) * cols + (clickCol - baseCol)
     }
