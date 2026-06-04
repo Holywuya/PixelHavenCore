@@ -210,9 +210,10 @@ object CraftingBenchService {
         val recipe = recipes[task.recipeId]
         synchronized(queue) {
             queue.removeIf { it.taskId == taskId }
-        }
-        if (queue.isEmpty()) {
-            queues.remove(player.uniqueId)
+            // 在 synchronized 块内检查队列是否为空
+            if (queue.isEmpty()) {
+                queues.remove(player.uniqueId)
+            }
         }
         if (recipe != null) {
             refundMaterials(player, recipe, task.craftCount)

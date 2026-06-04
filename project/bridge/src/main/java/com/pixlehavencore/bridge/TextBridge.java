@@ -130,6 +130,7 @@ public final class TextBridge {
 
     /** 设置 displayName（& 颜色码） */
     public static void setDisplayName(ItemStack item, String legacyName) {
+        if (legacyName == null) return;
         setDisplayName(item, fromAmpersand(legacyName));
     }
 

@@ -154,7 +154,8 @@ object ConfigAlignService {
                 // 只设置叶子节点（不是某个子节点的父路径），避免覆盖已有的 section
                 val isParent = templateKeys.any { other -> other != key && other.startsWith("$key.") }
                 // 二次确认：若当前文件中该键已存在（值非 null），跳过，绝不覆盖用户已设置的值
-                if (!isParent && current.get(key) == null) {
+                // 使用 get(key, true) 避免自动创建 section
+                if (!isParent && current.get(key, true) == null) {
                     current.set(key, template.get(key))
                     changed = true
                     info("[Config] [$resourcePath] 补全缺失配置键: $key = ${template.get(key)}")
