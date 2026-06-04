@@ -128,7 +128,10 @@ object MMHealthBarService {
                 val mobInfo = MythicMobsBridge.resolveMobInfo(entity)
                 val name = mobInfo?.displayName ?: "Unknown"
                 updateBar(player, entry.bossBar, name, damageable.health, maxHealth, 0.0)
-                activeBars[playerUuid] = entry.copy(lastDamage = 0.0)
+                // 使用 synchronized 确保复合操作的原子性
+                synchronized(activeBars) {
+                    activeBars[playerUuid] = entry.copy(lastDamage = 0.0)
+                }
             }
         }
     }
