@@ -348,6 +348,7 @@ object PlaytimeStorage {
         runCatching {
             ids.forEach { uuid ->
                 persistPlayer(currentHandler, uuid)
+                // 只有在成功保存后才移除脏标记
                 dirtyPlayers.remove(uuid)
             }
         }.onFailure { ex ->
