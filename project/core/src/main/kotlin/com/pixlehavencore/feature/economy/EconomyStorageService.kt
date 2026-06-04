@@ -162,6 +162,10 @@ object EconomyStorageService {
         return result
     }
 
+    /**
+     * 原始扣款操作，余额不足时会截断为 0。
+     * 注意：此方法不会拒绝操作，调用方应使用 tryWithdraw 进行余额检查。
+     */
     fun rawWithdraw(accountId: UUID, currency: String, amount: BigDecimal, exempt: Boolean = false): BigDecimal {
         val result: BigDecimal
         var notifyDelta = BigDecimal.ZERO

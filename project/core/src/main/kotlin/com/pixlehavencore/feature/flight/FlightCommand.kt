@@ -176,9 +176,9 @@ object FlightCommand {
         val regex = Regex("(\\d+)([hms])")
         val matches = regex.findAll(trimmed).toList()
         if (matches.isEmpty()) return null
-        var total = 0
+        var total = 0L
         for (m in matches) {
-            val value = m.groupValues[1].toIntOrNull() ?: return null
+            val value = m.groupValues[1].toLongOrNull() ?: return null
             total += when (m.groupValues[2]) {
                 "h" -> value * 3600
                 "m" -> value * 60
@@ -186,6 +186,8 @@ object FlightCommand {
                 else -> return null
             }
         }
-        return total
+        // 检查是否溢出 Int 范围
+        if (total > Int.MAX_VALUE) return Int.MAX_VALUE
+        return total.toInt()
     }
 }
