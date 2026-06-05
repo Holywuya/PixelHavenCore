@@ -44,7 +44,6 @@ import com.pixlehavencore.feature.title.TitleService
 import com.pixlehavencore.feature.title.TitlePlaceholders
 import com.pixlehavencore.util.BaikirutoItemsUtil
 import com.pixlehavencore.util.CraftEngineItemsUtil
-import com.pixlehavencore.util.DatabaseUtils
 import com.pixlehavencore.util.EconomyUtils
 import com.pixlehavencore.util.ItemUtils
 import taboolib.common.platform.Plugin
@@ -55,7 +54,6 @@ object PixleHavenCore : Plugin() {
     override fun onEnable() {
         ConfigAlignService.alignAll()
         PixleHavenSettings.init()
-        DatabaseUtils.setupDatabase()
         VeinminerSettings.init()
         VeinminerLimitService.init()
         GrindstoneRepairSettings.init()
@@ -159,6 +157,5 @@ object PixleHavenCore : Plugin() {
         TradeService.stop()
         VanishService.stop()
         ItemUtils.clearHeadCache()
-        DatabaseUtils.closeDataSource()
     }
 }

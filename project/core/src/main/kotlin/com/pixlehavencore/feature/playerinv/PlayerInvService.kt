@@ -1473,7 +1473,7 @@ object PlayerInvService {
     private fun closeStorage() {
         DatabaseUtils.closeMultipleHandler(personalDataHandler)
         personalDataHandler = null
-        // 共享连接池由 DatabaseUtils.closeDataSource() 统一管理，不在此处关闭
+        dataSource?.close()
         dataSource = null
     }
 
