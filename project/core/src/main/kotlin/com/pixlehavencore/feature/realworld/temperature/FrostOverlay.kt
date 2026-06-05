@@ -12,10 +12,11 @@ import org.bukkit.entity.Player
  */
 object FrostOverlay {
 
+    private const val FROST_TICKS = 250
+
     fun update(player: Player, phase: TemperaturePhase) {
         val ticks = when (phase) {
-            TemperaturePhase.COLD -> TemperatureSettings.frostOverlayColdIntensity
-            TemperaturePhase.SEVERE_COLD -> TemperatureSettings.frostOverlaySevereColdIntensity
+            TemperaturePhase.COLD, TemperaturePhase.SEVERE_COLD -> FROST_TICKS
             else -> 0
         }
 

@@ -4,7 +4,6 @@ import com.pixlehavencore.bridge.TextBridge
 import com.pixlehavencore.feature.realworld.fracture.FractureEngine
 import com.pixlehavencore.feature.realworld.fracture.FractureSeverity
 import com.pixlehavencore.feature.realworld.temperature.FrostOverlay
-import com.pixlehavencore.feature.realworld.temperature.HeatOverlay
 import com.pixlehavencore.feature.realworld.weather.WeatherQuery
 import com.pixlehavencore.util.TextUtils
 import org.bukkit.Bukkit
@@ -31,7 +30,6 @@ object SurvivalHud {
             renderActionBar(player, state, global)
             renderBossBar(player, state)
             FrostOverlay.update(player, state.temperaturePhase)
-            HeatOverlay.update(player, state.temperaturePhase)
         }
     }
 
@@ -149,6 +147,5 @@ object SurvivalHud {
     fun onPlayerQuit(player: Player) {
         removeBossBar(player)
         FrostOverlay.clear(player)
-        HeatOverlay.clear(player)
     }
 }

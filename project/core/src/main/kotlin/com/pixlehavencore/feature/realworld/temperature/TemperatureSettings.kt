@@ -57,14 +57,6 @@ object TemperatureSettings {
         private set
     var severeColdThreshold: Double = -5.0
         private set
-    var frostOverlayColdIntensity: Int = 100
-        private set
-    var frostOverlaySevereColdIntensity: Int = 250
-        private set
-    var heatOverlayHeatIntensity: Double = 0.3
-        private set
-    var heatOverlaySevereIntensity: Double = 0.8
-        private set
     var wetnessRateSubmerge: Double = 0.05
         private set
     var wetnessRateRain: Double = 0.01
@@ -160,10 +152,6 @@ object TemperatureSettings {
         coldMildThreshold = config.getDouble("thresholds.cold-mild", 15.0)
         coldThreshold = config.getDouble("thresholds.cold", 5.0)
         severeColdThreshold = config.getDouble("thresholds.severe-cold", -5.0)
-        frostOverlayColdIntensity = config.getInt("frost-overlay.cold-intensity", 100).coerceIn(0, 299)
-        frostOverlaySevereColdIntensity = config.getInt("frost-overlay.severe-cold-intensity", 250).coerceIn(0, 299)
-        heatOverlayHeatIntensity = config.getDouble("heat-overlay.heat-intensity", 0.3).coerceIn(0.0, 1.0)
-        heatOverlaySevereIntensity = config.getDouble("heat-overlay.severe-intensity", 0.8).coerceIn(0.0, 1.0)
         wetnessRateSubmerge = config.getDouble("wetness.rate-submerge", 0.05).coerceAtLeast(0.0)
         wetnessRateRain = config.getDouble("wetness.rate-rain", 0.01).coerceAtLeast(0.0)
         wetnessDryRate = config.getDouble("wetness.dry-rate", 0.005).coerceAtLeast(0.0)
