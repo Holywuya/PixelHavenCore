@@ -369,7 +369,8 @@ object TemperatureEngine {
     private fun getArmorInsulation(player: Player): Double {
         var insulation = 0.0
         for (armorPiece in player.inventory.armorContents) {
-            val material = armorPiece?.type ?: continue
+            if (armorPiece == null || armorPiece.type.isAir) continue
+            val material = armorPiece.type
             val baseInsulation = when (material) {
                 Material.LEATHER_HELMET,
                 Material.LEATHER_CHESTPLATE,
@@ -410,7 +411,9 @@ object TemperatureEngine {
                 else -> 0.0
             }
 
-            insulation += baseInsulation
+            val protectionLevel = armorPiece.enchantments[org.bukkit.enchantments.Enchantment.PROTECTION] ?: 0
+            val protectionMultiplier = 1.0 + protectionLevel * TemperatureSettings.protectionInsulationPerLevel
+            insulation += baseInsulation * protectionMultiplier
         }
         return insulation
     }

@@ -45,6 +45,8 @@ object TemperatureSettings {
         private set
     var armorInsulationMax: Double = 0.7
         private set
+    var protectionInsulationPerLevel: Double = 0.05
+        private set
     var severeHeatThreshold: Double = 42.0
         private set
     var heatThreshold: Double = 36.0
@@ -152,6 +154,7 @@ object TemperatureSettings {
         armorInsulationDiamond = config.getDouble("armor-insulation.diamond", 0.10).coerceAtLeast(0.0)
         armorInsulationNetherite = config.getDouble("armor-insulation.netherite", 0.12).coerceAtLeast(0.0)
         armorInsulationMax = config.getDouble("armor-insulation.max", 0.7).coerceIn(0.0, 1.0)
+        protectionInsulationPerLevel = config.getDouble("armor-insulation.protection-per-level", 0.05).coerceAtLeast(0.0)
         severeHeatThreshold = config.getDouble("thresholds.severe-heat", 42.0)
         heatThreshold = config.getDouble("thresholds.heat", 36.0)
         coldMildThreshold = config.getDouble("thresholds.cold-mild", 15.0)
