@@ -89,7 +89,7 @@ object RealWorldStorage {
 
         DatabaseUtils.closeMultipleHandler(playerHandler)
         playerHandler = null
-        dataSource?.close()
+        // 共享连接池由 DatabaseUtils.closeDataSource() 统一管理，不在此处关闭
         dataSource = null
         playerCache.clear()
         dirtyPlayers.clear()
