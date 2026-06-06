@@ -1,0 +1,238 @@
+package com.pixlehavencore.feature.base
+
+import com.pixlehavencore.bridge.TextBridge
+import com.pixlehavencore.util.TextUtils
+import com.pixlehavencore.util.cancelTaskSafely
+import org.bukkit.Bukkit
+import org.bukkit.Location
+import org.bukkit.entity.Player
+import taboolib.common.platform.function.submitAsync
+import taboolib.platform.util.submit as submitOnEntity
+import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
+
+data class BackData(
+    val location: Location,
+    val reason: String,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
+data class WarmupState(
+    val targetLocation: Location,
+    val startLocation: Location,
+    var remaining: Int,
+    var taskRef: Any,
+    var cancelled: Boolean = false
+)
+
+object BackService {
+
+    private val cooldowns = ConcurrentHashMap<UUID, Long>()
+    private val warmups = ConcurrentHashMap<UUID, WarmupState>()
+
+    fun init() {
+        BackSettings.init()
+        stop()
+    }
+
+    fun reload() {
+        stop()
+        BackSettings.reload()
+    }
+
+    fun stop() {
+        for ((_, state) in warmups) {
+            state.taskRef.cancelTaskSafely()
+        }
+        warmups.clear()
+    }
+
+    fun isEnabled(): Boolean = BackSettings.enabled
+
+    fun getBackData(player: UUID): BackData? {
+        var data = BackStorage.get(player)
+        if (data != null) return data
+        data = BackStorage.loadFromDatabase(player)
+        if (data != null) {
+            BackStorage.set(player, data)
+        }
+        return data
+    }
+
+    fun record(player: UUID, location: Location, reason: String) {
+        if (!BackSettings.enabled) return
+        val data = BackData(location = location.clone(), reason = reason)
+        BackStorage.set(player, data)
+    }
+
+    fun teleportBack(player: Player): Boolean {
+        if (!BackSettings.enabled) {
+            player.sendMessage(TextUtils.parse(BackSettings.msgModuleDisabled))
+            return false
+        }
+
+        val uuid = player.uniqueId
+
+        if (warmups.containsKey(uuid)) {
+            player.sendMessage(TextUtils.parse(BackSettings.msgAlreadyWarmingUp))
+            return false
+        }
+
+        val lastUse = cooldowns[uuid]
+        if (lastUse != null && BackSettings.cooldownSeconds > 0) {
+            val elapsed = (System.currentTimeMillis() - lastUse) / 1000
+            if (elapsed < BackSettings.cooldownSeconds) {
+                val remaining = BackSettings.cooldownSeconds - elapsed
+                player.sendMessage(
+                    TextUtils.parse(BackSettings.msgCooldown.replace("{time}", remaining.toString()))
+                )
+                return false
+            }
+        }
+
+        val data = getBackData(uuid)
+        if (data == null) {
+            player.sendMessage(TextUtils.parse(BackSettings.msgNoLocation))
+            return false
+        }
+
+        val targetWorldName = data.location.world?.name ?: run {
+            player.sendMessage(TextUtils.parse("&c目标世界不可用。"))
+            return false
+        }
+
+        submitAsync {
+            val targetWorld = Bukkit.getWorld(targetWorldName)
+            if (targetWorld == null) {
+                BackStorage.remove(uuid)
+                player.sendMessage(TextUtils.parse("&c目标世界不可用。"))
+                return@submitAsync
+            }
+            val targetLoc = Location(targetWorld, data.location.x, data.location.y, data.location.z, data.location.yaw, data.location.pitch)
+
+            if (BackSettings.warmupSeconds <= 0) {
+                doTeleport(player, targetLoc, uuid)
+            } else {
+                startWarmup(player, targetLoc, uuid)
+            }
+        }
+
+        return true
+    }
+
+    fun cancelWarmup(uuid: UUID) {
+        warmups[uuid]?.let { it.cancelled = true }
+    }
+
+    private fun startWarmup(player: Player, targetLoc: Location, uuid: UUID) {
+        val startLoc = player.location.clone()
+        player.sendMessage(
+            TextUtils.parse(BackSettings.msgWarmupStarting.replace("{time}", BackSettings.warmupSeconds.toString()))
+        )
+
+        val warmupState = WarmupState(
+            targetLocation = targetLoc,
+            startLocation = startLoc,
+            remaining = BackSettings.warmupSeconds,
+            taskRef = Any()
+        )
+
+        val task = player.submitOnEntity(delay = 0L, period = 20L) {
+            if (!player.isOnline) {
+                warmups.remove(uuid)
+                warmupState.taskRef.cancelTaskSafely()
+                return@submitOnEntity
+            }
+
+            if (BackSettings.cancelOnDamage && warmupState.cancelled) {
+                warmups.remove(uuid)
+                warmupState.taskRef.cancelTaskSafely()
+                player.sendMessage(TextUtils.parse(BackSettings.msgWarmupCancelled))
+                return@submitOnEntity
+            }
+
+            if (BackSettings.cancelOnMove && warmupState.remaining < BackSettings.warmupSeconds) {
+                val currentLoc = player.location
+                if (currentLoc.blockX != warmupState.startLocation.blockX ||
+                    currentLoc.blockY != warmupState.startLocation.blockY ||
+                    currentLoc.blockZ != warmupState.startLocation.blockZ
+                ) {
+                    warmups.remove(uuid)
+                    warmupState.taskRef.cancelTaskSafely()
+                    player.sendMessage(TextUtils.parse(BackSettings.msgWarmupCancelled))
+                    return@submitOnEntity
+                }
+            }
+
+            if (warmupState.remaining <= 0) {
+                warmups.remove(uuid)
+                warmupState.taskRef.cancelTaskSafely()
+                doTeleport(player, warmupState.targetLocation, uuid)
+                return@submitOnEntity
+            }
+
+            TextBridge.sendActionBar(
+                player,
+                TextUtils.parse(BackSettings.msgWarmupStarting.replace("{time}", warmupState.remaining.toString()))
+            )
+            warmupState.remaining--
+        }
+
+        warmupState.taskRef = task
+        warmups[uuid] = warmupState
+    }
+
+    private fun doTeleport(player: Player, targetLoc: Location, uuid: UUID) {
+        val safeLoc = if (BackSettings.unsafeTeleport) {
+            targetLoc
+        } else {
+            findSafeLocation(targetLoc)
+        }
+
+        if (safeLoc == null) {
+            player.sendMessage(TextUtils.parse("&c未找到安全传送位置。"))
+            return
+        }
+
+        player.submitOnEntity {
+            player.teleport(safeLoc)
+            cooldowns[uuid] = System.currentTimeMillis()
+            player.sendMessage(TextUtils.parse(BackSettings.msgTeleported))
+        }
+    }
+
+    private fun findSafeLocation(location: Location): Location? {
+        val world = location.world ?: return null
+        val block = world.getBlockAt(location.blockX, location.blockY, location.blockZ)
+
+        if (block.isPassable && world.getBlockAt(location.blockX, location.blockY + 1, location.blockZ).isPassable) {
+            return location.clone()
+        }
+
+        for (dy in 1..8) {
+            val y = location.blockY + dy
+            if (y > world.maxHeight) break
+            val b = world.getBlockAt(location.blockX, y, location.blockZ)
+            val above = world.getBlockAt(location.blockX, y + 1, location.blockZ)
+            if (b.isPassable && above.isPassable) {
+                val safeLoc = location.clone()
+                safeLoc.y = y + 0.0
+                return safeLoc
+            }
+        }
+
+        for (dy in 1..8) {
+            val y = location.blockY - dy
+            if (y < world.minHeight) break
+            val b = world.getBlockAt(location.blockX, y, location.blockZ)
+            val above = world.getBlockAt(location.blockX, y + 1, location.blockZ)
+            if (b.isPassable && above.isPassable) {
+                val safeLoc = location.clone()
+                safeLoc.y = y + 0.0
+                return safeLoc
+            }
+        }
+
+        return null
+    }
+}
