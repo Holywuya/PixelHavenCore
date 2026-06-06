@@ -1,6 +1,8 @@
 package com.pixlehavencore.feature.base.back
 
+import com.pixlehavencore.bridge.FoliaCompat
 import com.pixlehavencore.bridge.TextBridge
+import com.pixlehavencore.util.SafeLocationFinder
 import com.pixlehavencore.util.TextUtils
 import com.pixlehavencore.util.cancelTaskSafely
 import net.kyori.adventure.text.event.ClickEvent
@@ -9,6 +11,7 @@ import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.entity.Player
 import taboolib.common.platform.function.submitAsync
+import taboolib.common.platform.function.warning
 import taboolib.platform.util.submit as submitOnEntity
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -104,7 +107,7 @@ object BackService {
             val targetLoc = Location(targetWorld, data.location.x, data.location.y, data.location.z, data.location.yaw, data.location.pitch)
 
             if (BackSettings.warmupSeconds <= 0) {
-                doTeleport(player, targetLoc, uuid)
+                doTeleportAsync(player, targetLoc, uuid)
             } else {
                 startWarmup(player, targetLoc, uuid)
             }
@@ -170,7 +173,7 @@ object BackService {
             if (warmupState.remaining <= 0) {
                 warmups.remove(uuid)
                 warmupState.taskRef.cancelTaskSafely()
-                doTeleport(player, warmupState.targetLocation, uuid)
+                doTeleportAsync(player, warmupState.targetLocation, uuid)
                 return@submitOnEntity
             }
 
@@ -185,60 +188,38 @@ object BackService {
         warmups[uuid] = warmupState
     }
 
-    private fun doTeleport(player: Player, targetLoc: Location, uuid: UUID) {
-        val plugin = Bukkit.getPluginManager().getPlugin("phcore") ?: return
-        Bukkit.getRegionScheduler().run(plugin, targetLoc) {
-            if (!player.isOnline) return@run
+    private fun doTeleportAsync(player: Player, targetLoc: Location, uuid: UUID) {
+        if (!player.isOnline) return
 
-            val safeLoc = if (BackSettings.unsafeTeleport) {
-                targetLoc
-            } else {
-                findSafeLocation(targetLoc)
+        val chunkFuture = FoliaCompat.getChunkAtAsync(targetLoc)
+            .orTimeout(BackSettings.chunkLoadTimeoutSeconds.toLong(), java.util.concurrent.TimeUnit.SECONDS)
+
+        chunkFuture.thenApply { chunk -> chunk.chunkSnapshot }
+            .thenCompose { _ ->
+                if (BackSettings.unsafeTeleport) {
+                    player.teleportAsync(targetLoc)
+                } else {
+                    SafeLocationFinder.findSafeLocationNearAsync(targetLoc, BackSettings.chunkLoadTimeoutSeconds)
+                        .thenCompose { safeLoc ->
+                            if (safeLoc == null) {
+                                player.sendMessage(TextUtils.parse("&c未找到安全传送位置。"))
+                                java.util.concurrent.CompletableFuture.completedFuture(false)
+                            } else {
+                                player.teleportAsync(safeLoc)
+                            }
+                        }
+                }
             }
-
-            if (safeLoc == null) {
-                player.sendMessage(TextUtils.parse("&c未找到安全传送位置。"))
-                return@run
+            .thenAccept { success ->
+                if (success) {
+                    BackStorage.remove(uuid)
+                    player.sendMessage(TextUtils.parse(BackSettings.msgTeleported))
+                }
             }
-
-            player.teleportAsync(safeLoc)
-            BackStorage.remove(uuid)
-            player.sendMessage(TextUtils.parse(BackSettings.msgTeleported))
-        }
-    }
-
-    private fun findSafeLocation(location: Location): Location? {
-        val world = location.world ?: return null
-        val block = world.getBlockAt(location.blockX, location.blockY, location.blockZ)
-
-        if (block.isPassable && world.getBlockAt(location.blockX, location.blockY + 1, location.blockZ).isPassable) {
-            return location.clone()
-        }
-
-        for (dy in 1..8) {
-            val y = location.blockY + dy
-            if (y > world.maxHeight) break
-            val b = world.getBlockAt(location.blockX, y, location.blockZ)
-            val above = world.getBlockAt(location.blockX, y + 1, location.blockZ)
-            if (b.isPassable && above.isPassable) {
-                val safeLoc = location.clone()
-                safeLoc.y = y + 0.0
-                return safeLoc
+            .exceptionally { ex ->
+                warning("[Back] 传送流程异常(${player.name}): ${ex.message}")
+                player.sendMessage(TextUtils.parse("&c传送失败。"))
+                null
             }
-        }
-
-        for (dy in 1..8) {
-            val y = location.blockY - dy
-            if (y < world.minHeight) break
-            val b = world.getBlockAt(location.blockX, y, location.blockZ)
-            val above = world.getBlockAt(location.blockX, y + 1, location.blockZ)
-            if (b.isPassable && above.isPassable) {
-                val safeLoc = location.clone()
-                safeLoc.y = y + 0.0
-                return safeLoc
-            }
-        }
-
-        return null
     }
 }
