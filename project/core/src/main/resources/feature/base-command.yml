@@ -22,8 +22,6 @@ messages:
 back:
   # 是否启用 /back 命令
   enabled: true
-  # 冷却时间（秒），0=无冷却
-  cooldownSeconds: 30
   # 传送预热等待时间（秒），0=无预热
   warmupSeconds: 3
   # 预热期间移动是否取消传送
@@ -34,11 +32,12 @@ back:
   unsafeTeleport: false
   # 消息配置
   msgNoLocation: "&c没有可返回的位置。"
-  msgCooldown: "&c请等待 {time} 秒后再使用。"
   msgWarmupStarting: "&a将在 {time} 秒后传送... 请勿移动"
   msgWarmupCancelled: "&c传送已取消！"
-  msgTeleported: "&a已传送到上一个位置。"
+  msgTeleported: "&a已传送到死亡位置。"
   msgAlreadyWarmingUp: "&c传送预热中，请稍候。"
+  msgDeathButton: "&c你已死亡！ &a[点击此处返回死亡位置]"
+  msgDeathHover: "&a点击回到死亡点"
 
 # 苦力怕防爆配置
 creeperProtect:
