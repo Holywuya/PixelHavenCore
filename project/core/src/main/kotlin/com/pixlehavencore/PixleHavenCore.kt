@@ -1,6 +1,8 @@
 package com.pixlehavencore
 
 import com.pixlehavencore.config.ConfigAlignService
+import com.pixlehavencore.feature.base.BackService
+import com.pixlehavencore.feature.base.BackStorage
 import com.pixlehavencore.feature.base.BaseCommandSettings
 import com.pixlehavencore.feature.craftingbench.CraftingBenchService
 import com.pixlehavencore.feature.durability.DurabilityService
@@ -72,6 +74,8 @@ object PixleHavenCore : Plugin() {
         EconomyProvider.init()
         TaxPlaceholders
         BaseCommandSettings.init()
+        BackStorage.init()
+        BackService.init()
         SecurityService.init()
         MMHealthBarService.init()
         PlaytimeSettings.init()
@@ -156,6 +160,8 @@ object PixleHavenCore : Plugin() {
         VeinminerLimitService.stop()
         TradeService.stop()
         VanishService.stop()
+        BackService.stop()
+        BackStorage.close()
         ItemUtils.clearHeadCache()
     }
 }
