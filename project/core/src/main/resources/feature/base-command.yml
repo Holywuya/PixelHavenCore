@@ -61,3 +61,19 @@ portalProtection:
   # 在地狱/末地自动清除的生物类型列表
   clearEntitiesInNetherEnd:
     - "FROG"
+
+# 首次登录随机传送配置
+first-join:
+  # 总开关，默认关闭
+  enabled: false
+  # 传送中心坐标（相对于世界出生点 0,0 的偏移）
+  centerX: 0
+  centerZ: 0
+  # 最小半径（距中心至少多远，防止传送到出生点附近）
+  minRadius: 50
+  # 最大半径（距中心至多多远）
+  maxRadius: 500
+  # 安全位置查找最大尝试次数
+  safeLocationRetries: 10
+  # 传送成功提示（{x}{y}{z} 为占位符）
+  msgTeleported: "&a你被随机传送到 {x}, {y}, {z}"
