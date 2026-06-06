@@ -17,12 +17,12 @@ data class BackData(
     val timestamp: Long = System.currentTimeMillis()
 )
 
-data class WarmupState(
+class WarmupState(
     val targetLocation: Location,
     val startLocation: Location,
     var remaining: Int,
     var taskRef: Any,
-    var cancelled: Boolean = false
+    @Volatile var cancelled: Boolean = false
 )
 
 object BackService {
@@ -32,12 +32,14 @@ object BackService {
 
     fun init() {
         BackSettings.init()
+        BackStorage.init()
         stop()
     }
 
     fun reload() {
         stop()
         BackSettings.reload()
+        BackStorage.reload()
     }
 
     fun stop() {
@@ -111,7 +113,9 @@ object BackService {
             val targetLoc = Location(targetWorld, data.location.x, data.location.y, data.location.z, data.location.yaw, data.location.pitch)
 
             if (BackSettings.warmupSeconds <= 0) {
-                doTeleport(player, targetLoc, uuid)
+                player.submitOnEntity {
+                    doTeleport(player, targetLoc, uuid)
+                }
             } else {
                 startWarmup(player, targetLoc, uuid)
             }
@@ -194,11 +198,9 @@ object BackService {
             return
         }
 
-        player.submitOnEntity {
-            player.teleport(safeLoc)
-            cooldowns[uuid] = System.currentTimeMillis()
-            player.sendMessage(TextUtils.parse(BackSettings.msgTeleported))
-        }
+        player.teleport(safeLoc)
+        cooldowns[uuid] = System.currentTimeMillis()
+        player.sendMessage(TextUtils.parse(BackSettings.msgTeleported))
     }
 
     private fun findSafeLocation(location: Location): Location? {
