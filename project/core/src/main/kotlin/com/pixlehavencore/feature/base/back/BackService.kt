@@ -104,9 +104,7 @@ object BackService {
             val targetLoc = Location(targetWorld, data.location.x, data.location.y, data.location.z, data.location.yaw, data.location.pitch)
 
             if (BackSettings.warmupSeconds <= 0) {
-                player.submitOnEntity {
-                    doTeleport(player, targetLoc, uuid)
-                }
+                doTeleport(player, targetLoc, uuid)
             } else {
                 startWarmup(player, targetLoc, uuid)
             }
@@ -188,20 +186,25 @@ object BackService {
     }
 
     private fun doTeleport(player: Player, targetLoc: Location, uuid: UUID) {
-        val safeLoc = if (BackSettings.unsafeTeleport) {
-            targetLoc
-        } else {
-            findSafeLocation(targetLoc)
-        }
+        val plugin = Bukkit.getPluginManager().getPlugin("phcore") ?: return
+        Bukkit.getRegionScheduler().run(plugin, targetLoc) {
+            if (!player.isOnline) return@run
 
-        if (safeLoc == null) {
-            player.sendMessage(TextUtils.parse("&c未找到安全传送位置。"))
-            return
-        }
+            val safeLoc = if (BackSettings.unsafeTeleport) {
+                targetLoc
+            } else {
+                findSafeLocation(targetLoc)
+            }
 
-        player.teleport(safeLoc)
-        BackStorage.remove(uuid)
-        player.sendMessage(TextUtils.parse(BackSettings.msgTeleported))
+            if (safeLoc == null) {
+                player.sendMessage(TextUtils.parse("&c未找到安全传送位置。"))
+                return@run
+            }
+
+            player.teleport(safeLoc)
+            BackStorage.remove(uuid)
+            player.sendMessage(TextUtils.parse(BackSettings.msgTeleported))
+        }
     }
 
     private fun findSafeLocation(location: Location): Location? {
