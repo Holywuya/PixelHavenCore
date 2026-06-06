@@ -1,4 +1,4 @@
-package com.pixlehavencore.feature.playerstate
+package com.pixlehavencore.playerstate
 
 import com.pixlehavencore.util.DatabaseUtils
 import org.bukkit.Bukkit

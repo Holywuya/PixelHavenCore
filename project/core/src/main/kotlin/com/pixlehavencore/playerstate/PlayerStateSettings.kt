@@ -1,4 +1,4 @@
-package com.pixlehavencore.feature.playerstate
+package com.pixlehavencore.playerstate
 
 import taboolib.module.configuration.Config
 import taboolib.module.configuration.Configuration

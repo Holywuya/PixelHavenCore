@@ -1,4 +1,4 @@
-package com.pixlehavencore.feature.playerstate
+package com.pixlehavencore.playerstate
 
 import org.bukkit.Location
 import java.util.UUID

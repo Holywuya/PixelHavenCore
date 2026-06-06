@@ -5,7 +5,7 @@ import com.pixlehavencore.feature.base.BackService
 import com.pixlehavencore.feature.base.BackStorage
 import com.pixlehavencore.feature.base.BaseCommandSettings
 import com.pixlehavencore.feature.base.FirstJoinService
-import com.pixlehavencore.feature.playerstate.PlayerStateService
+import com.pixlehavencore.playerstate.PlayerStateService
 import com.pixlehavencore.feature.craftingbench.CraftingBenchService
 import com.pixlehavencore.feature.durability.DurabilityService
 import com.pixlehavencore.feature.durability.DurabilitySettings
