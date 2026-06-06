@@ -86,7 +86,7 @@ object FirstJoinService {
                     return@run
                 }
 
-                player.teleport(targetLoc)
+                player.teleportAsync(targetLoc)
                 val msg = FirstJoinSettings.msgTeleported
                     .replace("{x}", targetLoc.blockX.toString())
                     .replace("{y}", targetLoc.blockY.toString())

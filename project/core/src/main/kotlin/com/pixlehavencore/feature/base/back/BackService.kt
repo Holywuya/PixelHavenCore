@@ -201,7 +201,7 @@ object BackService {
                 return@run
             }
 
-            player.teleport(safeLoc)
+            player.teleportAsync(safeLoc)
             BackStorage.remove(uuid)
             player.sendMessage(TextUtils.parse(BackSettings.msgTeleported))
         }
