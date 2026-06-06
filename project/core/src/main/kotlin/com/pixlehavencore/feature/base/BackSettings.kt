@@ -53,7 +53,7 @@ object BackSettings {
 
     fun reload() {
         config.reload()
-        enabled = config.getBoolean("enabled", true)
+        enabled = config.getBoolean("back.enabled", true)
         cooldownSeconds = config.getInt("back.cooldownSeconds", 30)
         warmupSeconds = config.getInt("back.warmupSeconds", 3)
         cancelOnMove = config.getBoolean("back.cancelOnMove", true)

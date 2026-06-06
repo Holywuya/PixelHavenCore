@@ -144,7 +144,7 @@ object BackService {
                 return@submitOnEntity
             }
 
-            if (BackSettings.cancelOnDamage && warmupState.cancelled) {
+            if (warmupState.cancelled) {
                 warmups.remove(uuid)
                 warmupState.taskRef.cancelTaskSafely()
                 player.sendMessage(TextUtils.parse(BackSettings.msgWarmupCancelled))
