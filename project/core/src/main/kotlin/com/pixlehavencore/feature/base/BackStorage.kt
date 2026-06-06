@@ -32,6 +32,8 @@ object BackStorage {
             close()
             runCatching {
                 handler = DatabaseUtils.newPlayerDataHandler(TABLE_NAME, syncTick = 200L)
+            }.onSuccess {
+                shuttingDown.set(false)
             }.onFailure { ex ->
                 warning("[Back] 初始化 PlayerDatabase 失败: ${ex.message}")
                 warning("[Back] 位置数据将无法持久化，请检查数据库配置！")
