@@ -10,6 +10,8 @@ cancelOnDamage: true
 
 unsafeTeleport: false
 
+chunkLoadTimeoutSeconds: 5.0
+
 msgNoLocation: "&c没有可返回的位置。"
 
 msgWarmupStarting: "&a将在 {time} 秒后传送... 请勿移动"

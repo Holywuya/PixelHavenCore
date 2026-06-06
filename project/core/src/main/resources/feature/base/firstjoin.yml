@@ -12,4 +12,6 @@ maxRadius: 500000
 
 safeLocationRetries: 10
 
+chunkLoadTimeoutSeconds: 5.0
+
 msgTeleported: "&a你被随机传送到 {x}, {y}, {z}"

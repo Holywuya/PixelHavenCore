@@ -26,6 +26,9 @@ object FirstJoinSettings {
     var safeLocationRetries: Int = 10
         private set
 
+    var chunkLoadTimeoutSeconds: Double = 5.0
+        private set
+
     var msgTeleported: String = "&a你被随机传送到 {x}, {y}, {z}"
         private set
 
@@ -41,6 +44,7 @@ object FirstJoinSettings {
         minRadius = config.getDouble("minRadius", 50.0)
         maxRadius = config.getDouble("maxRadius", 500.0)
         safeLocationRetries = config.getInt("safeLocationRetries", 10)
+        chunkLoadTimeoutSeconds = config.getDouble("chunkLoadTimeoutSeconds", 5.0).coerceAtLeast(1.0)
         msgTeleported = config.getString("msgTeleported") ?: "&a你被随机传送到 {x}, {y}, {z}"
     }
 }

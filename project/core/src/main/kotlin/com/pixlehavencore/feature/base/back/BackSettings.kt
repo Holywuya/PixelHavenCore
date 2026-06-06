@@ -23,6 +23,9 @@ object BackSettings {
     var unsafeTeleport: Boolean = false
         private set
 
+    var chunkLoadTimeoutSeconds: Double = 5.0
+        private set
+
     var msgNoLocation: String = "&c没有可返回的位置。"
         private set
 
@@ -55,6 +58,7 @@ object BackSettings {
         cancelOnMove = config.getBoolean("cancelOnMove", true)
         cancelOnDamage = config.getBoolean("cancelOnDamage", true)
         unsafeTeleport = config.getBoolean("unsafeTeleport", false)
+        chunkLoadTimeoutSeconds = config.getDouble("chunkLoadTimeoutSeconds", 5.0).coerceAtLeast(1.0)
         msgNoLocation = config.getString("msgNoLocation") ?: "&c没有可返回的位置。"
         msgWarmupStarting = config.getString("msgWarmupStarting") ?: "&a将在 {time} 秒后传送... 请勿移动"
         msgWarmupCancelled = config.getString("msgWarmupCancelled") ?: "&c传送已取消！"
