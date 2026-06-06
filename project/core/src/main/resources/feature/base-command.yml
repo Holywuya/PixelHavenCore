@@ -64,15 +64,15 @@ portalProtection:
 
 # 首次登录随机传送配置
 first-join:
-  # 总开关，默认关闭
-  enabled: false
+  # 总开关
+  enabled: true
   # 传送中心坐标（相对于世界出生点 0,0 的偏移）
   centerX: 0
   centerZ: 0
   # 最小半径（距中心至少多远，防止传送到出生点附近）
-  minRadius: 50
+  minRadius: 5000
   # 最大半径（距中心至多多远）
-  maxRadius: 500
+  maxRadius: 500000
   # 安全位置查找最大尝试次数
   safeLocationRetries: 10
   # 传送成功提示（{x}{y}{z} 为占位符）
