@@ -9,6 +9,7 @@ import org.bukkit.event.entity.EntityExplodeEvent
 import org.bukkit.event.entity.EntityPortalEnterEvent
 import org.bukkit.event.entity.EntityTeleportEvent
 import org.bukkit.event.entity.PlayerDeathEvent
+import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.event.world.ChunkLoadEvent
 import taboolib.common.platform.event.EventPriority
@@ -86,5 +87,10 @@ object BaseListener {
     fun onPlayerDamage(event: EntityDamageEvent) {
         val player = event.entity as? Player ?: return
         BackService.cancelWarmup(player.uniqueId)
+    }
+
+    @SubscribeEvent
+    fun onPlayerJoin(event: PlayerJoinEvent) {
+        FirstJoinService.handleJoin(event.player)
     }
 }
