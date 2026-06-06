@@ -68,7 +68,7 @@ object BackStorage {
             if (shuttingDown.get()) return@submitAsync
             val currentHandler = handler ?: return@submitAsync
             runCatching {
-                currentHandler.database[player.toString(), KEY_LOCATION] = null
+                currentHandler.database[player.toString(), KEY_LOCATION] = ""
             }.onFailure { ex ->
                 warning("[Back] 删除玩家数据失败($player): ${ex.message}")
             }

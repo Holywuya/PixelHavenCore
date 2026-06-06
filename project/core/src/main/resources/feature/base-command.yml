@@ -15,6 +15,30 @@ enabled: true
 messages:
   # 自杀命令执行后的提示消息
   suicide: "&c你已自杀。"
+  # 模块禁用时提示消息
+  moduleDisabled: "&c基础模块已禁用。"
+
+# /back 命令配置
+back:
+  # 是否启用 /back 命令
+  enabled: true
+  # 冷却时间（秒），0=无冷却
+  cooldownSeconds: 30
+  # 传送预热等待时间（秒），0=无预热
+  warmupSeconds: 3
+  # 预热期间移动是否取消传送
+  cancelOnMove: true
+  # 预热期间受伤是否取消传送
+  cancelOnDamage: true
+  # true=跳过安全位置检测，直接传送到原始坐标
+  unsafeTeleport: false
+  # 消息配置
+  msgNoLocation: "&c没有可返回的位置。"
+  msgCooldown: "&c请等待 {time} 秒后再使用。"
+  msgWarmupStarting: "&a将在 {time} 秒后传送... 请勿移动"
+  msgWarmupCancelled: "&c传送已取消！"
+  msgTeleported: "&a已传送到上一个位置。"
+  msgAlreadyWarmingUp: "&c传送预热中，请稍候。"
 
 # 苦力怕防爆配置
 creeperProtect:
