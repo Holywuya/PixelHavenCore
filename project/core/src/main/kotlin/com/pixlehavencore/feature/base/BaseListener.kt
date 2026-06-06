@@ -10,7 +10,6 @@ import org.bukkit.event.entity.EntityPortalEnterEvent
 import org.bukkit.event.entity.EntityTeleportEvent
 import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.player.PlayerJoinEvent
-import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.event.world.ChunkLoadEvent
 import taboolib.common.platform.event.EventPriority
 import taboolib.common.platform.event.SubscribeEvent
@@ -24,10 +23,8 @@ object BaseListener {
         if (event.entity !is Creeper) return
 
         if (BaseCommandSettings.creeperProtectCancelDamage) {
-            // 完全取消爆炸：无方块破坏，无爆炸伤害
             event.isCancelled = true
         } else {
-            // 仅保护方块不受破坏，爆炸伤害正常生效
             event.blockList().clear()
         }
     }
@@ -67,20 +64,14 @@ object BaseListener {
         if (!BaseCommandSettings.clearEntitiesInNetherEndEnabled) return
         val environment = event.world.environment
         if (environment.name != "NETHER" && environment.name != "THE_END") return
-        // Folia: ChunkLoadEvent 在该区块的区域线程上触发，chunk.entities 读取和 entity.remove() 在同一区域线程上是安全的
-        event.chunk.entities.filter { BaseCommandSettings.clearEntitiesInNetherEnd.contains(it.type) }.forEach { it.remove() }
-    }
-
-    @SubscribeEvent(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onPlayerTeleport(event: PlayerTeleportEvent) {
-        if (!BaseCommandSettings.enabled) return
-        BackService.record(event.player.uniqueId, event.from, "teleport")
+        event.chunk.entities
+            .filter { BaseCommandSettings.clearEntitiesInNetherEnd.contains(it.type) }
+            .forEach { it.remove() }
     }
 
     @SubscribeEvent(priority = EventPriority.MONITOR)
     fun onPlayerDeath(event: PlayerDeathEvent) {
-        if (!BaseCommandSettings.enabled) return
-        BackService.record(event.player.uniqueId, event.player.location, "death")
+        BackService.handleDeath(event.player)
     }
 
     @SubscribeEvent
