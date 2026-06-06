@@ -88,8 +88,9 @@ object BackStorage {
 
     private fun saveToDatabase(player: UUID, data: BackData) {
         val currentHandler = handler ?: return
+        val serialized = serialize(data.location) ?: return
         runCatching {
-            currentHandler.database[player.toString(), KEY_LOCATION] = serialize(data.location)
+            currentHandler.database[player.toString(), KEY_LOCATION] = serialized
         }.onFailure { ex ->
             warning("[Back] 保存玩家数据失败($player): ${ex.message}")
         }
@@ -98,16 +99,17 @@ object BackStorage {
     private fun flushCache() {
         val currentHandler = handler ?: return
         for ((player, data) in cache) {
+            val serialized = serialize(data.location) ?: continue
             runCatching {
-                currentHandler.database[player.toString(), KEY_LOCATION] = serialize(data.location)
+                currentHandler.database[player.toString(), KEY_LOCATION] = serialized
             }.onFailure { ex ->
                 warning("[Back] flushCache 保存失败($player): ${ex.message}")
             }
         }
     }
 
-    private fun serialize(location: Location): String {
-        val worldName = location.world?.name ?: "world"
+    private fun serialize(location: Location): String? {
+        val worldName = location.world?.name ?: return null
         return "$worldName:${location.x}:${location.y}:${location.z}:${location.yaw}:${location.pitch}"
     }
 
