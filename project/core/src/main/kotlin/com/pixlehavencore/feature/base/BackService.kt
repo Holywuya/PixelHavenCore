@@ -3,6 +3,8 @@ package com.pixlehavencore.feature.base
 import com.pixlehavencore.bridge.TextBridge
 import com.pixlehavencore.util.TextUtils
 import com.pixlehavencore.util.cancelTaskSafely
+import net.kyori.adventure.text.event.ClickEvent
+import net.kyori.adventure.text.event.HoverEvent
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.entity.Player
@@ -27,7 +29,6 @@ class WarmupState(
 
 object BackService {
 
-    private val cooldowns = ConcurrentHashMap<UUID, Long>()
     private val warmups = ConcurrentHashMap<UUID, WarmupState>()
 
     fun init() {
@@ -51,20 +52,22 @@ object BackService {
 
     fun isEnabled(): Boolean = BackSettings.enabled
 
-    fun getBackData(player: UUID): BackData? {
-        var data = BackStorage.get(player)
-        if (data != null) return data
-        data = BackStorage.loadFromDatabase(player)
-        if (data != null) {
-            BackStorage.set(player, data)
-        }
-        return data
+    fun handleDeath(player: Player) {
+        if (!BackSettings.enabled) return
+        record(player.uniqueId, player.location, "death")
+        sendDeathButton(player)
     }
 
-    fun record(player: UUID, location: Location, reason: String) {
-        if (!BackSettings.enabled) return
+    private fun record(player: UUID, location: Location, reason: String) {
         val data = BackData(location = location.clone(), reason = reason)
         BackStorage.set(player, data)
+    }
+
+    private fun sendDeathButton(player: Player) {
+        val button = TextUtils.parse(BackSettings.msgDeathButton)
+            .clickEvent(ClickEvent.runCommand("/back"))
+            .hoverEvent(HoverEvent.showText(TextUtils.parse(BackSettings.msgDeathHover)))
+        TextBridge.sendMessage(player, button)
     }
 
     fun teleportBack(player: Player): Boolean {
@@ -78,18 +81,6 @@ object BackService {
         if (warmups.containsKey(uuid)) {
             player.sendMessage(TextUtils.parse(BackSettings.msgAlreadyWarmingUp))
             return false
-        }
-
-        val lastUse = cooldowns[uuid]
-        if (lastUse != null && BackSettings.cooldownSeconds > 0) {
-            val elapsed = (System.currentTimeMillis() - lastUse) / 1000
-            if (elapsed < BackSettings.cooldownSeconds) {
-                val remaining = BackSettings.cooldownSeconds - elapsed
-                player.sendMessage(
-                    TextUtils.parse(BackSettings.msgCooldown.replace("{time}", remaining.toString()))
-                )
-                return false
-            }
         }
 
         val data = getBackData(uuid)
@@ -126,6 +117,16 @@ object BackService {
 
     fun cancelWarmup(uuid: UUID) {
         warmups[uuid]?.let { it.cancelled = true }
+    }
+
+    private fun getBackData(player: UUID): BackData? {
+        var data = BackStorage.get(player)
+        if (data != null) return data
+        data = BackStorage.loadFromDatabase(player)
+        if (data != null) {
+            BackStorage.set(player, data)
+        }
+        return data
     }
 
     private fun startWarmup(player: Player, targetLoc: Location, uuid: UUID) {
@@ -199,7 +200,7 @@ object BackService {
         }
 
         player.teleport(safeLoc)
-        cooldowns[uuid] = System.currentTimeMillis()
+        BackStorage.remove(uuid)
         player.sendMessage(TextUtils.parse(BackSettings.msgTeleported))
     }
 
