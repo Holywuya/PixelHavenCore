@@ -1,0 +1,13 @@
+version: 1
+
+creeperProtect:
+  enabled: false
+  cancelDamage: false
+
+portalProtection:
+  enabled: true
+  blockedEntities:
+    - "FROG"
+  clearInNetherEnd: true
+  clearEntitiesInNetherEnd:
+    - "FROG"

@@ -1,10 +1,13 @@
 package com.pixlehavencore
 
 import com.pixlehavencore.config.ConfigAlignService
-import com.pixlehavencore.feature.base.BackService
-import com.pixlehavencore.feature.base.BackStorage
-import com.pixlehavencore.feature.base.BaseCommandSettings
-import com.pixlehavencore.feature.base.FirstJoinService
+import com.pixlehavencore.feature.base.killme.KillmeSettings
+import com.pixlehavencore.feature.base.back.BackService
+import com.pixlehavencore.feature.base.back.BackStorage
+import com.pixlehavencore.feature.base.back.BackSettings
+import com.pixlehavencore.feature.base.protection.ProtectionSettings
+import com.pixlehavencore.feature.base.firstjoin.FirstJoinService
+import com.pixlehavencore.feature.base.firstjoin.FirstJoinSettings
 import com.pixlehavencore.playerstate.PlayerStateService
 import com.pixlehavencore.feature.craftingbench.CraftingBenchService
 import com.pixlehavencore.feature.durability.DurabilityService
@@ -75,9 +78,9 @@ object PixleHavenCore : Plugin() {
         EconomyPlaceholders
         EconomyProvider.init()
         TaxPlaceholders
-        BaseCommandSettings.init()
-        BackStorage.init()
+        KillmeSettings.init()
         BackService.init()
+        ProtectionSettings.init()
         FirstJoinService.init()
         PlayerStateService.init()
         SecurityService.init()
@@ -107,7 +110,10 @@ object PixleHavenCore : Plugin() {
             "Server Notification" to NotificationSettings.enabled,
             "Vanish" to VanishSettings.enabled,
             "Death Drop" to DeathDropSettings.enabled,
-            "Base Module" to BaseCommandSettings.enabled,
+            "Base/Killme" to KillmeSettings.enabled,
+            "Base/Back" to BackSettings.enabled,
+            "Base/Protection" to ProtectionSettings.creeperProtectEnabled,
+            "Base/FirstJoin" to FirstJoinSettings.enabled,
             "Warehouse" to PlayerInvSettings.enabled,
             "Key Command" to KeyCommandSettings.enabled,
         ))

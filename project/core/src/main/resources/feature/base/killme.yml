@@ -1,0 +1,5 @@
+version: 1
+
+enabled: true
+
+suicideMessage: "&c你已自杀。"

@@ -1,4 +1,4 @@
-package com.pixlehavencore.feature.base
+package com.pixlehavencore.feature.base.back
 
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePlayer
@@ -15,8 +15,8 @@ object BackCommand {
     @CommandBody
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!BaseCommandSettings.enabled) {
-                sender.msg("&c基础模块已禁用。")
+            if (!BackSettings.enabled) {
+                sender.msg(BackSettings.msgNoLocation)
                 return@execute
             }
             val proxyPlayer = sender.requirePlayer() ?: return@execute

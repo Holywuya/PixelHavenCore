@@ -1,4 +1,4 @@
-package com.pixlehavencore.feature.base
+package com.pixlehavencore.feature.base.firstjoin
 
 import com.pixlehavencore.util.DatabaseUtils
 import com.pixlehavencore.util.TextUtils
@@ -57,7 +57,6 @@ object FirstJoinService {
 
     fun handleJoin(player: Player) {
         if (!FirstJoinSettings.enabled) return
-        if (!BaseCommandSettings.enabled) return
         if (!ready) return
 
         val uuid = player.uniqueId

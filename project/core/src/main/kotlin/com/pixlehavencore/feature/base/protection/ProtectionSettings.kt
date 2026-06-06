@@ -1,19 +1,13 @@
-package com.pixlehavencore.feature.base
+package com.pixlehavencore.feature.base.protection
 
 import org.bukkit.entity.EntityType
 import taboolib.module.configuration.Config
 import taboolib.module.configuration.Configuration
 
-object BaseCommandSettings {
+object ProtectionSettings {
 
-    @Config("feature/base-command.yml")
+    @Config("feature/base/protection.yml")
     private lateinit var config: Configuration
-
-    var enabled: Boolean = true
-        private set
-
-    var suicideMessage: String = "&c你已自杀。"
-        private set
 
     var creeperProtectEnabled: Boolean = false
         private set
@@ -39,15 +33,13 @@ object BaseCommandSettings {
 
     fun reload() {
         config.reload()
-        enabled = config.getBoolean("enabled", true)
-        suicideMessage = config.getString("messages.suicide") ?: "&c你已自杀。"
         creeperProtectEnabled = config.getBoolean("creeperProtect.enabled", false)
         creeperProtectCancelDamage = config.getBoolean("creeperProtect.cancelDamage", false)
-        portalProtectionEnabled = config.getBoolean("portalProtection.enabled", config.getBoolean("frogProtection.enabled", true))
+        portalProtectionEnabled = config.getBoolean("portalProtection.enabled", true)
         blockedPortalEntities = parseEntityTypes(
             config.getStringList("portalProtection.blockedEntities").ifEmpty { listOf("FROG") }
         )
-        clearEntitiesInNetherEndEnabled = config.getBoolean("portalProtection.clearInNetherEnd", config.getBoolean("frogProtection.clearInNetherEnd", true))
+        clearEntitiesInNetherEndEnabled = config.getBoolean("portalProtection.clearInNetherEnd", true)
         clearEntitiesInNetherEnd = parseEntityTypes(
             config.getStringList("portalProtection.clearEntitiesInNetherEnd").ifEmpty { listOf("FROG") }
         )

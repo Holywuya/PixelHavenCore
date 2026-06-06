@@ -1,0 +1,25 @@
+version: 1
+
+enabled: true
+
+warmupSeconds: 3
+
+cancelOnMove: true
+
+cancelOnDamage: true
+
+unsafeTeleport: false
+
+msgNoLocation: "&c没有可返回的位置。"
+
+msgWarmupStarting: "&a将在 {time} 秒后传送... 请勿移动"
+
+msgWarmupCancelled: "&c传送已取消！"
+
+msgTeleported: "&a已传送到死亡位置。"
+
+msgAlreadyWarmingUp: "&c传送预热中，请稍候。"
+
+msgDeathButton: "&c你已死亡！ &a[点击此处返回死亡位置]"
+
+msgDeathHover: "&a点击回到死亡点"

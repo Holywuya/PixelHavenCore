@@ -1,4 +1,4 @@
-package com.pixlehavencore.feature.base
+package com.pixlehavencore.feature.base.killme
 
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePlayer
@@ -9,18 +9,18 @@ import taboolib.common.platform.command.PermissionDefault
 import taboolib.common.platform.command.mainCommand
 
 @CommandHeader(name = "killme", permissionDefault = PermissionDefault.TRUE)
-object BaseCommand {
+object KillmeCommand {
 
     @CommandBody
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (!BaseCommandSettings.enabled) {
-                sender.msg("<red>基础模块已禁用。")
+            if (!KillmeSettings.enabled) {
+                sender.msg("<red>killme 功能已禁用。")
                 return@execute
             }
             val player = sender.requirePlayer() ?: return@execute
             player.health = 0.0
-            sender.msg(BaseCommandSettings.suicideMessage)
+            sender.msg(KillmeSettings.suicideMessage)
         }
     }
 }

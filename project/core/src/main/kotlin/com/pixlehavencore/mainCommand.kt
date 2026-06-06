@@ -1,6 +1,9 @@
 package com.pixlehavencore
 
-import com.pixlehavencore.feature.base.BaseCommandSettings
+import com.pixlehavencore.feature.base.killme.KillmeSettings
+import com.pixlehavencore.feature.base.back.BackService
+import com.pixlehavencore.feature.base.protection.ProtectionSettings
+import com.pixlehavencore.feature.base.firstjoin.FirstJoinService
 import com.pixlehavencore.feature.craftingbench.CraftingBenchService
 import com.pixlehavencore.feature.deathdrop.DeathDropSettings
 import com.pixlehavencore.feature.deathdrop.DeathDropUsageStorage
@@ -138,7 +141,10 @@ object MainCommand {
             ReloadStep("death-drop", false) { DeathDropSettings.init() },
             ReloadStep("death-drop-usage", false) { DeathDropUsageStorage.init() },
             ReloadStep("economy", true) { EconomyProvider.reload() },
-            ReloadStep("base-command", false) { BaseCommandSettings.init() },
+            ReloadStep("base-killme", false) { KillmeSettings.init() },
+            ReloadStep("base-back", false) { BackService.reload() },
+            ReloadStep("base-protection", false) { ProtectionSettings.init() },
+            ReloadStep("base-firstjoin", false) { FirstJoinService.reload() },
             ReloadStep("security", false) { SecurityService.reload() },
             ReloadStep("mm-healthbar", false) { MMHealthBarService.reload() },
             ReloadStep("playtime-settings", false) { PlaytimeSettings.reload() },

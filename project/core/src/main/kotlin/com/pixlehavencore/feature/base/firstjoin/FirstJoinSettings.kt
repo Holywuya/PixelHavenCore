@@ -1,11 +1,11 @@
-package com.pixlehavencore.feature.base
+package com.pixlehavencore.feature.base.firstjoin
 
 import taboolib.module.configuration.Config
 import taboolib.module.configuration.Configuration
 
 object FirstJoinSettings {
 
-    @Config("feature/base-command.yml")
+    @Config("feature/base/firstjoin.yml")
     private lateinit var config: Configuration
 
     var enabled: Boolean = false
@@ -35,12 +35,12 @@ object FirstJoinSettings {
 
     fun reload() {
         config.reload()
-        enabled = config.getBoolean("first-join.enabled", false)
-        centerX = config.getDouble("first-join.centerX", 0.0)
-        centerZ = config.getDouble("first-join.centerZ", 0.0)
-        minRadius = config.getDouble("first-join.minRadius", 50.0)
-        maxRadius = config.getDouble("first-join.maxRadius", 500.0)
-        safeLocationRetries = config.getInt("first-join.safeLocationRetries", 10)
-        msgTeleported = config.getString("first-join.msgTeleported") ?: "&a你被随机传送到 {x}, {y}, {z}"
+        enabled = config.getBoolean("enabled", false)
+        centerX = config.getDouble("centerX", 0.0)
+        centerZ = config.getDouble("centerZ", 0.0)
+        minRadius = config.getDouble("minRadius", 50.0)
+        maxRadius = config.getDouble("maxRadius", 500.0)
+        safeLocationRetries = config.getInt("safeLocationRetries", 10)
+        msgTeleported = config.getString("msgTeleported") ?: "&a你被随机传送到 {x}, {y}, {z}"
     }
 }

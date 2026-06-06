@@ -1,4 +1,4 @@
-package com.pixlehavencore.feature.base
+package com.pixlehavencore.feature.base.back
 
 import com.pixlehavencore.bridge.TextBridge
 import com.pixlehavencore.util.TextUtils
@@ -72,7 +72,7 @@ object BackService {
 
     fun teleportBack(player: Player): Boolean {
         if (!BackSettings.enabled) {
-            player.sendMessage(TextUtils.parse(BackSettings.msgModuleDisabled))
+            player.sendMessage(TextUtils.parse(BackSettings.msgNoLocation))
             return false
         }
 
