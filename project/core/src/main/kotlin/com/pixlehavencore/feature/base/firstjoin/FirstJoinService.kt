@@ -1,18 +1,14 @@
 package com.pixlehavencore.feature.base.firstjoin
 
 import com.pixlehavencore.util.DatabaseUtils
+import com.pixlehavencore.util.SafeLocationFinder
 import com.pixlehavencore.util.TextUtils
 import org.bukkit.Bukkit
-import org.bukkit.Location
-import org.bukkit.World
 import org.bukkit.entity.Player
 import taboolib.common.platform.function.submitAsync
 import taboolib.common.platform.function.warning
 import taboolib.expansion.MultipleHandler
 import java.util.UUID
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.random.Random
 
 object FirstJoinService {
 
@@ -60,7 +56,6 @@ object FirstJoinService {
 
         val uuid = player.uniqueId
         val world = Bukkit.getWorld("world") ?: Bukkit.getWorlds().firstOrNull() ?: return
-        val plugin = Bukkit.getPluginManager().getPlugin("phcore") ?: return
 
         submitAsync {
             if (!isFirstJoin(uuid)) return@submitAsync
@@ -68,30 +63,30 @@ object FirstJoinService {
             val spawn = world.spawnLocation
             val centerX = spawn.x + FirstJoinSettings.centerX
             val centerZ = spawn.z + FirstJoinSettings.centerZ
+            val maxAttempts = 5 * FirstJoinSettings.safeLocationRetries
 
-            Bukkit.getGlobalRegionScheduler().run(plugin) { _ ->
-                if (!player.isOnline) return@run
-
-                val targetLoc = findRandomSafeLocation(
-                    world,
-                    centerX,
-                    centerZ,
-                    FirstJoinSettings.minRadius,
-                    FirstJoinSettings.maxRadius,
-                    FirstJoinSettings.safeLocationRetries
-                )
-
-                if (targetLoc == null) {
+            SafeLocationFinder.findSafeLocationAsync(
+                world, centerX, centerZ,
+                FirstJoinSettings.minRadius, FirstJoinSettings.maxRadius,
+                maxAttempts, FirstJoinSettings.chunkLoadTimeoutSeconds
+            ).thenAccept { safeLoc ->
+                if (!player.isOnline) return@thenAccept
+                if (safeLoc == null) {
                     warning("[FirstJoin] 未找到安全随机位置(${player.name})")
-                    return@run
+                    return@thenAccept
                 }
-
-                player.teleportAsync(targetLoc)
-                val msg = FirstJoinSettings.msgTeleported
-                    .replace("{x}", targetLoc.blockX.toString())
-                    .replace("{y}", targetLoc.blockY.toString())
-                    .replace("{z}", targetLoc.blockZ.toString())
-                player.sendMessage(TextUtils.parse(msg))
+                player.teleportAsync(safeLoc).thenAccept { success ->
+                    if (success) {
+                        val msg = FirstJoinSettings.msgTeleported
+                            .replace("{x}", safeLoc.blockX.toString())
+                            .replace("{y}", safeLoc.blockY.toString())
+                            .replace("{z}", safeLoc.blockZ.toString())
+                        player.sendMessage(TextUtils.parse(msg))
+                    }
+                }
+            }.exceptionally { ex ->
+                warning("[FirstJoin] 随机传送流程异常(${player.name}): ${ex.message}")
+                null
             }
         }
     }
@@ -107,32 +102,6 @@ object FirstJoinService {
             }.getOrDefault(false)
         }
         return !Bukkit.getOfflinePlayer(uuid).hasPlayedBefore()
-    }
-
-    private fun findRandomSafeLocation(
-        world: World,
-        centerX: Double,
-        centerZ: Double,
-        minRadius: Double,
-        maxRadius: Double,
-        retries: Int
-    ): Location? {
-        val actualMin = minRadius.coerceAtMost(maxRadius)
-        val actualMax = maxRadius.coerceAtLeast(actualMin)
-
-        repeat(5 * retries) {
-            val angle = Random.nextDouble(0.0, 2 * Math.PI)
-            val distance = actualMin + Random.nextDouble(0.0, actualMax - actualMin)
-            val x = centerX + distance * cos(angle)
-            val z = centerZ + distance * sin(angle)
-            val y = world.getHighestBlockYAt(x.toInt(), z.toInt())
-            val loc = Location(world, x, y + 1.0, z)
-            if (loc.block.isPassable && world.getBlockAt(loc.blockX, loc.blockY + 1, loc.blockZ).isPassable) {
-                return loc
-            }
-        }
-
-        return null
     }
 
     fun isEnabled(): Boolean = FirstJoinSettings.enabled
