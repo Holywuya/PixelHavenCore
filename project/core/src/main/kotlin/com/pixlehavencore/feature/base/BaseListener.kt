@@ -85,6 +85,7 @@ object BaseListener {
 
     @SubscribeEvent
     fun onPlayerDamage(event: EntityDamageEvent) {
+        if (!BackSettings.cancelOnDamage) return
         val player = event.entity as? Player ?: return
         BackService.cancelWarmup(player.uniqueId)
     }

@@ -2,7 +2,6 @@ package com.pixlehavencore.feature.base
 
 import com.pixlehavencore.util.DatabaseUtils
 import com.pixlehavencore.util.TextUtils
-import com.pixlehavencore.util.cancelTaskSafely
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.World
@@ -25,15 +24,21 @@ object FirstJoinService {
     @Volatile
     private var titleHandler: MultipleHandler? = null
 
+    @Volatile
+    private var ready: Boolean = false
+
     fun init() {
         FirstJoinSettings.init()
         if (!FirstJoinSettings.enabled) return
+        ready = false
         submitAsync {
             runCatching {
                 titleHandler = DatabaseUtils.newPlayerDataHandler(TABLE_NAME, syncTick = 200L)
+                ready = true
             }.onFailure { ex ->
                 warning("[FirstJoin] 连接 title_player_data 失败: ${ex.message}")
                 warning("[FirstJoin] 将回退到 hasPlayedBefore() 判定")
+                ready = true
             }
         }
     }
@@ -45,6 +50,7 @@ object FirstJoinService {
     }
 
     fun stop() {
+        ready = false
         DatabaseUtils.closeMultipleHandler(titleHandler)
         titleHandler = null
     }
@@ -52,9 +58,10 @@ object FirstJoinService {
     fun handleJoin(player: Player) {
         if (!FirstJoinSettings.enabled) return
         if (!BaseCommandSettings.enabled) return
+        if (!ready) return
 
         val uuid = player.uniqueId
-        val world = Bukkit.getWorlds().firstOrNull() ?: return
+        val world = Bukkit.getWorld("world") ?: Bukkit.getWorlds().firstOrNull() ?: return
 
         submitAsync {
             if (!isFirstJoin(uuid)) return@submitAsync
@@ -112,20 +119,15 @@ object FirstJoinService {
         val actualMin = minRadius.coerceAtMost(maxRadius)
         val actualMax = maxRadius.coerceAtLeast(actualMin)
 
-        repeat(5) {
+        repeat(5 * retries) {
             val angle = Random.nextDouble(0.0, 2 * Math.PI)
             val distance = actualMin + Random.nextDouble(0.0, actualMax - actualMin)
             val x = centerX + distance * cos(angle)
             val z = centerZ + distance * sin(angle)
-
-            for (dy in 0 until retries) {
-                val y = world.getHighestBlockYAt(x.toInt(), z.toInt())
-                val loc = Location(world, x, y + 1.0, z)
-                val block = loc.block
-                val above = world.getBlockAt(loc.blockX, loc.blockY + 1, loc.blockZ)
-                if (block.isPassable && above.isPassable) {
-                    return loc
-                }
+            val y = world.getHighestBlockYAt(x.toInt(), z.toInt())
+            val loc = Location(world, x, y + 1.0, z)
+            if (loc.block.isPassable && world.getBlockAt(loc.blockX, loc.blockY + 1, loc.blockZ).isPassable) {
+                return loc
             }
         }
 
