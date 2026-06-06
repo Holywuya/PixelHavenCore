@@ -9,7 +9,6 @@ import org.bukkit.entity.Player
 import taboolib.common.platform.function.submitAsync
 import taboolib.common.platform.function.warning
 import taboolib.expansion.MultipleHandler
-import taboolib.platform.util.submit as submitOnEntity
 import java.util.UUID
 import kotlin.math.cos
 import kotlin.math.sin
@@ -61,6 +60,7 @@ object FirstJoinService {
 
         val uuid = player.uniqueId
         val world = Bukkit.getWorld("world") ?: Bukkit.getWorlds().firstOrNull() ?: return
+        val plugin = Bukkit.getPluginManager().getPlugin("phcore") ?: return
 
         submitAsync {
             if (!isFirstJoin(uuid)) return@submitAsync
@@ -69,21 +69,23 @@ object FirstJoinService {
             val centerX = spawn.x + FirstJoinSettings.centerX
             val centerZ = spawn.z + FirstJoinSettings.centerZ
 
-            val targetLoc = findRandomSafeLocation(
-                world,
-                centerX,
-                centerZ,
-                FirstJoinSettings.minRadius,
-                FirstJoinSettings.maxRadius,
-                FirstJoinSettings.safeLocationRetries
-            )
+            Bukkit.getGlobalRegionScheduler().run(plugin) { _ ->
+                if (!player.isOnline) return@run
 
-            if (targetLoc == null) {
-                warning("[FirstJoin] 未找到安全随机位置(${player.name})")
-                return@submitAsync
-            }
+                val targetLoc = findRandomSafeLocation(
+                    world,
+                    centerX,
+                    centerZ,
+                    FirstJoinSettings.minRadius,
+                    FirstJoinSettings.maxRadius,
+                    FirstJoinSettings.safeLocationRetries
+                )
 
-            player.submitOnEntity {
+                if (targetLoc == null) {
+                    warning("[FirstJoin] 未找到安全随机位置(${player.name})")
+                    return@run
+                }
+
                 player.teleport(targetLoc)
                 val msg = FirstJoinSettings.msgTeleported
                     .replace("{x}", targetLoc.blockX.toString())
