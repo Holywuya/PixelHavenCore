@@ -58,11 +58,10 @@ object SafeLocationFinder {
                     val localX = x.toInt() and 0xF
                     val localZ = z.toInt() and 0xF
                     val highestY = snapshot.getHighestBlockYAt(localX, localZ)
-                    val safeY = highestY + 1
 
-                    if (isSafePosition(snapshot, localX, safeY, localZ)) {
+                    if (isSafePosition(snapshot, localX, highestY, localZ)) {
                         CompletableFuture.completedFuture(
-                            Location(world, x, safeY.toDouble(), z)
+                            Location(world, x, (highestY + 1).toDouble(), z)
                         )
                     } else {
                         tryNext()
@@ -101,26 +100,27 @@ object SafeLocationFinder {
                 val localX = blockX and 0xF
                 val localZ = blockZ and 0xF
 
-                if (isSafePosition(snapshot, localX, blockY, localZ)) {
+                val feetY = blockY - 1
+                if (isSafePosition(snapshot, localX, feetY, localZ)) {
                     return@thenApply targetLoc.clone()
                 }
 
                 for (dy in 1..8) {
-                    val y = blockY + dy
-                    if (y > world.maxHeight) break
+                    val y = feetY + dy
+                    if (y + 1 > world.maxHeight) break
                     if (isSafePosition(snapshot, localX, y, localZ)) {
                         val safeLoc = targetLoc.clone()
-                        safeLoc.y = y.toDouble()
+                        safeLoc.y = (y + 1).toDouble()
                         return@thenApply safeLoc
                     }
                 }
 
                 for (dy in 1..8) {
-                    val y = blockY - dy
+                    val y = feetY - dy
                     if (y < world.minHeight) break
                     if (isSafePosition(snapshot, localX, y, localZ)) {
                         val safeLoc = targetLoc.clone()
-                        safeLoc.y = y.toDouble()
+                        safeLoc.y = (y + 1).toDouble()
                         return@thenApply safeLoc
                     }
                 }
