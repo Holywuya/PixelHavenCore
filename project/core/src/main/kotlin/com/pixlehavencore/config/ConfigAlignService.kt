@@ -64,10 +64,6 @@ object ConfigAlignService {
         "feature/economy/economy.yml" to listOf("currencies"),
         // crafting bench 的工作台映射、等级和专精均允许自由扩展
         "feature/crafting-bench/config.yml" to listOf("craftengine_blocks", "bench_tiers", "specializations", "queue.permission_limits"),
-        // temperature 方块温度映射：用户可自行添加方块→温度条目
-        "feature/realworld/temperature.yml" to listOf("temperature-blocks"),
-        // food-corrosion 物品保质期：用户可自行添加物品→天数条目
-        "feature/realworld/food-corrosion.yml" to listOf("item-days"),
         // title 稀有度颜色：用户可自定义稀有度名称和颜色
         "feature/title/config.yml" to listOf("gui.rarity_colors")
     )

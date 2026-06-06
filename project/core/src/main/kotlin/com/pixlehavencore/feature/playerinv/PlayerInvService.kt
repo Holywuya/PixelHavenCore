@@ -2,7 +2,6 @@ package com.pixlehavencore.feature.playerinv
 
 import com.google.gson.reflect.TypeToken
 import com.pixlehavencore.bridge.TextBridge
-import com.pixlehavencore.feature.realworld.foodcorrosion.FoodCorrosionEngine
 import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.DatabaseUtils
@@ -649,12 +648,6 @@ object PlayerInvService {
         }
 
         submit(async = true) {
-            // 异步结算仓库中的食物腐蚀时间（操作的是克隆副本，线程安全）
-            saveContents.forEach { item ->
-                if (item != null && !item.type.isAir) {
-                    FoodCorrosionEngine.finalizeStorageExit(item)
-                }
-            }
 
             val success = when (session.type) {
                 SessionType.PERSONAL -> savePersonal(session.owner, inventory.size, saveContents)
@@ -705,9 +698,6 @@ object PlayerInvService {
         if (type == SessionType.SHARED) {
             applySharedLockOverlay(session)
         }
-
-        // 标记食物进入仓库的时间
-        FoodCorrosionEngine.markStorageEnterForItems(items.filterNotNull())
 
         openSessions[System.identityHashCode(inventory)] = session
         viewer.openInventory(inventory)

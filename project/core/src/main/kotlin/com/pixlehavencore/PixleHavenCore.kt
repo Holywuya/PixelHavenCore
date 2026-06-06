@@ -42,9 +42,6 @@ import com.pixlehavencore.feature.playtime.PlaytimeSettings
 import com.pixlehavencore.feature.playtime.PlaytimeStorage
 import com.pixlehavencore.feature.playtime.PlaytimeService
 import com.pixlehavencore.feature.playtime.PlaytimePlaceholders
-import com.pixlehavencore.feature.realworld.RealWorldPlaceholders
-import com.pixlehavencore.feature.realworld.RealWorldService
-import com.pixlehavencore.feature.realworld.RealWorldSettings
 import com.pixlehavencore.feature.title.TitleSettings
 import com.pixlehavencore.feature.title.TitleStorage
 import com.pixlehavencore.feature.title.TitleService
@@ -96,8 +93,6 @@ object PixleHavenCore : Plugin() {
         DurabilitySettings.init()
         DurabilityService.init()
         FlightService.init()
-        RealWorldService.init()
-        RealWorldPlaceholders
         logModulesStatus()
         info("Successfully running PixleHavenCore!")
     }
@@ -125,7 +120,6 @@ object PixleHavenCore : Plugin() {
             "MM HealthBar" to MMHealthBarService.isEnabled(),
             "Title" to TitleSettings.enabled,
             "Flight" to FlightSettings.enabled,
-            "RealWorld" to RealWorldSettings.enabled,
         ))
         logEnabledGroup("优化模块", listOf(
             "View Distance Controller" to ViewDistanceSettings.enabled,
@@ -166,7 +160,6 @@ object PixleHavenCore : Plugin() {
         TitleStorage.stop()
         DurabilityService.stop()
         FlightService.stop()
-        RealWorldService.stop()
         VeinminerLimitService.stop()
         TradeService.stop()
         VanishService.stop()

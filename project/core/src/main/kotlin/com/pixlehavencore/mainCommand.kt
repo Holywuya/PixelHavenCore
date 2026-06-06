@@ -23,7 +23,6 @@ import com.pixlehavencore.feature.veinminer.VeinminerSettings
 import com.pixlehavencore.feature.playtime.PlaytimeSettings
 import com.pixlehavencore.feature.playtime.PlaytimeStorage
 import com.pixlehavencore.feature.playtime.PlaytimeService
-import com.pixlehavencore.feature.realworld.RealWorldService
 import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission
@@ -150,8 +149,7 @@ object MainCommand {
             ReloadStep("playtime-settings", false) { PlaytimeSettings.reload() },
             ReloadStep("playtime-storage", false) { PlaytimeStorage.reload() },
             ReloadStep("playtime-service", false) { PlaytimeService.reload() },
-            ReloadStep("flight", false) { FlightService.reload() },
-            ReloadStep("realworld", true) { RealWorldService.reload() }
+            ReloadStep("flight", false) { FlightService.reload() }
         )
 
         steps.forEach { step ->
