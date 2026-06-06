@@ -2,11 +2,16 @@ package com.pixlehavencore.feature.base
 
 import org.bukkit.entity.Creeper
 import org.bukkit.entity.EntityType
-import org.bukkit.event.world.ChunkLoadEvent
+import org.bukkit.entity.Player
 import org.bukkit.event.entity.CreatureSpawnEvent
+import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.entity.EntityExplodeEvent
 import org.bukkit.event.entity.EntityPortalEnterEvent
 import org.bukkit.event.entity.EntityTeleportEvent
+import org.bukkit.event.entity.PlayerDeathEvent
+import org.bukkit.event.player.PlayerTeleportEvent
+import org.bukkit.event.world.ChunkLoadEvent
+import taboolib.common.platform.event.EventPriority
 import taboolib.common.platform.event.SubscribeEvent
 
 object BaseListener {
@@ -63,5 +68,23 @@ object BaseListener {
         if (environment.name != "NETHER" && environment.name != "THE_END") return
         // Folia: ChunkLoadEvent 在该区块的区域线程上触发，chunk.entities 读取和 entity.remove() 在同一区域线程上是安全的
         event.chunk.entities.filter { BaseCommandSettings.clearEntitiesInNetherEnd.contains(it.type) }.forEach { it.remove() }
+    }
+
+    @SubscribeEvent(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onPlayerTeleport(event: PlayerTeleportEvent) {
+        if (!BaseCommandSettings.enabled) return
+        BackService.record(event.player.uniqueId, event.from, "teleport")
+    }
+
+    @SubscribeEvent(priority = EventPriority.MONITOR)
+    fun onPlayerDeath(event: PlayerDeathEvent) {
+        if (!BaseCommandSettings.enabled) return
+        BackService.record(event.player.uniqueId, event.player.location, "death")
+    }
+
+    @SubscribeEvent
+    fun onPlayerDamage(event: EntityDamageEvent) {
+        val player = event.entity as? Player ?: return
+        BackService.cancelWarmup(player.uniqueId)
     }
 }
