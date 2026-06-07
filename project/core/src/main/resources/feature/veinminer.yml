@@ -17,9 +17,11 @@ allowedBlocks: # 可连锁的矿物列表（支持 * 通配符，如 *_ore。为
   - "*_ore"
   - minecraft:ancient_debris
 
-treeBlocks: # 可连锁的树木原木/菌柄（支持 * 通配符）
+treeBlocks: # 可连锁的树木原木/菌柄/木块/菌核（支持 * 通配符）
   - "*_log"
+  - "*_wood"
   - "*_stem"
+  - "*_hyphae"
 
 allowedTools: # 允许触发的工具（支持 * 通配符，如 *_pickaxe。为空则不限制）
   - "*_pickaxe"
