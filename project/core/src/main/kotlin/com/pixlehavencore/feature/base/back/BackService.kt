@@ -10,7 +10,7 @@ import net.kyori.adventure.text.event.HoverEvent
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.entity.Player
-import taboolib.common.platform.function.submitAsync
+import taboolib.common.platform.function.submit
 import taboolib.common.platform.function.warning
 import taboolib.platform.util.submit as submitOnEntity
 import java.util.UUID
@@ -97,12 +97,12 @@ object BackService {
             return false
         }
 
-        submitAsync {
+        submit {
             val targetWorld = Bukkit.getWorld(targetWorldName)
             if (targetWorld == null) {
                 BackStorage.remove(uuid)
                 player.sendMessage(TextUtils.parse("&c目标世界不可用。"))
-                return@submitAsync
+                return@submit
             }
             val targetLoc = Location(targetWorld, data.location.x, data.location.y, data.location.z, data.location.yaw, data.location.pitch)
 

@@ -5,6 +5,7 @@ import com.pixlehavencore.util.SafeLocationFinder
 import com.pixlehavencore.util.TextUtils
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
+import taboolib.common.platform.function.submit
 import taboolib.common.platform.function.submitAsync
 import taboolib.common.platform.function.warning
 import taboolib.expansion.MultipleHandler
@@ -57,8 +58,8 @@ object FirstJoinService {
         val uuid = player.uniqueId
         val world = Bukkit.getWorld("world") ?: Bukkit.getWorlds().firstOrNull() ?: return
 
-        submitAsync {
-            if (!isFirstJoin(uuid)) return@submitAsync
+        submit {
+            if (!isFirstJoin(uuid)) return@submit
 
             val spawn = world.spawnLocation
             val centerX = spawn.x + FirstJoinSettings.centerX
