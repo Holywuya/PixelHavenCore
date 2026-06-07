@@ -13,52 +13,17 @@ permissionRestricted: false # 是否需要 veinminer.use 权限
 mergeItemDrops: false # 是否合并掉落物品
 durabilityDecrease: true # 是否消耗工具耐久
 
-allowedBlocks: # 可连锁的矿物列表（支持 * 通配符，如 *_pickaxe。为空则不限制）
-  - minecraft:coal_ore
-  - minecraft:deepslate_coal_ore
-  - minecraft:iron_ore
-  - minecraft:deepslate_iron_ore
-  - minecraft:copper_ore
-  - minecraft:deepslate_copper_ore
-  - minecraft:gold_ore
-  - minecraft:deepslate_gold_ore
-  - minecraft:lapis_ore
-  - minecraft:deepslate_lapis_ore
-  - minecraft:redstone_ore
-  - minecraft:deepslate_redstone_ore
-  - minecraft:diamond_ore
-  - minecraft:deepslate_diamond_ore
-  - minecraft:emerald_ore
-  - minecraft:deepslate_emerald_ore
-  - minecraft:nether_gold_ore
-  - minecraft:nether_quartz_ore
+allowedBlocks: # 可连锁的矿物列表（支持 * 通配符，如 *_ore。为空则不限制）
+  - "*_ore"
   - minecraft:ancient_debris
 
 treeBlocks: # 可连锁的树木原木/菌柄（支持 * 通配符）
-  - minecraft:oak_log
-  - minecraft:spruce_log
-  - minecraft:birch_log
-  - minecraft:jungle_log
-  - minecraft:acacia_log
-  - minecraft:dark_oak_log
-  - minecraft:mangrove_log
-  - minecraft:cherry_log
-  - minecraft:crimson_stem
-  - minecraft:warped_stem
+  - "*_log"
+  - "*_stem"
 
 allowedTools: # 允许触发的工具（支持 * 通配符，如 *_pickaxe。为空则不限制）
-  - minecraft:wooden_pickaxe
-  - minecraft:stone_pickaxe
-  - minecraft:iron_pickaxe
-  - minecraft:golden_pickaxe
-  - minecraft:diamond_pickaxe
-  - minecraft:netherite_pickaxe
-  - minecraft:wooden_axe
-  - minecraft:stone_axe
-  - minecraft:iron_axe
-  - minecraft:golden_axe
-  - minecraft:diamond_axe
-  - minecraft:netherite_axe
+  - "*_pickaxe"
+  - "*_axe"
 
 limit: # 连锁次数限制
   enabled: true
