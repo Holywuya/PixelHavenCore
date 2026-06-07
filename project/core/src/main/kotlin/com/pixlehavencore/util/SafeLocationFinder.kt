@@ -51,26 +51,27 @@ object SafeLocationFinder {
             val chunkX = x.toInt() shr 4
             val chunkZ = z.toInt() shr 4
 
-            return FoliaCompat.getChunkAtAsync(world, chunkX, chunkZ)
+            val future = CompletableFuture<Location?>()
+            FoliaCompat.getChunkAtAsync(world, chunkX, chunkZ)
                 .orTimeout(timeoutSeconds.toLong(), TimeUnit.SECONDS)
-                .thenApply { chunk -> chunk.chunkSnapshot }
-                .thenCompose { snapshot ->
+                .thenAccept { chunk ->
+                    val snapshot = chunk.chunkSnapshot
                     val localX = x.toInt() and 0xF
                     val localZ = z.toInt() and 0xF
                     val highestY = snapshot.getHighestBlockYAt(localX, localZ)
 
                     if (isSafePosition(snapshot, localX, highestY, localZ)) {
-                        CompletableFuture.completedFuture(
-                            Location(world, x, (highestY + 1).toDouble(), z)
-                        )
+                        future.complete(Location(world, x, (highestY + 1).toDouble(), z))
                     } else {
-                        tryNext()
+                        tryNext().thenAccept { future.complete(it) }.exceptionally { ex -> future.completeExceptionally(ex); null }
                     }
                 }
                 .exceptionally { ex ->
                     warning("[SafeLocationFinder] 候选位置判定失败(第${attempt}次): ${ex.message}")
+                    tryNext().thenAccept { future.complete(it) }.exceptionally { innerEx -> future.completeExceptionally(innerEx); null }
                     null
                 }
+            return future
         }
 
         return tryNext()
