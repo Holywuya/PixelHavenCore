@@ -284,7 +284,11 @@ object TitleMenu {
 
     private fun createInfoItem(player: Player, totalTitles: Int, currentPage: Int, maxPage: Int): ItemStack {
         val state = TitleStorage.getData(player.uniqueId)
-        val ownedCount = state?.ownedTitles?.count { !it.isExpired() } ?: 0
+        val ownedDbCount = state?.ownedTitles?.count { !it.isExpired() } ?: 0
+        val ownedPermCount = TitleSettings.getAllTitles().count { def ->
+            def.permission.isNotBlank() && player.hasPermission(def.permission)
+        }
+        val ownedCount = ownedDbCount + ownedPermCount
         val activeTitle = state?.activeTitleId?.let { TitleSettings.getTitle(it) }
         val item = ItemStack(Material.BOOK)
         TextBridge.setDisplayName(item, TextUtils.parseItem(TitleSettings.msgGuiTitleSystem))

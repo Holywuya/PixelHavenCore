@@ -49,10 +49,13 @@ object TitleService {
         if (!TitleSettings.enabled) return TitleResult.Disabled
         val definition = TitleSettings.getTitle(titleId) ?: return TitleResult.NotFound
         val state = TitleStorage.getData(player.uniqueId) ?: return TitleResult.NotLoaded
-        val entry = state.ownedTitles.find { it.titleId == titleId } ?: return TitleResult.NotOwned
-        if (entry.isExpired()) return TitleResult.Expired
-        if (definition.permission.isNotBlank() && !player.hasPermission(definition.permission)) {
-            return TitleResult.NoPermission
+        if (definition.permission.isNotBlank()) {
+            if (!player.hasPermission(definition.permission)) {
+                return TitleResult.NoPermission
+            }
+        } else {
+            val entry = state.ownedTitles.find { it.titleId == titleId } ?: return TitleResult.NotOwned
+            if (entry.isExpired()) return TitleResult.Expired
         }
         TitleStorage.activateTitle(player.uniqueId, titleId)
         player.sendMessage(TextUtils.parse(TitleSettings.msgActivated.resolvePlaceholders("{title}" to definition.displayName)))
@@ -95,7 +98,7 @@ object TitleService {
         }
         val now = System.currentTimeMillis()
         return definitions.map { def ->
-            val entry = state?.ownedTitles?.find { it.titleId == def.id }
+            val entry = resolveTitleEntry(player, def, state)
             val isActive = state?.activeTitleId == def.id
             val isExpired = entry?.isExpired(now) ?: false
             val remaining = if (entry != null && !entry.isPermanent && !isExpired) {
@@ -103,6 +106,20 @@ object TitleService {
             } else null
             TitlePreview(def, entry, isActive, isExpired, remaining)
         }
+    }
+
+    /**
+     * 解析玩家对某个称号的拥有记录。
+     * 对于配置了 permission 的称号，拥有权限即视为拥有（返回虚拟永久记录）。
+     * 对于未配置 permission 的称号，返回数据库中的记录。
+     */
+    fun resolveTitleEntry(player: Player, definition: TitleDefinition, state: PlayerTitleState?): PlayerTitleEntry? {
+        if (definition.permission.isNotBlank()) {
+            return if (player.hasPermission(definition.permission)) {
+                PlayerTitleEntry(definition.id, System.currentTimeMillis(), 0L)
+            } else null
+        }
+        return state?.ownedTitles?.find { it.titleId == definition.id }
     }
 
     fun getActiveTitle(uuid: UUID): TitleDefinition? {

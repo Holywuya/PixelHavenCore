@@ -32,36 +32,70 @@ object TitlePlaceholders : PlaceholderExpansion {
             lower == "active_raw" -> state?.activeTitleId ?: ""
             lower == "count" -> {
                 val now = System.currentTimeMillis()
-                (state?.ownedTitles?.count { !it.isExpired(now) } ?: 0).toString()
+                val dbCount = state?.ownedTitles?.count { !it.isExpired(now) } ?: 0
+                val permCount = countPermissionTitles(uuid)
+                (dbCount + permCount).toString()
             }
             lower.startsWith("has_") -> {
                 val titleId = lower.removePrefix("has_")
-                val has = state?.ownedTitles?.any { it.titleId == titleId && !it.isExpired() } ?: false
+                val def = TitleSettings.getTitle(titleId)
+                val has = if (def != null && def.permission.isNotBlank()) {
+                    org.bukkit.Bukkit.getPlayer(uuid)?.hasPermission(def.permission) ?: false
+                } else {
+                    state?.ownedTitles?.any { it.titleId == titleId && !it.isExpired() } ?: false
+                }
                 has.toString()
             }
             lower.startsWith("category_") -> {
                 val category = lower.removePrefix("category_")
                 val now = System.currentTimeMillis()
-                val count = state?.ownedTitles
+                val dbCount = state?.ownedTitles
                     ?.filter { !it.isExpired(now) }
                     ?.count { entry ->
                         val def = TitleSettings.getTitle(entry.titleId)
                         def?.category.equals(category, ignoreCase = true)
                     } ?: 0
-                count.toString()
+                val permCount = countPermissionTitlesByCategory(uuid, category)
+                (dbCount + permCount).toString()
             }
             lower.startsWith("rarity_") -> {
                 val rarity = lower.removePrefix("rarity_")
                 val now = System.currentTimeMillis()
-                val count = state?.ownedTitles
+                val dbCount = state?.ownedTitles
                     ?.filter { !it.isExpired(now) }
                     ?.count { entry ->
                         val def = TitleSettings.getTitle(entry.titleId)
                         def?.rarity.equals(rarity, ignoreCase = true)
                     } ?: 0
-                count.toString()
+                val permCount = countPermissionTitlesByRarity(uuid, rarity)
+                (dbCount + permCount).toString()
             }
             else -> ""
+        }
+    }
+
+    private fun countPermissionTitles(uuid: UUID): Int {
+        val player = org.bukkit.Bukkit.getPlayer(uuid) ?: return 0
+        return TitleSettings.getAllTitles().count { def ->
+            def.permission.isNotBlank() && player.hasPermission(def.permission)
+        }
+    }
+
+    private fun countPermissionTitlesByCategory(uuid: UUID, category: String): Int {
+        val player = org.bukkit.Bukkit.getPlayer(uuid) ?: return 0
+        return TitleSettings.getAllTitles().count { def ->
+            def.permission.isNotBlank() &&
+            def.category.equals(category, ignoreCase = true) &&
+            player.hasPermission(def.permission)
+        }
+    }
+
+    private fun countPermissionTitlesByRarity(uuid: UUID, rarity: String): Int {
+        val player = org.bukkit.Bukkit.getPlayer(uuid) ?: return 0
+        return TitleSettings.getAllTitles().count { def ->
+            def.permission.isNotBlank() &&
+            def.rarity.equals(rarity, ignoreCase = true) &&
+            player.hasPermission(def.permission)
         }
     }
 }
