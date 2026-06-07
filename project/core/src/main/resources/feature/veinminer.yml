@@ -13,7 +13,7 @@ permissionRestricted: false # 是否需要 veinminer.use 权限
 mergeItemDrops: false # 是否合并掉落物品
 durabilityDecrease: true # 是否消耗工具耐久
 
-allowedBlocks: # 可连锁的矿物列表（为空或包含*则不限制）
+allowedBlocks: # 可连锁的矿物列表（支持 * 通配符，如 *_pickaxe。为空则不限制）
   - minecraft:coal_ore
   - minecraft:deepslate_coal_ore
   - minecraft:iron_ore
@@ -34,7 +34,7 @@ allowedBlocks: # 可连锁的矿物列表（为空或包含*则不限制）
   - minecraft:nether_quartz_ore
   - minecraft:ancient_debris
 
-treeBlocks: # 可连锁的树木原木/菌柄
+treeBlocks: # 可连锁的树木原木/菌柄（支持 * 通配符）
   - minecraft:oak_log
   - minecraft:spruce_log
   - minecraft:birch_log
@@ -46,7 +46,7 @@ treeBlocks: # 可连锁的树木原木/菌柄
   - minecraft:crimson_stem
   - minecraft:warped_stem
 
-allowedTools: # 允许触发的工具（为空或包含*则不限制）
+allowedTools: # 允许触发的工具（支持 * 通配符，如 *_pickaxe。为空则不限制）
   - minecraft:wooden_pickaxe
   - minecraft:stone_pickaxe
   - minecraft:iron_pickaxe

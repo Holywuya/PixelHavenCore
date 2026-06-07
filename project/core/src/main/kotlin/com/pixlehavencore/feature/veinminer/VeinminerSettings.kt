@@ -40,10 +40,19 @@ object VeinminerSettings {
     var allowedBlocks: Set<Material> = emptySet()
         private set
 
+    var allowedBlockPatterns: List<String> = emptyList()
+        private set
+
     var allowedTools: Set<Material> = emptySet()
         private set
 
+    var allowedToolPatterns: List<String> = emptyList()
+        private set
+
     var treeBlocks: Set<Material> = emptySet()
+        private set
+
+    var treeBlockPatterns: List<String> = emptyList()
         private set
 
     var limitEnabled: Boolean = true
@@ -88,9 +97,17 @@ object VeinminerSettings {
         permissionRestricted = config.getBoolean("permissionRestricted", false)
         mergeItemDrops = config.getBoolean("mergeItemDrops", false)
         durabilityDecrease = config.getBoolean("durabilityDecrease", true)
-        allowedBlocks = parseMaterials(config.getStringList("allowedBlocks"))
-        allowedTools = parseMaterials(config.getStringList("allowedTools"))
-        treeBlocks = parseMaterials(config.getStringList("treeBlocks"))
+        val allowedBlocksParse = parseMaterials(config.getStringList("allowedBlocks"))
+        allowedBlocks = allowedBlocksParse.materials
+        allowedBlockPatterns = allowedBlocksParse.patterns
+
+        val allowedToolsParse = parseMaterials(config.getStringList("allowedTools"))
+        allowedTools = allowedToolsParse.materials
+        allowedToolPatterns = allowedToolsParse.patterns
+
+        val treeBlocksParse = parseMaterials(config.getStringList("treeBlocks"))
+        treeBlocks = treeBlocksParse.materials
+        treeBlockPatterns = treeBlocksParse.patterns
         limitEnabled = config.getBoolean("limit.enabled", true)
         limitResetHour = config.getInt("limit.resetHour", 0).coerceIn(0, 23)
         limitResetMinute = config.getInt("limit.resetMinute", 0).coerceIn(0, 59)
@@ -114,17 +131,38 @@ object VeinminerSettings {
     }
 
     fun isBlockAllowed(material: Material): Boolean {
-        if (allowedBlocks.isEmpty()) {
+        if (allowedBlocks.isEmpty() && allowedBlockPatterns.isEmpty() && treeBlocks.isEmpty() && treeBlockPatterns.isEmpty()) {
             return true
         }
-        if (allowedBlocks.contains(material)) {
+        if (allowedBlocks.contains(material) || treeBlocks.contains(material)) {
             return true
         }
-        return treeBlocks.contains(material)
+        val name = material.name.lowercase()
+        return allowedBlockPatterns.any { matchesPattern(name, it) } || treeBlockPatterns.any { matchesPattern(name, it) }
     }
 
     fun isToolAllowed(material: Material): Boolean {
-        return allowedTools.isEmpty() || allowedTools.contains(material)
+        if (allowedTools.isEmpty() && allowedToolPatterns.isEmpty()) return true
+        if (allowedTools.contains(material)) return true
+        val name = material.name.lowercase()
+        return allowedToolPatterns.any { matchesPattern(name, it) }
+    }
+
+    fun getMatchedPattern(material: Material): String? {
+        val name = material.name.lowercase()
+        allowedBlockPatterns.firstOrNull { matchesPattern(name, it) }?.let { return it }
+        treeBlockPatterns.firstOrNull { matchesPattern(name, it) }?.let { return it }
+        return null
+    }
+
+    fun matchesMaterialPattern(material: Material, pattern: String): Boolean {
+        val regex = pattern.replace("*", ".*").toRegex()
+        return regex.matches(material.name.lowercase())
+    }
+
+    private fun matchesPattern(name: String, pattern: String): Boolean {
+        val regex = pattern.replace("*", ".*").toRegex()
+        return regex.matches(name)
     }
 
     fun getOreType(material: Material): String? {
@@ -157,17 +195,25 @@ object VeinminerSettings {
         return list.sortedWith(compareByDescending<VeinminerGroup> { it.priority }.thenBy { it.id })
     }
 
-    private fun parseMaterials(values: List<String>): Set<Material> {
+    private data class ParsedMaterials(val materials: Set<Material>, val patterns: List<String>)
+
+    private fun parseMaterials(values: List<String>): ParsedMaterials {
         if (values.isEmpty()) {
-            return emptySet()
-        }
-        if (values.any { it.trim() == "*" }) {
-            return emptySet()
+            return ParsedMaterials(emptySet(), emptyList())
         }
         val materials = LinkedHashSet<Material>()
+        val patterns = ArrayList<String>()
         values.forEach { raw ->
             val name = raw.trim()
             if (name.isEmpty()) {
+                return@forEach
+            }
+            if (name == "*") {
+                patterns.add("*")
+                return@forEach
+            }
+            if (name.contains("*")) {
+                patterns.add(name.lowercase())
                 return@forEach
             }
             val normalized = if (name.contains(":")) name.substringAfter(":") else name
@@ -176,7 +222,7 @@ object VeinminerSettings {
                 materials.add(material)
             }
         }
-        return materials
+        return ParsedMaterials(materials, patterns)
     }
 }
 

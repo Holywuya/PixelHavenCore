@@ -101,6 +101,7 @@ object VeinminerService {
     private fun collectChain(source: Block, player: Player, tool: ItemStack, maxNodes: Int): List<Block> {
         val originType = source.type
         val originOreType = VeinminerSettings.getOreType(originType)
+        val originPattern = VeinminerSettings.getMatchedPattern(originType)
         val radius = VeinminerSettings.searchRadius
         if (maxNodes <= 1) {
             return listOf(source)
@@ -117,14 +118,8 @@ object VeinminerService {
                 continue
             }
             val currentType = current.type
-            if (currentType != originType) {
-                if (originOreType == null) {
-                    continue
-                }
-                val currentOreType = VeinminerSettings.getOreType(currentType)
-                if (currentOreType == null || currentOreType != originOreType) {
-                    continue
-                }
+            if (currentType != originType && !matchesChainable(currentType, originOreType, originPattern)) {
+                continue
             }
             if (VeinminerSettings.needCorrectTool && !hasCorrectTool(tool, player, current)) {
                 continue
@@ -134,12 +129,23 @@ object VeinminerService {
                 val next = current.getRelative(offset.x, offset.y, offset.z)
                 val nextKey = blockKey(next)
                 val nextType = next.type
-                if (!visited.contains(nextKey) && (nextType == originType || (originOreType != null && VeinminerSettings.getOreType(nextType) == originOreType))) {
+                if (!visited.contains(nextKey) && (nextType == originType || matchesChainable(nextType, originOreType, originPattern))) {
                     queue.add(next)
                 }
             }
         }
         return result
+    }
+
+    private fun matchesChainable(type: Material, originOreType: String?, originPattern: String?): Boolean {
+        if (originOreType != null) {
+            val oreType = VeinminerSettings.getOreType(type)
+            if (oreType == originOreType) return true
+        }
+        if (originPattern != null && VeinminerSettings.matchesMaterialPattern(type, originPattern)) {
+            return true
+        }
+        return false
     }
 
     private fun getOffsets(radius: Int): List<Offset> {
