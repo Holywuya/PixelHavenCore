@@ -47,6 +47,9 @@ object BackSettings {
     var msgDeathHover: String = "&a点击回到死亡点"
         private set
 
+    var instantPermission: String = "phcore.back.instant"
+        private set
+
     fun init() {
         reload()
     }
@@ -66,5 +69,6 @@ object BackSettings {
         msgAlreadyWarmingUp = config.getString("msgAlreadyWarmingUp") ?: "&c传送预热中，请稍候。"
         msgDeathButton = config.getString("msgDeathButton") ?: "&c你已死亡！ &a[点击此处返回死亡位置]"
         msgDeathHover = config.getString("msgDeathHover") ?: "&a点击回到死亡点"
+        instantPermission = config.getString("instantPermission") ?: "phcore.back.instant"
     }
 }

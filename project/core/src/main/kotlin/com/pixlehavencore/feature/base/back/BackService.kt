@@ -108,7 +108,7 @@ object BackService {
             }
             val targetLoc = Location(targetWorld, data.location.x, data.location.y, data.location.z, data.location.yaw, data.location.pitch)
 
-            val shouldSkipWarmup = player.isOp || player.hasPermission("phcore.back.instant")
+            val shouldSkipWarmup = player.isOp || player.hasPermission(BackSettings.instantPermission)
             if (shouldSkipWarmup || BackSettings.warmupSeconds <= 0) {
                 doTeleportAsync(player, targetLoc, uuid)
             } else {

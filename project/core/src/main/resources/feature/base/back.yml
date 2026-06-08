@@ -25,3 +25,5 @@ msgAlreadyWarmingUp: "&c传送预热中，请稍候。"
 msgDeathButton: "&c你已死亡！ &a[点击此处返回死亡位置]"
 
 msgDeathHover: "&a点击回到死亡点"
+
+instantPermission: "phcore.back.instant"
