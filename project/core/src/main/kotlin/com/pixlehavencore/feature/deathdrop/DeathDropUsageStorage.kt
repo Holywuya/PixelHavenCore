@@ -1,13 +1,10 @@
 package com.pixlehavencore.feature.deathdrop
 
-import com.pixlehavencore.util.DatabaseUtils
-import taboolib.common.platform.function.submit
+import com.pixlehavencore.util.DataStore
 import taboolib.common.platform.function.submitAsync
 import taboolib.common.platform.function.warning
-import taboolib.expansion.MultipleHandler
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicBoolean
 
 object DeathDropUsageStorage {
 
@@ -15,9 +12,7 @@ object DeathDropUsageStorage {
     private const val KEY_USED_PREFIX = "used:"
     private const val KEY_BONUS_PREFIX = "bonus:"
 
-    @Volatile
-    private var handler: MultipleHandler? = null
-    private val shuttingDown = AtomicBoolean(false)
+    private val store = DataStore(TABLE_NAME)
 
     private val cache = ConcurrentHashMap<String, UsageRecord>()
 
@@ -27,33 +22,15 @@ object DeathDropUsageStorage {
     }
 
     fun init() {
-        shuttingDown.set(false)
-        reload()
+        store.init()
     }
 
     fun reload() {
-        if (shuttingDown.get()) {
-            return
-        }
-        submitAsync {
-            close()
-            if (!DeathDropSettings.enabled) {
-                return@submitAsync
-            }
-            runCatching {
-                handler = DatabaseUtils.newPlayerDataHandler(TABLE_NAME, syncTick = 200L)
-            }.onFailure { ex ->
-                warning("[DeathDropUsage] 初始化 PlayerDatabase 失败: ${ex.message}")
-                warning("[DeathDropUsage] 死亡保护次数数据将无法持久化，请检查数据库配置！")
-                close()
-            }
-        }
+        store.reload()
     }
 
     fun close() {
-        shuttingDown.set(true)
-        DatabaseUtils.closeMultipleHandler(handler)
-        handler = null
+        store.close()
         cache.clear()
     }
 
@@ -92,14 +69,11 @@ object DeathDropUsageStorage {
     private fun getRecord(player: UUID, dateKey: String): UsageRecord {
         val cacheKey = cacheKey(player, dateKey)
         cache[cacheKey]?.let { return it }
-        // Folia: 缓存未命中时返回默认值（0次使用/0奖励），异步预热缓存，
-        // 避免在 PlayerDeathEvent 实体线程上同步读数据库
         val newRecord = UsageRecord()
         val actual = cache.putIfAbsent(cacheKey, newRecord)
         if (actual != null) return actual
         submitAsync {
             val loaded = loadRecord(player, dateKey)
-            // 合并数据而非替换对象，确保所有引用指向同一个实例
             val existing = cache[cacheKey] ?: return@submitAsync
             existing.used.set(loaded.used.get())
             existing.bonus.set(loaded.bonus.get())
@@ -108,11 +82,10 @@ object DeathDropUsageStorage {
     }
 
     private fun loadRecord(player: UUID, dateKey: String): UsageRecord {
-        val currentHandler = handler ?: return UsageRecord()
         return runCatching {
             val user = player.toString()
-            val used = currentHandler.database[user, KEY_USED_PREFIX + dateKey]?.toIntOrNull() ?: 0
-            val bonus = currentHandler.database[user, KEY_BONUS_PREFIX + dateKey]?.toIntOrNull() ?: 0
+            val used = store.get(user, KEY_USED_PREFIX + dateKey)?.toIntOrNull() ?: 0
+            val bonus = store.get(user, KEY_BONUS_PREFIX + dateKey)?.toIntOrNull() ?: 0
             UsageRecord(used = used, bonus = bonus)
         }.getOrElse { ex ->
             warning("[DeathDropUsage] 读取玩家数据失败($player): ${ex.message}")
@@ -121,25 +94,24 @@ object DeathDropUsageStorage {
     }
 
     private fun saveRecordAsync(player: UUID, dateKey: String, record: UsageRecord) {
-        val currentHandler = handler ?: return
-        if (shuttingDown.get()) {
-            saveRecordSync(currentHandler, player, dateKey, record)
+        if (store.isShuttingDown()) {
+            saveRecordSync(player, dateKey, record)
             return
         }
         submitAsync {
-            if (shuttingDown.get()) return@submitAsync
+            if (store.isShuttingDown()) return@submitAsync
             runCatching {
-                saveRecordSync(currentHandler, player, dateKey, record)
+                saveRecordSync(player, dateKey, record)
             }.onFailure { ex ->
                 warning("[DeathDropUsage] 保存玩家数据失败($player): ${ex.message}")
             }
         }
     }
 
-    private fun saveRecordSync(currentHandler: MultipleHandler, player: UUID, dateKey: String, record: UsageRecord) {
+    private fun saveRecordSync(player: UUID, dateKey: String, record: UsageRecord) {
         val user = player.toString()
-        currentHandler.database[user, KEY_USED_PREFIX + dateKey] = record.used.get().toString()
-        currentHandler.database[user, KEY_BONUS_PREFIX + dateKey] = record.bonus.get().toString()
+        store.set(user, KEY_USED_PREFIX + dateKey, record.used.get().toString())
+        store.set(user, KEY_BONUS_PREFIX + dateKey, record.bonus.get().toString())
     }
 
     private fun cacheKey(player: UUID, dateKey: String): String {

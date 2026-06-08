@@ -143,6 +143,72 @@ object DatabaseUtils {
     }
 
 }
+/**
+ * 简化 MultipleHandler 生命周期管理的轻量包装器。
+ * 封装 handler 创建/关闭/shutdown 状态，提供 get/set 便捷访问。
+ */
+class DataStore(private val tableName: String, private val syncTick: Long = 200L) {
+
+    @Volatile
+    private var handler: MultipleHandler? = null
+    private val shuttingDown = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    @Volatile
+    var isReady: Boolean = false
+        private set
+
+    fun init(initComplete: (Boolean) -> Unit = {}) {
+        shuttingDown.set(false)
+        reload(initComplete)
+    }
+
+    fun reload(initComplete: (Boolean) -> Unit = {}) {
+        if (shuttingDown.get()) return
+        isReady = false
+        submitAsync {
+            close()
+            runCatching {
+                handler = DatabaseUtils.newPlayerDataHandler(tableName, syncTick = syncTick)
+            }.onSuccess {
+                shuttingDown.set(false)
+                isReady = true
+                initComplete(true)
+            }.onFailure { ex ->
+                warning("[DataStore:$tableName] 初始化 PlayerDatabase 失败: ${ex.message}")
+                close()
+                isReady = true
+                initComplete(false)
+            }
+        }
+    }
+
+    fun close(flushBlock: (() -> Unit)? = null) {
+        isReady = false
+        shuttingDown.set(true)
+        flushBlock?.invoke()
+        DatabaseUtils.closeMultipleHandler(handler)
+        handler = null
+    }
+
+    fun isShuttingDown(): Boolean = shuttingDown.get()
+
+    fun get(user: String, key: String): String? {
+        return handler?.database?.get(user, key) as? String
+    }
+
+    operator fun set(user: String, key: String, value: String) {
+        val h = handler ?: return
+        h.database[user, key] = value
+    }
+
+    fun <T> withHandler(block: (MultipleHandler) -> T): T? {
+        return handler?.let(block)
+    }
+
+    fun getListByKey(key: String): Map<String, String> {
+        return handler?.database?.getListByKey(key) ?: emptyMap()
+    }
+}
 
 /**
  * 确保玩家数据容器已初始化，供各模块统一复用。

@@ -1,53 +1,32 @@
 package com.pixlehavencore.feature.base.back
 
-import com.pixlehavencore.util.DatabaseUtils
+import com.pixlehavencore.util.DataStore
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import taboolib.common.platform.function.submitAsync
 import taboolib.common.platform.function.warning
-import taboolib.expansion.MultipleHandler
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicBoolean
 
 object BackStorage {
 
     private const val TABLE_NAME = "back_location"
     private const val KEY_LOCATION = "location"
 
-    @Volatile
-    private var handler: MultipleHandler? = null
-    private val shuttingDown = AtomicBoolean(false)
+    private val store = DataStore(TABLE_NAME)
 
     private val cache = ConcurrentHashMap<UUID, BackData>()
 
     fun init() {
-        shuttingDown.set(false)
-        reload()
+        store.init()
     }
 
     fun reload() {
-        if (shuttingDown.get()) return
-        submitAsync {
-            close()
-            runCatching {
-                handler = DatabaseUtils.newPlayerDataHandler(TABLE_NAME, syncTick = 200L)
-            }.onSuccess {
-                shuttingDown.set(false)
-            }.onFailure { ex ->
-                warning("[Back] 初始化 PlayerDatabase 失败: ${ex.message}")
-                warning("[Back] 位置数据将无法持久化，请检查数据库配置！")
-                close()
-            }
-        }
+        store.reload()
     }
 
     fun close() {
-        shuttingDown.set(true)
-        flushCache()
-        DatabaseUtils.closeMultipleHandler(handler)
-        handler = null
-        cache.clear()
+        store.close { flushCache() }
     }
 
     fun get(player: UUID): BackData? {
@@ -57,7 +36,7 @@ object BackStorage {
     fun set(player: UUID, data: BackData) {
         cache[player] = data
         submitAsync {
-            if (shuttingDown.get()) return@submitAsync
+            if (store.isShuttingDown()) return@submitAsync
             saveToDatabase(player, data)
         }
     }
@@ -65,10 +44,9 @@ object BackStorage {
     fun remove(player: UUID) {
         cache.remove(player)
         submitAsync {
-            if (shuttingDown.get()) return@submitAsync
-            val currentHandler = handler ?: return@submitAsync
+            if (store.isShuttingDown()) return@submitAsync
             runCatching {
-                currentHandler.database[player.toString(), KEY_LOCATION] = ""
+                store.set(player.toString(), KEY_LOCATION, "")
             }.onFailure { ex ->
                 warning("[Back] 删除玩家数据失败($player): ${ex.message}")
             }
@@ -76,9 +54,8 @@ object BackStorage {
     }
 
     fun loadFromDatabase(player: UUID): BackData? {
-        val currentHandler = handler ?: return null
         return runCatching {
-            val raw = currentHandler.database[player.toString(), KEY_LOCATION] ?: return null
+            val raw = store.get(player.toString(), KEY_LOCATION) ?: return null
             deserialize(raw)
         }.getOrElse { ex ->
             warning("[Back] 读取玩家数据失败($player): ${ex.message}")
@@ -87,21 +64,19 @@ object BackStorage {
     }
 
     private fun saveToDatabase(player: UUID, data: BackData) {
-        val currentHandler = handler ?: return
         val serialized = serialize(data.location) ?: return
         runCatching {
-            currentHandler.database[player.toString(), KEY_LOCATION] = serialized
+            store.set(player.toString(), KEY_LOCATION, serialized)
         }.onFailure { ex ->
             warning("[Back] 保存玩家数据失败($player): ${ex.message}")
         }
     }
 
     private fun flushCache() {
-        val currentHandler = handler ?: return
         for ((player, data) in cache) {
             val serialized = serialize(data.location) ?: continue
             runCatching {
-                currentHandler.database[player.toString(), KEY_LOCATION] = serialized
+                store.set(player.toString(), KEY_LOCATION, serialized)
             }.onFailure { ex ->
                 warning("[Back] flushCache 保存失败($player): ${ex.message}")
             }

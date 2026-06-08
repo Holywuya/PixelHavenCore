@@ -1,14 +1,12 @@
 package com.pixlehavencore.playerstate
 
-import com.pixlehavencore.util.DatabaseUtils
+import com.pixlehavencore.util.DataStore
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import taboolib.common.platform.function.submitAsync
 import taboolib.common.platform.function.warning
-import taboolib.expansion.MultipleHandler
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicBoolean
 
 data class PlayerStateData(
     val uuid: UUID,
@@ -32,9 +30,7 @@ object PlayerStateStorage {
     private const val KEY_DEATH_LOC = "last_death_location"
     private const val KEY_TELEPORT_LOC = "last_teleport_location"
 
-    @Volatile
-    private var handler: MultipleHandler? = null
-    private val shuttingDown = AtomicBoolean(false)
+    private val store = DataStore(TABLE_NAME)
 
     private val cache = ConcurrentHashMap<UUID, PlayerStateData>()
 
@@ -43,35 +39,18 @@ object PlayerStateStorage {
         private set
 
     fun init() {
-        shuttingDown.set(false)
-        reload()
+        ready = false
+        store.init { success -> ready = true }
     }
 
     fun reload() {
-        if (shuttingDown.get()) return
         ready = false
-        submitAsync {
-            close()
-            runCatching {
-                handler = DatabaseUtils.newPlayerDataHandler(TABLE_NAME, syncTick = 200L)
-            }.onSuccess {
-                shuttingDown.set(false)
-                ready = true
-            }.onFailure { ex ->
-                warning("[PlayerState] 初始化 PlayerDatabase 失败: ${ex.message}")
-                warning("[PlayerState] 状态数据将无法持久化，请检查数据库配置！")
-                close()
-                ready = true
-            }
-        }
+        store.reload { success -> ready = true }
     }
 
     fun close() {
         ready = false
-        shuttingDown.set(true)
-        flushCache()
-        DatabaseUtils.closeMultipleHandler(handler)
-        handler = null
+        store.close { flushCache() }
         cache.clear()
     }
 
@@ -82,16 +61,15 @@ object PlayerStateStorage {
     fun get(uuid: UUID): PlayerStateData? = cache[uuid]
 
     fun loadFromDatabase(uuid: UUID, playerName: String): PlayerStateData? {
-        val currentHandler = handler ?: return null
         return runCatching {
             val user = uuid.toString()
-            val existingName = (currentHandler.database[user, KEY_PLAYER_NAME] as? String)?.takeIf { it.isNotBlank() }
-            val firstJoin = (currentHandler.database[user, KEY_FIRST_JOIN] as? String)?.toLongOrNull() ?: 0L
-            val lastJoin = (currentHandler.database[user, KEY_LAST_JOIN] as? String)?.toLongOrNull() ?: 0L
-            val lastQuit = (currentHandler.database[user, KEY_LAST_QUIT] as? String)?.toLongOrNull() ?: 0L
-            val joinCount = (currentHandler.database[user, KEY_JOIN_COUNT] as? String)?.toIntOrNull() ?: 0
-            val deathLoc = (currentHandler.database[user, KEY_DEATH_LOC] as? String)?.takeIf { it.isNotBlank() } ?: ""
-            val teleportLoc = (currentHandler.database[user, KEY_TELEPORT_LOC] as? String)?.takeIf { it.isNotBlank() } ?: ""
+            val existingName = store.get(user, KEY_PLAYER_NAME)?.takeIf { it.isNotBlank() }
+            val firstJoin = store.get(user, KEY_FIRST_JOIN)?.toLongOrNull() ?: 0L
+            val lastJoin = store.get(user, KEY_LAST_JOIN)?.toLongOrNull() ?: 0L
+            val lastQuit = store.get(user, KEY_LAST_QUIT)?.toLongOrNull() ?: 0L
+            val joinCount = store.get(user, KEY_JOIN_COUNT)?.toIntOrNull() ?: 0
+            val deathLoc = store.get(user, KEY_DEATH_LOC)?.takeIf { it.isNotBlank() } ?: ""
+            val teleportLoc = store.get(user, KEY_TELEPORT_LOC)?.takeIf { it.isNotBlank() } ?: ""
 
             val data = PlayerStateData(
                 uuid = uuid,
@@ -113,31 +91,29 @@ object PlayerStateStorage {
 
     fun saveImmediate(uuid: UUID) {
         val data = cache[uuid] ?: return
-        if (shuttingDown.get()) return
+        if (store.isShuttingDown()) return
         submitAsync {
-            if (shuttingDown.get()) return@submitAsync
+            if (store.isShuttingDown()) return@submitAsync
             persist(data)
         }
     }
 
     private fun persist(data: PlayerStateData) {
-        val currentHandler = handler ?: return
         runCatching {
             val user = data.uuid.toString()
-            currentHandler.database[user, KEY_PLAYER_NAME] = data.playerName
-            currentHandler.database[user, KEY_FIRST_JOIN] = data.firstJoinTime.toString()
-            currentHandler.database[user, KEY_LAST_JOIN] = data.lastJoinTime.toString()
-            currentHandler.database[user, KEY_LAST_QUIT] = data.lastQuitTime.toString()
-            currentHandler.database[user, KEY_JOIN_COUNT] = data.joinCount.toString()
-            currentHandler.database[user, KEY_DEATH_LOC] = data.lastDeathLocation
-            currentHandler.database[user, KEY_TELEPORT_LOC] = data.lastTeleportLocation
+            store.set(user, KEY_PLAYER_NAME, data.playerName)
+            store.set(user, KEY_FIRST_JOIN, data.firstJoinTime.toString())
+            store.set(user, KEY_LAST_JOIN, data.lastJoinTime.toString())
+            store.set(user, KEY_LAST_QUIT, data.lastQuitTime.toString())
+            store.set(user, KEY_JOIN_COUNT, data.joinCount.toString())
+            store.set(user, KEY_DEATH_LOC, data.lastDeathLocation)
+            store.set(user, KEY_TELEPORT_LOC, data.lastTeleportLocation)
         }.onFailure { ex ->
             warning("[PlayerState] 保存玩家数据失败(${data.uuid}): ${ex.message}")
         }
     }
 
     private fun flushCache() {
-        val currentHandler = handler ?: return
         for ((_, data) in cache) {
             runCatching { persist(data) }.onFailure { ex ->
                 warning("[PlayerState] flushCache 保存失败(${data.uuid}): ${ex.message}")

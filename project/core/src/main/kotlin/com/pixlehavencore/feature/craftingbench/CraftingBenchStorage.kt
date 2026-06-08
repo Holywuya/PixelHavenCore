@@ -2,11 +2,10 @@ package com.pixlehavencore.feature.craftingbench
 
 import com.google.gson.reflect.TypeToken
 import com.pixlehavencore.util.ArimJsonUtils
-import com.pixlehavencore.util.DatabaseUtils
+import com.pixlehavencore.util.DataStore
 import taboolib.common.platform.function.submit
 import taboolib.common.platform.function.submitAsync
 import taboolib.common.platform.function.warning
-import taboolib.expansion.MultipleHandler
 import java.util.UUID
 
 object CraftingBenchStorage {
@@ -18,28 +17,27 @@ object CraftingBenchStorage {
     private val queueListType = object : TypeToken<List<StoredTask>>() {}.type
     private val claimListType = object : TypeToken<List<ClaimEntry>>() {}.type
 
-    @Volatile
-    private var handler: MultipleHandler? = null
+    private val store = DataStore(TABLE_NAME)
 
     fun init(onLoaded: (StorageSnapshot) -> Unit, onFailure: (Throwable) -> Unit) {
-        close()
-        submitAsync {
-            runCatching {
-                handler = DatabaseUtils.newPlayerDataHandler(TABLE_NAME, syncTick = 200L)
-                loadSnapshot()
-            }.onSuccess { snapshot ->
-                submit { onLoaded(snapshot) }
-            }.onFailure { ex ->
-                warning("[CraftingBench] 初始化存储失败: ${ex.message}")
-                submit { onFailure(ex) }
+        store.close()
+        store.init { success ->
+            if (success) {
+                try {
+                    val snapshot = loadSnapshot()
+                    submit { onLoaded(snapshot) }
+                } catch (ex: Exception) {
+                    warning("[CraftingBench] 加载快照失败: ${ex.message}")
+                    submit { onFailure(ex) }
+                }
+            } else {
+                submit { onFailure(RuntimeException("PlayerDatabase 初始化失败")) }
             }
         }
     }
 
     fun flushAsync(snapshot: StorageSnapshot) {
-        if (handler == null) {
-            return
-        }
+        if (!store.isReady) return
         submitAsync {
             runCatching {
                 flush(snapshot)
@@ -50,7 +48,7 @@ object CraftingBenchStorage {
     }
 
     fun flush(snapshot: StorageSnapshot) {
-        val currentHandler = handler ?: return
+        if (!store.isReady) return
         val queueByOwner = snapshot.tasks.groupBy { it.owner }
         val claimByOwner = snapshot.claims.groupBy { it.owner }
         val owners = (queueByOwner.keys + claimByOwner.keys).toSet()
@@ -67,20 +65,18 @@ object CraftingBenchStorage {
                 )
             })
             val claimPayload = ArimJsonUtils.toJson(claimByOwner[owner].orEmpty())
-            currentHandler.database[user, KEY_QUEUE] = queuePayload
-            currentHandler.database[user, KEY_CLAIMS] = claimPayload
+            store.set(user, KEY_QUEUE, queuePayload)
+            store.set(user, KEY_CLAIMS, claimPayload)
         }
     }
 
     fun close() {
-        DatabaseUtils.closeMultipleHandler(handler)
-        handler = null
+        store.close()
     }
 
     private fun loadSnapshot(): StorageSnapshot {
-        val currentHandler = handler ?: return StorageSnapshot(emptyList(), emptyList())
         val tasks = mutableListOf<CraftingTask>()
-        currentHandler.database.getListByKey(KEY_QUEUE).forEach { (user, payload) ->
+        store.getListByKey(KEY_QUEUE).forEach { (user, payload) ->
             val owner = runCatching { UUID.fromString(user) }.getOrNull() ?: return@forEach
             val list = runCatching {
                 ArimJsonUtils.gson().fromJson<List<StoredTask>>(payload, queueListType)
@@ -98,7 +94,7 @@ object CraftingBenchStorage {
             }
         }
         val claims = mutableListOf<ClaimEntry>()
-        currentHandler.database.getListByKey(KEY_CLAIMS).forEach { (user, payload) ->
+        store.getListByKey(KEY_CLAIMS).forEach { (user, payload) ->
             val owner = runCatching { UUID.fromString(user) }.getOrNull() ?: return@forEach
             val list = runCatching {
                 ArimJsonUtils.gson().fromJson<List<ClaimEntry>>(payload, claimListType)
