@@ -5,6 +5,7 @@ import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import com.pixlehavencore.util.TextUtils
 import com.pixlehavencore.util.cancelTaskSafely
+import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.entity.Player
@@ -133,6 +134,7 @@ object FlightService {
             player.allowFlight = true
             player.isFlying = true
         }
+        sendFlightActionBar(player, playerData[uuid] ?: data)
     }
 
     fun disableFlight(player: Player) {
@@ -145,6 +147,7 @@ object FlightService {
             player.isFlying = false
             player.allowFlight = false
         }
+        clearActionBar(player)
     }
 
     fun toggleFlight(player: Player): Boolean {
@@ -267,6 +270,7 @@ object FlightService {
                             player.isFlying = false
                             player.allowFlight = false
                             playerData[uuid] = data.copy(manualDisable = false)
+                            clearActionBar(player)
                         }
                         return@submitOnEntity
                     }
@@ -282,6 +286,8 @@ object FlightService {
                             playerData[uuid] = data.copy(manualDisable = false)
                             if (FlightSettings.msgTimeExpired.isNotBlank()) {
                                 TextBridge.sendActionBar(player, TextUtils.parse(FlightSettings.msgTimeExpired))
+                            } else {
+                                clearActionBar(player)
                             }
                             return@submitOnEntity
                         }
@@ -306,6 +312,10 @@ object FlightService {
         val timeStr = formatTime(data.effectiveSeconds)
         val message = FlightSettings.msgActionBar.resolvePlaceholders("{time}" to timeStr)
         TextBridge.sendActionBar(player, TextUtils.parse(message))
+    }
+
+    private fun clearActionBar(player: Player) {
+        player.sendActionBar(Component.empty())
     }
 
     private fun isWorldEnabled(worldName: String): Boolean {
