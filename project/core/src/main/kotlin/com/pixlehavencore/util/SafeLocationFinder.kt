@@ -14,20 +14,63 @@ import kotlin.random.Random
 
 object SafeLocationFinder {
 
-    /**
-     * RTP 场景：异步搜索安全随机位置。
-     * CompletableFuture 链式重试，每次重试为链的一个阶段。
-     * 使用迭代计数器控制重试深度，禁止递归方法调用，堆栈深度 O(1)。
-     *
-     * @param world    目标世界
-     * @param centerX  搜索中心 X
-     * @param centerZ  搜索中心 Z
-     * @param minRadius 最小半径
-     * @param maxRadius 最大半径
-     * @param maxAttempts 最大尝试次数
-     * @param timeoutSeconds 区块加载超时秒数
-     * @return CompletableFuture<Location?> 安全位置，null 表示搜索失败
-     */
+    private val unsafeStandBlocks = setOf(
+        Material.AIR,
+        Material.CAVE_AIR,
+        Material.VOID_AIR,
+        Material.WATER,
+        Material.LAVA,
+        Material.FIRE,
+        Material.SOUL_FIRE,
+        Material.CACTUS,
+        Material.COBWEB,
+        Material.POWDER_SNOW,
+        Material.SWEET_BERRY_BUSH,
+        Material.WITHER_ROSE,
+        Material.POINTED_DRIPSTONE,
+        Material.TRIPWIRE,
+        Material.TRIPWIRE_HOOK,
+        Material.BIG_DRIPLEAF
+    )
+
+    private val safeOccupationBlocks = setOf(
+        Material.AIR,
+        Material.CAVE_AIR,
+        Material.VOID_AIR,
+        Material.WATER,
+        Material.SHORT_GRASS,
+        Material.TALL_GRASS,
+        Material.FERN,
+        Material.LARGE_FERN,
+        Material.DEAD_BUSH,
+        Material.DANDELION,
+        Material.POPPY,
+        Material.BLUE_ORCHID,
+        Material.ALLIUM,
+        Material.AZURE_BLUET,
+        Material.RED_TULIP,
+        Material.ORANGE_TULIP,
+        Material.WHITE_TULIP,
+        Material.PINK_TULIP,
+        Material.OXEYE_DAISY,
+        Material.CORNFLOWER,
+        Material.LILY_OF_THE_VALLEY,
+        Material.TORCHFLOWER,
+        Material.SUNFLOWER,
+        Material.LILAC,
+        Material.ROSE_BUSH,
+        Material.PEONY,
+        Material.PITCHER_PLANT,
+        Material.BROWN_MUSHROOM,
+        Material.RED_MUSHROOM,
+        Material.VINE,
+        Material.GLOW_LICHEN,
+        Material.SNOW,
+        Material.TORCH,
+        Material.SOUL_TORCH,
+        Material.REDSTONE_TORCH
+    )
+
     fun findSafeLocationAsync(
         world: World,
         centerX: Double,
@@ -58,17 +101,27 @@ object SafeLocationFinder {
                     val snapshot = chunk.chunkSnapshot
                     val localX = x.toInt() and 0xF
                     val localZ = z.toInt() and 0xF
-                    val highestY = snapshot.getHighestBlockYAt(localX, localZ)
 
-                    if (isSafePosition(snapshot, localX, highestY, localZ)) {
-                        future.complete(Location(world, x, (highestY + 1).toDouble(), z))
+                    val safeLoc = searchSafe5x5(snapshot, world, localX, localZ, chunkX, chunkZ)
+                    if (safeLoc != null) {
+                        future.complete(safeLoc)
                     } else {
-                        tryNext().thenAccept { future.complete(it) }.exceptionally { ex -> future.completeExceptionally(ex); null }
+                        tryNext().thenAccept { success ->
+                            future.complete(success)
+                        }.exceptionally { ex ->
+                            future.completeExceptionally(ex)
+                            null
+                        }
                     }
                 }
                 .exceptionally { ex ->
                     warning("[SafeLocationFinder] 候选位置判定失败(第${attempt}次): ${ex.message}")
-                    tryNext().thenAccept { future.complete(it) }.exceptionally { innerEx -> future.completeExceptionally(innerEx); null }
+                    tryNext().thenAccept { success ->
+                        future.complete(success)
+                    }.exceptionally { innerEx ->
+                        future.completeExceptionally(innerEx)
+                        null
+                    }
                     null
                 }
             return future
@@ -77,14 +130,6 @@ object SafeLocationFinder {
         return tryNext()
     }
 
-    /**
-     * Back 场景：在目标位置附近异步搜索安全位置。
-     * 仅加载目标位置所在区块，在 ChunkSnapshot 上搜索。
-     *
-     * @param targetLoc 目标位置
-     * @param timeoutSeconds 区块加载超时秒数
-     * @return CompletableFuture<Location?> 安全位置，null 表示未找到
-     */
     fun findSafeLocationNearAsync(
         targetLoc: Location,
         timeoutSeconds: Double
@@ -100,30 +145,23 @@ object SafeLocationFinder {
                 val blockZ = targetLoc.blockZ
                 val localX = blockX and 0xF
                 val localZ = blockZ and 0xF
+                val chunkX = blockX shr 4
+                val chunkZ = blockZ shr 4
 
                 val feetY = blockY - 1
-                if (isSafePosition(snapshot, localX, feetY, localZ)) {
-                    return@thenApply targetLoc.clone()
-                }
 
-                for (dy in 1..8) {
+                for (dy in 0..8) {
                     val y = feetY + dy
-                    if (y + 1 > world.maxHeight) break
-                    if (isSafePosition(snapshot, localX, y, localZ)) {
-                        val safeLoc = targetLoc.clone()
-                        safeLoc.y = (y + 1).toDouble()
-                        return@thenApply safeLoc
-                    }
+                    if (y + 2 > world.maxHeight) break
+                    val loc = searchSafe5x5AtY(snapshot, world, localX, localZ, chunkX, chunkZ, y)
+                    if (loc != null) return@thenApply loc
                 }
 
                 for (dy in 1..8) {
                     val y = feetY - dy
                     if (y < world.minHeight) break
-                    if (isSafePosition(snapshot, localX, y, localZ)) {
-                        val safeLoc = targetLoc.clone()
-                        safeLoc.y = (y + 1).toDouble()
-                        return@thenApply safeLoc
-                    }
+                    val loc = searchSafe5x5AtY(snapshot, world, localX, localZ, chunkX, chunkZ, y)
+                    if (loc != null) return@thenApply loc
                 }
 
                 null
@@ -134,22 +172,70 @@ object SafeLocationFinder {
             }
     }
 
-    /**
-     * 通过 ChunkSnapshot 判定位置安全性（纯函数，线程安全）。
-     * 脚下方块必须可站立（非 AIR/非可通过），身体+头部方块必须可通过。
-     */
+    private fun searchSafe5x5(
+        snapshot: ChunkSnapshot,
+        world: World,
+        centerLocalX: Int,
+        centerLocalZ: Int,
+        chunkX: Int,
+        chunkZ: Int
+    ): Location? {
+        for (dx in -2..2) {
+            for (dz in -2..2) {
+                val lx = centerLocalX + dx
+                val lz = centerLocalZ + dz
+                if (lx !in 0..15 || lz !in 0..15) continue
+
+                val highestY = snapshot.getHighestBlockYAt(lx, lz)
+                if (isSafePosition(snapshot, lx, highestY, lz)) {
+                    val wx = (chunkX shl 4) + lx + 0.5
+                    val wz = (chunkZ shl 4) + lz + 0.5
+                    if (world.worldBorder.isInside(Location(world, wx, 0.0, wz))) {
+                        return Location(world, wx, (highestY + 1).toDouble(), wz)
+                    }
+                }
+            }
+        }
+        return null
+    }
+
+    private fun searchSafe5x5AtY(
+        snapshot: ChunkSnapshot,
+        world: World,
+        centerLocalX: Int,
+        centerLocalZ: Int,
+        chunkX: Int,
+        chunkZ: Int,
+        y: Int
+    ): Location? {
+        for (dx in -2..2) {
+            for (dz in -2..2) {
+                val lx = centerLocalX + dx
+                val lz = centerLocalZ + dz
+                if (lx !in 0..15 || lz !in 0..15) continue
+
+                if (isSafePosition(snapshot, lx, y, lz)) {
+                    val wx = (chunkX shl 4) + lx + 0.5
+                    val wz = (chunkZ shl 4) + lz + 0.5
+                    if (world.worldBorder.isInside(Location(world, wx, 0.0, wz))) {
+                        return Location(world, wx, (y + 1).toDouble(), wz)
+                    }
+                }
+            }
+        }
+        return null
+    }
+
     private fun isSafePosition(snapshot: ChunkSnapshot, localX: Int, y: Int, localZ: Int): Boolean {
         val feetBlock = snapshot.getBlockType(localX, y, localZ)
         val bodyBlock = snapshot.getBlockType(localX, y + 1, localZ)
         val headBlock = snapshot.getBlockType(localX, y + 2, localZ)
 
-        val isPassable = { mat: Material -> mat == Material.AIR || mat.isAir }
-        return !isPassable(feetBlock) && isPassable(bodyBlock) && isPassable(headBlock)
+        return feetBlock !in unsafeStandBlocks
+            && bodyBlock in safeOccupationBlocks
+            && headBlock in safeOccupationBlocks
     }
 
-    /**
-     * 极坐标随机采样生成候选坐标（纯函数，无 World API 调用）。
-     */
     private fun generateCandidateCoordinate(
         centerX: Double,
         centerZ: Double,
