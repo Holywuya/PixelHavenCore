@@ -22,12 +22,13 @@ import java.util.UUID
 
 object FlightService {
 
-    private val playerData = PlayerSessionMap<FlightPlayerData>({ FlightPlayerData(remainingSeconds = 0) })
+    private val playerData = PlayerSessionMap<FlightPlayerData>({ FlightPlayerData(baseSeconds = 0) })
     private var tickTask: Any? = null
     private var resetTask: Any? = null
 
     fun init() {
         FlightSettings.init()
+        FlightBonusStorage.init()
         stop()
         if (!FlightSettings.enabled) return
         startTickTask()
@@ -44,6 +45,7 @@ object FlightService {
 
     fun stop() {
         stopTasks()
+        FlightBonusStorage.close()
         playerData.clear()
     }
 
@@ -56,9 +58,6 @@ object FlightService {
 
     fun isEnabled(): Boolean = FlightSettings.enabled
 
-    /**
-     * 绕过检查：创造模式、OP、phcore.admin 权限
-     */
     fun isBypass(player: Player): Boolean {
         return player.gameMode == GameMode.CREATIVE ||
             player.isOp ||
@@ -70,21 +69,25 @@ object FlightService {
     fun handlePlayerJoin(player: Player) {
         if (!FlightSettings.enabled) return
         if (isBypass(player)) {
-            playerData[player.uniqueId] = FlightPlayerData(remainingSeconds = -1)
+            playerData[player.uniqueId] = FlightPlayerData(baseSeconds = -1)
             player.submitOnEntity { player.allowFlight = true }
             return
         }
         val dailySeconds = resolveDailySeconds(player)
-        playerData[player.uniqueId] = FlightPlayerData(remainingSeconds = dailySeconds)
-        if (dailySeconds > 0 && isWorldEnabled(player.world.name)) {
+        val permanentBonus = FlightBonusStorage.loadBonus(player.uniqueId)
+        playerData[player.uniqueId] = FlightPlayerData(baseSeconds = dailySeconds, permanentBonus = permanentBonus)
+        if (dailySeconds + permanentBonus > 0 && isWorldEnabled(player.world.name)) {
             player.submitOnEntity { player.allowFlight = true }
         }
     }
 
     fun handlePlayerQuit(player: Player) {
+        val data = playerData[player.uniqueId]
+        if (data != null) {
+            FlightBonusStorage.saveBonus(player.uniqueId, data.permanentBonus)
+        }
         player.isFlying = false
         player.allowFlight = false
-        // playerData 由 PlayerSessionMap 自动清理，无需手动 remove
     }
 
     fun handleWorldChange(player: Player) {
@@ -92,7 +95,7 @@ object FlightService {
         if (isBypass(player)) {
             val uuid = player.uniqueId
             if (playerData[uuid] == null) {
-                playerData[uuid] = FlightPlayerData(remainingSeconds = -1)
+                playerData[uuid] = FlightPlayerData(baseSeconds = -1)
             }
             player.submitOnEntity { player.allowFlight = true }
             return
@@ -119,7 +122,7 @@ object FlightService {
     fun enableFlight(player: Player) {
         val uuid = player.uniqueId
         if (isBypass(player)) {
-            playerData[uuid] = FlightPlayerData(remainingSeconds = -1, manualDisable = false)
+            playerData[uuid] = FlightPlayerData(baseSeconds = -1, manualDisable = false)
             player.submitOnEntity {
                 player.allowFlight = true
                 player.isFlying = true
@@ -163,13 +166,13 @@ object FlightService {
 
     // ========== 管理员操作 ==========
 
-    fun setRemainingSeconds(player: Player, seconds: Int) {
+    fun setBaseSeconds(player: Player, seconds: Int) {
         val uuid = player.uniqueId
         val currentData = playerData[uuid]
         val newData = if (currentData != null) {
-            currentData.copy(remainingSeconds = seconds.coerceAtLeast(0))
+            currentData.copy(baseSeconds = seconds.coerceAtLeast(0))
         } else {
-            FlightPlayerData(remainingSeconds = seconds.coerceAtLeast(0))
+            FlightPlayerData(baseSeconds = seconds.coerceAtLeast(0))
         }
         playerData[uuid] = newData
         if (seconds > 0 && isWorldEnabled(player.world.name)) {
@@ -185,11 +188,13 @@ object FlightService {
         }
     }
 
-    fun addBonusSeconds(player: Player, seconds: Int) {
+    fun addPermanentBonus(player: Player, seconds: Int) {
         val uuid = player.uniqueId
-        val data = playerData[uuid] ?: FlightPlayerData(remainingSeconds = 0)
-        val newData = data.copy(bonusSeconds = (data.bonusSeconds + seconds).coerceAtLeast(0), manualDisable = false)
+        val data = playerData[uuid] ?: FlightPlayerData(baseSeconds = 0)
+        val newBonus = (data.permanentBonus + seconds).coerceAtLeast(0)
+        val newData = data.copy(permanentBonus = newBonus, manualDisable = false)
         playerData[uuid] = newData
+        FlightBonusStorage.saveBonus(uuid, newBonus)
         if (newData.effectiveSeconds > 0 && isWorldEnabled(player.world.name)) {
             player.submitOnEntity {
                 player.allowFlight = true
@@ -200,9 +205,11 @@ object FlightService {
 
     fun resetPlayer(player: Player) {
         val uuid = player.uniqueId
+        val currentData = playerData[uuid]
         val newDaily = resolveDailySeconds(player)
-        playerData[uuid] = FlightPlayerData(remainingSeconds = newDaily)
-        if (newDaily > 0 && isWorldEnabled(player.world.name)) {
+        val permanentBonus = currentData?.permanentBonus ?: 0
+        playerData[uuid] = FlightPlayerData(baseSeconds = newDaily, permanentBonus = permanentBonus)
+        if (newDaily + permanentBonus > 0 && isWorldEnabled(player.world.name)) {
             player.submitOnEntity {
                 player.allowFlight = true
                 player.isFlying = true
@@ -231,7 +238,7 @@ object FlightService {
     // ========== 时间格式化 ==========
 
     fun formatTime(totalSeconds: Int): String {
-        if (totalSeconds == Int.MAX_VALUE) return "∞"
+        if (totalSeconds == Int.MAX_VALUE) return "\u221e"
         if (totalSeconds <= 0) return "00:00"
         val h = totalSeconds / 3600
         val m = (totalSeconds % 3600) / 60
@@ -250,14 +257,11 @@ object FlightService {
                 val uuid = player.uniqueId
                 val data = playerData[uuid] ?: continue
 
-                // Folia: 将玩家状态读取和处理都移到实体线程
                 player.submitOnEntity {
-                    // 旁观模式跳过
                     if (player.gameMode == GameMode.SPECTATOR) {
                         return@submitOnEntity
                     }
 
-                    // 绕过玩家：不消耗、不限制、不显示
                     if (isBypass(player)) {
                         if (!player.allowFlight) {
                             player.allowFlight = true
@@ -301,10 +305,10 @@ object FlightService {
     }
 
     private fun decrementTime(data: FlightPlayerData): FlightPlayerData {
-        if (data.bonusSeconds > 0) {
-            return data.copy(bonusSeconds = data.bonusSeconds - 1)
+        if (data.baseSeconds > 0) {
+            return data.copy(baseSeconds = data.baseSeconds - 1)
         }
-        return data.copy(remainingSeconds = (data.remainingSeconds - 1).coerceAtLeast(0))
+        return data.copy(permanentBonus = (data.permanentBonus - 1).coerceAtLeast(0))
     }
 
     private fun sendFlightActionBar(player: Player, data: FlightPlayerData) {
@@ -339,13 +343,15 @@ object FlightService {
         for ((uuid, _) in playerData.entries()) {
             val player = Bukkit.getPlayer(uuid) ?: continue
             if (isBypass(player)) {
-                playerData[uuid] = FlightPlayerData(remainingSeconds = -1)
+                playerData[uuid] = FlightPlayerData(baseSeconds = -1)
                 player.submitOnEntity { player.allowFlight = true }
                 continue
             }
             val newDaily = resolveDailySeconds(player)
-            playerData[uuid] = FlightPlayerData(remainingSeconds = newDaily)
-            if (newDaily > 0 && isWorldEnabled(player.world.name)) {
+            val oldData = playerData[uuid]
+            val permanentBonus = oldData?.permanentBonus ?: 0
+            playerData[uuid] = FlightPlayerData(baseSeconds = newDaily, permanentBonus = permanentBonus)
+            if (newDaily + permanentBonus > 0 && isWorldEnabled(player.world.name)) {
                 player.submitOnEntity { player.allowFlight = true }
                 if (FlightSettings.msgDailyReset.isNotBlank()) {
                     player.submitOnEntity {

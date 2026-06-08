@@ -93,7 +93,7 @@ object FlightCommand {
                         sender.msg(FlightSettings.msgInvalidTime)
                         return@execute
                     }
-                    FlightService.setRemainingSeconds(target, seconds)
+                    FlightService.setBaseSeconds(target, seconds)
                     sender.msg(FlightSettings.msgAdminSet.resolvePlaceholders(
                         "{player}" to target.name,
                         "{time}" to FlightService.formatTime(seconds)
@@ -120,7 +120,7 @@ object FlightCommand {
                         sender.msg(FlightSettings.msgInvalidTime)
                         return@execute
                     }
-                    FlightService.addBonusSeconds(target, seconds)
+                    FlightService.addPermanentBonus(target, seconds)
                     sender.msg(FlightSettings.msgAdminAdd.resolvePlaceholders(
                         "{player}" to target.name,
                         "{time}" to FlightService.formatTime(seconds)
@@ -165,8 +165,8 @@ object FlightCommand {
         sender.msg(FlightSettings.msgCheckResult.resolvePlaceholders(
             "{player}" to playerName,
             "{time}" to FlightService.formatTime(data.effectiveSeconds),
-            "{daily}" to data.remainingSeconds.toString(),
-            "{bonus}" to data.bonusSeconds.toString()
+            "{daily}" to data.baseSeconds.toString(),
+            "{permanent_bonus}" to data.permanentBonus.toString()
         ))
     }
 

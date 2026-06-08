@@ -40,7 +40,7 @@ object FlightSettings {
         private set
     var msgActionBar: String = "&b飞行剩余: &f{time}"
         private set
-    var msgCheckResult: String = "&7玩家 &f{player} &7剩余飞行时间: &b{time} &7(每日: &f{daily}&7秒, 额外: &f{bonus}&7秒)"
+    var msgCheckResult: String = "&7玩家 &f{player} &7剩余飞行时间: &b{time} &7(每日: &f{daily}&7秒, 永久额外: &f{permanent_bonus}&7秒)"
         private set
     var msgPlayerNotFound: String = "&c找不到在线玩家 &7{player}&c。"
         private set

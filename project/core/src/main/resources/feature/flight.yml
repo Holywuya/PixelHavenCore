@@ -39,7 +39,7 @@ messages:
   flight-off: "&e飞行已关闭。"
   no-time: "&c飞行时间已用尽，将在每日重置后恢复。"
   actionbar: "&b飞行剩余: &f{time}"
-  check-result: "&7玩家 &f{player} &7剩余飞行时间: &b{time} &7(每日: &f{daily}&7秒, 额外: &f{bonus}&7秒)"
+  check-result: "&7玩家 &f{player} &7剩余飞行时间: &b{time} &7(每日: &f{daily}&7秒, 永久额外: &f{permanent_bonus}&7秒)"
   player-not-found: "&c找不到在线玩家 &7{player}&c。"
   invalid-time: "&c无效时间格式。支持: 30m, 1h, 1h30m, 3600"
   admin-set: "&a已设置 &f{player} &a飞行时间为 &b{time}&a。"
