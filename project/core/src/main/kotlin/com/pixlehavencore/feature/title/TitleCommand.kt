@@ -96,13 +96,12 @@ object TitleCommand {
             }
             val player = sender.requirePlayer() ?: return@execute
             val previews = TitleService.getTitlePreviews(player.cast<Player>())
-            val owned = previews.filter { it.entry != null && !it.isExpired }
-            if (owned.isEmpty()) {
+            if (previews.isEmpty()) {
                 sender.msg("<gray>你还没有任何称号。")
                 return@execute
             }
             sender.msg("<dark_gray>=== <gold>拥有的称号 <dark_gray>===")
-            owned.forEach { preview ->
+            previews.forEach { preview ->
                 val activeTag = if (preview.isActive) " <green>[已装备]" else ""
                 sender.msg("<gray>- ${preview.definition.displayName}$activeTag")
             }

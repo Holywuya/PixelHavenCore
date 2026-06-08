@@ -97,14 +97,15 @@ object TitleService {
             TitleSettings.getAllTitles().toList()
         }
         val now = System.currentTimeMillis()
-        return definitions.map { def ->
+        return definitions.mapNotNull { def ->
             val entry = resolveTitleEntry(player, def, state)
+            if (entry == null) return@mapNotNull null
+            if (entry.isExpired(now)) return@mapNotNull null
             val isActive = state?.activeTitleId == def.id
-            val isExpired = entry?.isExpired(now) ?: false
-            val remaining = if (entry != null && !entry.isPermanent && !isExpired) {
+            val remaining = if (!entry.isPermanent) {
                 (entry.expiresAt - now).coerceAtLeast(0)
             } else null
-            TitlePreview(def, entry, isActive, isExpired, remaining)
+            TitlePreview(def, entry, isActive, false, remaining)
         }
     }
 
