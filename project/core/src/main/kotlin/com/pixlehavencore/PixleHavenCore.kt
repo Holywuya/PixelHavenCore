@@ -6,8 +6,6 @@ import com.pixlehavencore.feature.base.back.BackService
 import com.pixlehavencore.feature.base.back.BackStorage
 import com.pixlehavencore.feature.base.back.BackSettings
 import com.pixlehavencore.feature.base.protection.ProtectionSettings
-import com.pixlehavencore.feature.base.firstjoin.FirstJoinService
-import com.pixlehavencore.feature.base.firstjoin.FirstJoinSettings
 import com.pixlehavencore.playerstate.PlayerStateService
 import com.pixlehavencore.feature.craftingbench.CraftingBenchService
 import com.pixlehavencore.feature.durability.DurabilityService
@@ -78,7 +76,6 @@ object PixleHavenCore : Plugin() {
         KillmeSettings.init()
         BackService.init()
         ProtectionSettings.init()
-        FirstJoinService.init()
         PlayerStateService.init()
         SecurityService.init()
         MMHealthBarService.init()
@@ -108,7 +105,6 @@ object PixleHavenCore : Plugin() {
             "Base/Killme" to KillmeSettings.enabled,
             "Base/Back" to BackSettings.enabled,
             "Base/Protection" to ProtectionSettings.creeperProtectEnabled,
-            "Base/FirstJoin" to FirstJoinSettings.enabled,
             "Warehouse" to PlayerInvSettings.enabled,
             "Key Command" to KeyCommandSettings.enabled,
         ))
@@ -164,7 +160,6 @@ object PixleHavenCore : Plugin() {
         TradeService.stop()
         VanishService.stop()
         BackService.stop()
-        FirstJoinService.stop()
         PlayerStateService.stop()
         BackStorage.close()
         ItemUtils.clearHeadCache()
