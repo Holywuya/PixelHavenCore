@@ -9,6 +9,8 @@ import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
 import org.bukkit.Bukkit
 import org.bukkit.Location
+import org.bukkit.Sound
+import org.bukkit.SoundCategory
 import org.bukkit.entity.Player
 import taboolib.common.platform.function.submit
 import taboolib.common.platform.function.warning
@@ -106,7 +108,8 @@ object BackService {
             }
             val targetLoc = Location(targetWorld, data.location.x, data.location.y, data.location.z, data.location.yaw, data.location.pitch)
 
-            if (BackSettings.warmupSeconds <= 0) {
+            val shouldSkipWarmup = player.isOp || player.hasPermission("phcore.back.instant")
+            if (shouldSkipWarmup || BackSettings.warmupSeconds <= 0) {
                 doTeleportAsync(player, targetLoc, uuid)
             } else {
                 startWarmup(player, targetLoc, uuid)
@@ -214,6 +217,7 @@ object BackService {
                 if (success) {
                     BackStorage.remove(uuid)
                     player.sendMessage(TextUtils.parse(BackSettings.msgTeleported))
+                    player.playSound(player.location, Sound.ENTITY_ENDERMAN_TELEPORT, SoundCategory.PLAYERS, 1.0f, 1.0f)
                 }
             }
             .exceptionally { ex ->
