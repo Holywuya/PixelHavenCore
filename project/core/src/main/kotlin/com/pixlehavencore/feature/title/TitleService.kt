@@ -58,14 +58,14 @@ object TitleService {
             if (entry.isExpired()) return TitleResult.Expired
         }
         TitleStorage.activateTitle(player.uniqueId, titleId)
-        player.sendMessage(TextUtils.parse(TitleSettings.msgActivated.resolvePlaceholders("{title}" to definition.displayName)))
+        player.sendMessage(TextUtils.parseAll(TitleSettings.msgActivated.resolvePlaceholders("{title}" to definition.displayName)))
         return TitleResult.Success
     }
 
     fun deactivateTitle(player: Player) {
         if (!TitleSettings.enabled) return
         TitleStorage.deactivateTitle(player.uniqueId)
-        player.sendMessage(TextUtils.parse(TitleSettings.msgDeactivated))
+        player.sendMessage(TextUtils.parseAll(TitleSettings.msgDeactivated))
     }
 
     fun grantTitle(player: Player, titleId: String, expiresAt: Long): TitleResult {

@@ -15,6 +15,12 @@ object TextUtils {
      */
     fun parseMiniMessage(text: String): Component = TextBridge.fromMiniMessage(text)
 
+    /**
+     * 解析同时含 & 颜色码和 MiniMessage 标签的文本为 Component。
+     * 先翻译旧版颜色码为 MiniMessage 标签，再统一解析。
+     */
+    fun parseAll(text: String): Component = parseMiniMessage(translateLegacy(text))
+
     fun parseLore(lines: List<String>): List<Component> = lines.map(::parse)
 
     /**
