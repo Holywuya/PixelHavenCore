@@ -35,6 +35,12 @@ object TextUtils {
     fun parseItemLore(lines: List<String>): List<Component> = lines.map(::parseItem)
 
     /**
+     * 解析同时含 & 颜色码和 MiniMessage 标签的物品文本，显式禁用斜体。
+     */
+    fun parseAllItem(text: String): Component =
+        parseAll(text).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false)
+
+    /**
      * 将 & 和 § 颜色码翻译为 MiniMessage 标签。
      * 提取自 SimpleChatComponentParser.translateLegacyFormattingToMiniMessage()。
      */
