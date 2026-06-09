@@ -6,28 +6,30 @@ import net.kyori.adventure.text.Component
 object TextUtils {
 
     /**
-     * 解析含 & 颜色码的文本为 Component，委托 TextBridge 处理。
+     * 解析同时含 & 颜色码和 MiniMessage 标签的文本为 Component。
+     * 先翻译旧版颜色码为 MiniMessage 标签，再统一解析。
      */
-    fun parse(text: String): Component = TextBridge.fromAmpersand(text)
+    fun parse(text: String): Component = parseMiniMessage(translateLegacy(text))
 
     /**
-     * 解析 MiniMessage 标签文本为 Component。
+     * 仅解析纯 MiniMessage 标签文本为 Component（不处理 & 颜色码）。
+     * 适用于已确保输入不含旧版颜色码的场景。
      */
     fun parseMiniMessage(text: String): Component = TextBridge.fromMiniMessage(text)
 
     /**
      * 解析同时含 & 颜色码和 MiniMessage 标签的文本为 Component。
-     * 先翻译旧版颜色码为 MiniMessage 标签，再统一解析。
+     * 等同于 {@link #parse}，保留为显式别名。
      */
-    fun parseAll(text: String): Component = parseMiniMessage(translateLegacy(text))
+    fun parseAll(text: String): Component = parse(text)
 
     fun parseLore(lines: List<String>): List<Component> = lines.map(::parse)
 
     /**
-     * 解析物品显示名称，显式禁用斜体。
+     * 解析物品显示名称，同时支持 & 颜色码和 MiniMessage 标签，显式禁用斜体。
      */
     fun parseItem(text: String): Component =
-        TextBridge.fromAmpersand(text).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false)
+        parse(text).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false)
 
     /**
      * 解析物品 Lore，显式禁用斜体。
@@ -36,9 +38,9 @@ object TextUtils {
 
     /**
      * 解析同时含 & 颜色码和 MiniMessage 标签的物品文本，显式禁用斜体。
+     * 等同于 {@link #parseItem}，保留为显式别名。
      */
-    fun parseAllItem(text: String): Component =
-        parseAll(text).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false)
+    fun parseAllItem(text: String): Component = parseItem(text)
 
     /**
      * 将 & 和 § 颜色码翻译为 MiniMessage 标签。

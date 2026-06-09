@@ -248,7 +248,7 @@ object TitleMenu {
         val lore = mutableListOf<Component>()
         lore.add(TextUtils.parse("&8&m─────────────────────"))
         preview.definition.description.forEach { line ->
-            lore.add(TextUtils.parseAll(line))
+            lore.add(TextUtils.parse(line))
         }
         lore.add(Component.text(""))
         when {
@@ -295,7 +295,7 @@ object TitleMenu {
         val infoLore: List<Component> = listOf(
             Component.textOfChildren(
                 TextUtils.parseItem("&7当前称号: "),
-                if (activeTitle != null) TextUtils.parseAllItem(activeTitle.displayName) else TextUtils.parseItem(TitleSettings.msgNoTitleActive)
+                if (activeTitle != null) TextUtils.parseItem(activeTitle.displayName) else TextUtils.parseItem(TitleSettings.msgNoTitleActive)
             ),
             TextUtils.parseItem(TitleSettings.msgGuiOwned.resolvePlaceholders("{count}" to ownedCount.toString())),
             TextUtils.parseItem(TitleSettings.msgGuiTotal.resolvePlaceholders("{count}" to totalTitles.toString())),
