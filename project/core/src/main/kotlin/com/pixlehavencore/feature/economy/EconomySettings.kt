@@ -113,4 +113,8 @@ object EconomySettings {
     private fun normalizeCurrency(value: String): String {
         return value.trim().lowercase()
     }
+
+    fun normalizeAmount(value: BigDecimal): BigDecimal {
+        return value.setScale(0, RoundingMode.HALF_UP).coerceAtLeast(BigDecimal.ZERO)
+    }
 }

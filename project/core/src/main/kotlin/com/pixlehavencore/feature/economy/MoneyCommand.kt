@@ -71,7 +71,7 @@ object MoneyCommand {
                         sender.msg("<red>不能给自己转账。")
                         return@execute
                     }
-                    val amount = parsePositiveAmount(context.getOrNull("amount") ?: "") ?: run {
+                    val amount = parseAmount(context.getOrNull("amount") ?: "") ?: run {
                         sender.msg("<red>金额必须为大于 0 的数字。")
                         return@execute
                     }
@@ -90,7 +90,7 @@ object MoneyCommand {
                             sender.msg("<red>不能给自己转账。")
                             return@execute
                         }
-                        val amount = parsePositiveAmount(context.getOrNull("amount") ?: "") ?: run {
+                        val amount = parseAmount(context.getOrNull("amount") ?: "") ?: run {
                             sender.msg("<red>金额必须为大于 0 的数字。")
                             return@execute
                         }
@@ -269,10 +269,7 @@ object MoneyCommand {
 
     private fun mutateBalance(sender: ProxyCommandSender, playerName: String?, rawAmount: String?, rawCurrency: String, mode: Mode) {
         val target = resolveTargetByName(sender, playerName) ?: return
-        val amount = when (mode) {
-            Mode.SET -> parseNonNegativeAmount(rawAmount ?: "")
-            else -> parsePositiveAmount(rawAmount ?: "")
-        } ?: run {
+        val amount = parseAmount(rawAmount ?: "", allowZero = mode == Mode.SET) ?: run {
             sender.msg("<red>金额格式无效。")
             return
         }
@@ -316,7 +313,7 @@ object MoneyCommand {
 
     private fun giveFromCentralBank(sender: ProxyCommandSender, playerName: String?, rawAmount: String?) {
         val target = resolveTargetByName(sender, playerName) ?: return
-        val amount = parsePositiveAmount(rawAmount ?: "") ?: run {
+        val amount = parseAmount(rawAmount ?: "") ?: run {
             sender.msg("<red>金额必须为大于 0 的数字。")
             return
         }
@@ -330,42 +327,19 @@ object MoneyCommand {
     }
 
     private fun transfer(sender: ProxyCommandSender, from: org.bukkit.entity.Player, target: OfflinePlayer, amount: BigDecimal, currency: String) {
-        if (!EconomyUtils.canWithdraw(from, amount, currency)) {
-            sender.msg("<red>余额不足或央行储备不足。")
-            return
-        }
-        if (!EconomyUtils.withdraw(from, amount, currency)) {
-            sender.msg("<red>扣款失败，请稍后再试。")
-            return
-        }
-        if (!EconomyUtils.deposit(target, amount, currency)) {
-            EconomyUtils.depositInternal(from, amount, currency)
-            sender.msg("<red>入账失败，交易已回滚。")
+        val resp = EconomyUtils.transfer(from, target, amount, currency)
+        if (resp.type != net.milkbowl.vault2.economy.EconomyResponse.ResponseType.SUCCESS) {
+            sender.msg("<red>转账失败: ${resp.errorMessage}")
             return
         }
         sender.msg("<green>已向 <white>${target.name ?: target.uniqueId} <green>转账 <white>${formatMoney(amount)} <gray>(${EconomySettings.getDefinition(currency).plural})")
         target.player?.sendMessage(TextBridge.toLegacy(TextUtils.parseMiniMessage("<green>你收到来自 <white>${from.name} <green>的转账 <white>${formatMoney(amount)} <gray>(${EconomySettings.getDefinition(currency).plural})")))
     }
 
-    private fun parsePositiveAmount(raw: String): BigDecimal? {
+    private fun parseAmount(raw: String, allowZero: Boolean = false): BigDecimal? {
         val value = raw.trim().toBigDecimalOrNull() ?: return null
-        if (value <= BigDecimal.ZERO) return null
-        return value
-    }
-
-    private fun parseNonNegativeAmount(raw: String): BigDecimal? {
-        val value = raw.trim().toBigDecimalOrNull() ?: return null
-        if (value < BigDecimal.ZERO) return null
-        return value
-    }
-
-    private fun withPositiveAmount(sender: ProxyCommandSender, argument: Any, handler: (BigDecimal) -> Unit) {
-        val amount = argument.toString().trim().toBigDecimalOrNull()
-        if (amount == null || amount <= BigDecimal.ZERO) {
-            sender.msg("<red>金额必须大于 0。")
-            return
-        }
-        handler(amount)
+        if (allowZero) return if (value < BigDecimal.ZERO) null else value
+        return if (value <= BigDecimal.ZERO) null else value
     }
 
     private fun requireAdmin(sender: ProxyCommandSender, errorMsg: String): Boolean {
@@ -376,10 +350,6 @@ object MoneyCommand {
 
     private fun requireTaxAdmin(sender: ProxyCommandSender): Boolean {
         return requireAdmin(sender, "<red>你没有权限执行该经济税务操作。")
-    }
-
-    private fun requireCentralBankAdmin(sender: ProxyCommandSender): Boolean {
-        return requireAdmin(sender, "<red>你没有权限执行该央行操作。")
     }
 
     private enum class Mode {

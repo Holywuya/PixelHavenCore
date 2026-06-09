@@ -28,8 +28,9 @@ object TaxService {
     private const val ERROR_CLOSED = "已关闭"
     private const val REASON_NEVER = "从未"
 
-    private val incomePools = ConcurrentHashMap<UUID, BigDecimal>()
-    private val taxDebts = ConcurrentHashMap<UUID, BigDecimal>()
+    private data class TaxAccountState(val income: BigDecimal, val debt: BigDecimal)
+
+    private val accountStates = ConcurrentHashMap<UUID, TaxAccountState>()
     private val dirtyAccounts = ConcurrentHashMap.newKeySet<UUID>()
     private val accountLocks = PerKeyLock<UUID>()
 
@@ -125,7 +126,7 @@ object TaxService {
         if (EconomyUtils.isInternalPlugin(pluginName) || CentralBankService.isCentralBankAccount(accountId) || CentralBankService.isExemptAccount(accountId)) {
             return
         }
-        recordGenericIncome(accountId, amount, currency)
+        submitAsync { recordGenericIncome(accountId, amount, currency) }
     }
 
     fun recordCommandTradeIncome(accountId: UUID, amount: BigDecimal, currency: String = EconomySettings.defaultCurrency) {
@@ -141,27 +142,28 @@ object TaxService {
     }
 
     fun getPendingIncome(): BigDecimal {
-        return normalizeAmount(totalIncome.get())
+        return EconomySettings.normalizeAmount(totalIncome.get())
     }
 
     fun getPendingTax(): BigDecimal {
-        return normalizeAmount(totalDueTax.get())
+        return EconomySettings.normalizeAmount(totalDueTax.get())
     }
 
     fun getPendingDebt(): BigDecimal {
-        return normalizeAmount(totalDebt.get())
+        return EconomySettings.normalizeAmount(totalDebt.get())
     }
 
     fun getPlayerCurrentIncome(accountId: UUID): BigDecimal {
-        return normalizeAmount(incomePools[accountId] ?: BigDecimal.ZERO)
+        return currentState(accountId).income
     }
 
     fun getPlayerTaxDebt(accountId: UUID): BigDecimal {
-        return normalizeAmount(taxDebts[accountId] ?: BigDecimal.ZERO)
+        return currentState(accountId).debt
     }
 
     fun getPlayerTaxDue(accountId: UUID): BigDecimal {
-        return calculateDue(getPlayerCurrentIncome(accountId), getPlayerTaxDebt(accountId))
+        val state = currentState(accountId)
+        return calculateDue(state.income, state.debt)
     }
 
     fun getNextSettlementSeconds(): Long {
@@ -196,27 +198,26 @@ object TaxService {
             storageDirty = storageDirty.get(),
             storageLastError = storageLastError,
             lastSettlementAtEpochMillis = lastSettlementAtEpochMillis,
-            lastSettlementAmount = normalizeAmount(lastSettlementAmount),
-            lastSettlementOutstandingDebt = normalizeAmount(lastSettlementOutstandingDebt),
+            lastSettlementAmount = EconomySettings.normalizeAmount(lastSettlementAmount),
+            lastSettlementOutstandingDebt = EconomySettings.normalizeAmount(lastSettlementOutstandingDebt),
             lastSettlementReason = lastSettlementReason,
         )
     }
 
     fun settleNow(): TaxSettleResult {
         ensureStorageInitialized()
-        val accountIds = (incomePools.keys + taxDebts.keys).toSet()
+        val accountIds = (accountStates.keys).toSet()
         var settled = BigDecimal.ZERO
         var outstandingDebt = BigDecimal.ZERO
 
         accountIds.forEach { accountId ->
             // Phase 1: 在锁内快照数据并清零，避免与 CentralBankService.stateLock 形成嵌套死锁
             val snapshotDue: BigDecimal? = synchronized(accountLocks[accountId]) {
-                val income = currentIncomeOf(accountId)
-                val debt = currentDebtOf(accountId)
-                if (income <= BigDecimal.ZERO && debt <= BigDecimal.ZERO) {
+                val state = currentState(accountId)
+                if (state.income <= BigDecimal.ZERO && state.debt <= BigDecimal.ZERO) {
                     return@synchronized null
                 }
-                val due = calculateDue(income, debt)
+                val due = calculateDue(state.income, state.debt)
                 if (due <= BigDecimal.ZERO) {
                     updateAccountStateLocked(accountId, BigDecimal.ZERO, BigDecimal.ZERO)
                     return@synchronized null
@@ -228,20 +229,20 @@ object TaxService {
 
             // Phase 2: 在锁外执行实际扣款（会获取 CentralBankService.stateLock）
             val collected = collectTaxFromAccount(accountId, snapshotDue)
-            val remainingDebt = normalizeAmount(snapshotDue.subtract(collected))
+            val remainingDebt = EconomySettings.normalizeAmount(snapshotDue.subtract(collected))
 
             // Phase 3: 重新获取锁，合并结算期间的新增收入并记录欠税
             synchronized(accountLocks[accountId]) {
-                val newIncome = currentIncomeOf(accountId)
+                val newIncome = currentState(accountId).income
                 updateAccountStateLocked(accountId, newIncome, remainingDebt)
             }
             settled = settled.add(collected)
             outstandingDebt = outstandingDebt.add(remainingDebt)
         }
 
-        CentralBankService.recordCollectedTax(normalizeAmount(settled))
-        val normalizedSettled = normalizeAmount(settled)
-        val normalizedDebt = normalizeAmount(outstandingDebt)
+        CentralBankService.recordCollectedTax(EconomySettings.normalizeAmount(settled))
+        val normalizedSettled = EconomySettings.normalizeAmount(settled)
+        val normalizedDebt = EconomySettings.normalizeAmount(outstandingDebt)
         val reason = when {
             normalizedSettled <= BigDecimal.ZERO && normalizedDebt <= BigDecimal.ZERO -> "EMPTY"
             normalizedDebt > BigDecimal.ZERO -> "PARTIAL"
@@ -258,7 +259,7 @@ object TaxService {
     }
 
     private fun recordIncome(accountId: UUID, amount: BigDecimal, currency: String, scene: IncomeScene) {
-        val normalizedAmount = normalizeAmount(amount)
+        val normalizedAmount = EconomySettings.normalizeAmount(amount)
         if (!TaxSettings.enabled || normalizedAmount <= BigDecimal.ZERO || !scene.isEnabled()) {
             return
         }
@@ -267,10 +268,11 @@ object TaxService {
         }
         ensureStorageInitialized()
         synchronized(accountLocks[accountId]) {
+            val state = currentState(accountId)
             updateAccountStateLocked(
                 accountId = accountId,
-                income = currentIncomeOf(accountId).add(normalizedAmount),
-                debt = currentDebtOf(accountId),
+                income = state.income.add(normalizedAmount),
+                debt = state.debt,
             )
         }
     }
@@ -283,9 +285,9 @@ object TaxService {
     }
 
     private fun previewTax(amount: BigDecimal, rateOverride: Double? = null): TaxResult {
-        val normalizedAmount = normalizeAmount(amount)
+        val normalizedAmount = EconomySettings.normalizeAmount(amount)
         if (rateOverride != null) {
-            val tax = normalizeAmount(normalizedAmount.multiply(BigDecimal.valueOf(rateOverride)))
+            val tax = EconomySettings.normalizeAmount(normalizedAmount.multiply(BigDecimal.valueOf(rateOverride)))
             return if (tax <= BigDecimal.ZERO) {
                 TaxResult(amount = normalizedAmount, tax = BigDecimal.ZERO, rate = rateOverride, success = true, reason = "NO_TAX")
             } else {
@@ -296,7 +298,7 @@ object TaxService {
             TaxSettings.computeMarginalTax(normalizedAmount)
         } else {
             val rate = TaxSettings.resolveRate(normalizedAmount)
-            normalizeAmount(normalizedAmount.multiply(BigDecimal.valueOf(rate)))
+            EconomySettings.normalizeAmount(normalizedAmount.multiply(BigDecimal.valueOf(rate)))
         }
         val effectiveRate = if (normalizedAmount > BigDecimal.ZERO) {
             tax.toDouble() / normalizedAmount.toDouble()
@@ -309,77 +311,61 @@ object TaxService {
     }
 
     private fun calculateDue(income: BigDecimal, debt: BigDecimal): BigDecimal {
-        val normalizedIncome = normalizeAmount(income)
-        val normalizedDebt = normalizeAmount(debt)
+        val normalizedIncome = EconomySettings.normalizeAmount(income)
+        val normalizedDebt = EconomySettings.normalizeAmount(debt)
         if (normalizedIncome <= BigDecimal.ZERO && normalizedDebt <= BigDecimal.ZERO) {
             return BigDecimal.ZERO
         }
         val incomeTax = previewTax(normalizedIncome).tax
-        return normalizeAmount(normalizedDebt.add(incomeTax))
+        return EconomySettings.normalizeAmount(normalizedDebt.add(incomeTax))
     }
 
     private fun collectTaxFromAccount(accountId: UUID, due: BigDecimal): BigDecimal {
-        val normalizedDue = normalizeAmount(due)
-        if (normalizedDue <= BigDecimal.ZERO) {
-            return BigDecimal.ZERO
-        }
+        val normalizedDue = EconomySettings.normalizeAmount(due)
+        if (normalizedDue <= BigDecimal.ZERO) return BigDecimal.ZERO
         val availableBalance = EconomyStorageService.getBalance(accountId, EconomySettings.defaultCurrency).coerceAtLeast(BigDecimal.ZERO)
         val collected = normalizedDue.min(availableBalance)
-        if (collected <= BigDecimal.ZERO) {
-            return BigDecimal.ZERO
-        }
+        if (collected <= BigDecimal.ZERO) return BigDecimal.ZERO
         return if (CentralBankService.isManagedPlayerAccount(accountId, EconomySettings.defaultCurrency)) {
             if (CentralBankService.withdrawFromPlayer(accountId, collected) == null) BigDecimal.ZERO else collected
         } else {
-            if (!EconomyStorageService.has(accountId, EconomySettings.defaultCurrency, collected)) {
-                BigDecimal.ZERO
-            } else {
-                EconomyStorageService.rawWithdraw(accountId, EconomySettings.defaultCurrency, collected, exempt = true)
+            val balance = EconomyStorageService.tryWithdraw(accountId, EconomySettings.defaultCurrency, collected)
+            if (balance != null) {
                 EconomyStorageService.rawDeposit(CentralBankService.CENTRAL_BANK_EXECUTOR_D_ACCOUNT_ID, EconomySettings.defaultCurrency, collected, exempt = true)
                 collected
+            } else {
+                BigDecimal.ZERO
             }
         }
     }
 
     private fun updateAccountStateLocked(accountId: UUID, income: BigDecimal, debt: BigDecimal) {
-        val previousIncome = currentIncomeOf(accountId)
-        val previousDebt = currentDebtOf(accountId)
-        val normalizedIncome = normalizeAmount(income)
-        val normalizedDebt = normalizeAmount(debt)
-        if (previousIncome == normalizedIncome && previousDebt == normalizedDebt) {
+        val previous = currentState(accountId)
+        val normalizedIncome = EconomySettings.normalizeAmount(income)
+        val normalizedDebt = EconomySettings.normalizeAmount(debt)
+        if (previous.income == normalizedIncome && previous.debt == normalizedDebt) {
             return
         }
 
-        val previousDue = calculateDue(previousIncome, previousDebt)
+        val previousDue = calculateDue(previous.income, previous.debt)
         val newDue = calculateDue(normalizedIncome, normalizedDebt)
 
-        // 使用 updateAndGet 确保原子性更新
-        totalIncome.updateAndGet { current -> normalizeAmount(current.subtract(previousIncome).add(normalizedIncome)) }
-        totalDebt.updateAndGet { current -> normalizeAmount(current.subtract(previousDebt).add(normalizedDebt)) }
-        totalDueTax.updateAndGet { current -> normalizeAmount(current.subtract(previousDue).add(newDue)) }
+        totalIncome.updateAndGet { current -> EconomySettings.normalizeAmount(current.subtract(previous.income).add(normalizedIncome)) }
+        totalDebt.updateAndGet { current -> EconomySettings.normalizeAmount(current.subtract(previous.debt).add(normalizedDebt)) }
+        totalDueTax.updateAndGet { current -> EconomySettings.normalizeAmount(current.subtract(previousDue).add(newDue)) }
 
-        if (normalizedIncome > BigDecimal.ZERO) {
-            incomePools[accountId] = normalizedIncome
+        if (normalizedIncome > BigDecimal.ZERO || normalizedDebt > BigDecimal.ZERO) {
+            accountStates[accountId] = TaxAccountState(income = normalizedIncome, debt = normalizedDebt)
         } else {
-            incomePools.remove(accountId)
-        }
-
-        if (normalizedDebt > BigDecimal.ZERO) {
-            taxDebts[accountId] = normalizedDebt
-        } else {
-            taxDebts.remove(accountId)
+            accountStates.remove(accountId)
         }
 
         dirtyAccounts += accountId
         storageDirty.set(true)
     }
 
-    private fun currentIncomeOf(accountId: UUID): BigDecimal {
-        return normalizeAmount(incomePools[accountId] ?: BigDecimal.ZERO)
-    }
-
-    private fun currentDebtOf(accountId: UUID): BigDecimal {
-        return normalizeAmount(taxDebts[accountId] ?: BigDecimal.ZERO)
+    private fun currentState(accountId: UUID): TaxAccountState {
+        return accountStates[accountId] ?: TaxAccountState(BigDecimal.ZERO, BigDecimal.ZERO)
     }
 
     private fun startSchedulerIfNeeded() {
@@ -472,17 +458,13 @@ object TaxService {
         runCatching {
             currentHandler.database.getListByKey(KEY_CURRENT_INCOME).forEach { (user, payload) ->
                 val accountId = runCatching { UUID.fromString(user) }.getOrNull() ?: return@forEach
-                val income = normalizeAmount(payload.toBigDecimalOrNull() ?: BigDecimal.ZERO)
-                if (income > BigDecimal.ZERO) {
-                    loadedIncome[accountId] = income
-                }
+                val income = EconomySettings.normalizeAmount(payload.toBigDecimalOrNull() ?: BigDecimal.ZERO)
+                if (income > BigDecimal.ZERO) loadedIncome[accountId] = income
             }
             currentHandler.database.getListByKey(KEY_TAX_DEBT).forEach { (user, payload) ->
                 val accountId = runCatching { UUID.fromString(user) }.getOrNull() ?: return@forEach
-                val debt = normalizeAmount(payload.toBigDecimalOrNull() ?: BigDecimal.ZERO)
-                if (debt > BigDecimal.ZERO) {
-                    loadedDebt[accountId] = debt
-                }
+                val debt = EconomySettings.normalizeAmount(payload.toBigDecimalOrNull() ?: BigDecimal.ZERO)
+                if (debt > BigDecimal.ZERO) loadedDebt[accountId] = debt
             }
         }.onFailure { ex ->
             warning("[税收] 读取收益池持久化数据失败: ${ex.message}")
@@ -490,10 +472,11 @@ object TaxService {
 
         (loadedIncome.keys + loadedDebt.keys).forEach { accountId ->
             synchronized(accountLocks[accountId]) {
+                val state = currentState(accountId)
                 updateAccountStateLocked(
                     accountId = accountId,
-                    income = currentIncomeOf(accountId).add(loadedIncome[accountId] ?: BigDecimal.ZERO),
-                    debt = currentDebtOf(accountId).add(loadedDebt[accountId] ?: BigDecimal.ZERO),
+                    income = state.income.add(loadedIncome[accountId] ?: BigDecimal.ZERO),
+                    debt = state.debt.add(loadedDebt[accountId] ?: BigDecimal.ZERO),
                 )
             }
         }
@@ -519,7 +502,7 @@ object TaxService {
         }
 
         val accountIds = if (force) {
-            (dirtyAccounts + incomePools.keys + taxDebts.keys).toSet()
+            (dirtyAccounts + accountStates.keys).toSet()
         } else {
             dirtyAccounts.toSet()
         }
@@ -547,9 +530,18 @@ object TaxService {
     }
 
     private fun persistAccount(currentHandler: MultipleHandler, accountId: UUID) {
+        val state = accountStates[accountId] ?: return
         val user = accountId.toString()
-        currentHandler.database[user, KEY_CURRENT_INCOME] = currentIncomeOf(accountId).toPlainString()
-        currentHandler.database[user, KEY_TAX_DEBT] = currentDebtOf(accountId).toPlainString()
+        if (state.income <= BigDecimal.ZERO) {
+            currentHandler.database[user, KEY_CURRENT_INCOME] = "0"
+        } else {
+            currentHandler.database[user, KEY_CURRENT_INCOME] = state.income.toPlainString()
+        }
+        if (state.debt <= BigDecimal.ZERO) {
+            currentHandler.database[user, KEY_TAX_DEBT] = "0"
+        } else {
+            currentHandler.database[user, KEY_TAX_DEBT] = state.debt.toPlainString()
+        }
     }
 
     private fun persistAccountsAsync(force: Boolean, allowInit: Boolean) {
@@ -575,14 +567,13 @@ object TaxService {
 
     private fun recordSettlementResult(settled: BigDecimal, outstandingDebt: BigDecimal, reason: String) {
         lastSettlementAtEpochMillis = System.currentTimeMillis()
-        lastSettlementAmount = normalizeAmount(settled)
-        lastSettlementOutstandingDebt = normalizeAmount(outstandingDebt)
+        lastSettlementAmount = EconomySettings.normalizeAmount(settled)
+        lastSettlementOutstandingDebt = EconomySettings.normalizeAmount(outstandingDebt)
         lastSettlementReason = reason
     }
 
     private fun resetRuntimeState(clearLastSettlement: Boolean) {
-        incomePools.clear()
-        taxDebts.clear()
+        accountStates.clear()
         dirtyAccounts.clear()
         accountLocks.clear()
         totalIncome.set(BigDecimal.ZERO)
@@ -598,9 +589,7 @@ object TaxService {
     }
 
     private fun normalizeAmount(value: BigDecimal): BigDecimal {
-        // 优化：如果已经是整数且非负，直接返回原对象，避免创建临时对象
-        if (value.scale() == 0 && value.signum() >= 0) return value
-        return value.setScale(0, RoundingMode.HALF_UP).coerceAtLeast(BigDecimal.ZERO)
+        return EconomySettings.normalizeAmount(value)
     }
 
 

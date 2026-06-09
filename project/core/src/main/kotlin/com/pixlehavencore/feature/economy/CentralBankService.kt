@@ -274,24 +274,23 @@ object CentralBankService {
 
     private fun refreshMacroState() {
         val currency = EconomySettings.defaultCurrency
-        val rawBalances = EconomyStorageService.snapshotBalances(currency)
-        val lastSeenSnapshot = EconomyStorageService.snapshotLastSeenAt(rawBalances.keys)
+        val rawSnapshot = EconomyStorageService.snapshotBalancesAndSeenAt(currency)
 
         val now = System.currentTimeMillis()
         val dormantThreshold = now - Duration.ofDays(CentralBankSettings.dormantThresholdDays.toLong()).toMillis()
 
-        // 单次遍历计算所有统计值（优化：避免多次 filter + fold）
         var totalBalance = BigDecimal.ZERO
         var activeBalance = BigDecimal.ZERO
         var activeCount = 0
         var weightedCount = BigDecimal.ZERO
         val eligibleBalances = linkedMapOf<UUID, BigDecimal>()
 
-        for ((accountId, balance) in rawBalances) {
+        for ((accountId, pair) in rawSnapshot) {
+            val balance = pair.first
             if (isCentralBankAccount(accountId) || isExemptAccount(accountId)) continue
             eligibleBalances[accountId] = balance
             totalBalance = totalBalance.add(balance)
-            val seenAt = lastSeenSnapshot[accountId] ?: 0L
+            val seenAt = pair.second
             val inactiveDays = if (seenAt > 0L) ((now - seenAt) / DAY_MILLIS).toInt() else Int.MAX_VALUE
             val weight = resolveInactivityWeight(inactiveDays)
             if (weight >= BigDecimal.ONE) {
@@ -345,7 +344,8 @@ object CentralBankService {
 
             val shouldRecoverDormant = lastDormantRecoveryAt <= 0L || now - lastDormantRecoveryAt >= WEEK_MILLIS
             if (shouldRecoverDormant) {
-                recoverDormantBalances(eligibleBalances, lastSeenSnapshot, dormantThreshold)
+                val lastSeenMap = rawSnapshot.mapValues { it.value.second }.filterKeys { it in eligibleBalances }
+                recoverDormantBalances(eligibleBalances, lastSeenMap, dormantThreshold)
                 lastDormantRecoveryAt = now
             }
 

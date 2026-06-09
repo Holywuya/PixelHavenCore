@@ -83,6 +83,13 @@ object EconomyStorageService {
         }
     }
 
+    fun snapshotBalancesAndSeenAt(currency: String): Map<UUID, Pair<BigDecimal, Long>> {
+        val resolved = EconomySettings.resolveCurrency(currency)
+        return (balances.keys + lastSeenAt.keys).associateWith { accountId ->
+            (balances[accountId]?.get(resolved) ?: BigDecimal.ZERO) to (lastSeenAt[accountId] ?: 0L)
+        }
+    }
+
     fun snapshotLastSeenAt(accountIds: Collection<UUID>): Map<UUID, Long> {
         return accountIds.associateWith { getLastSeenAt(it) }
     }
@@ -106,7 +113,7 @@ object EconomyStorageService {
         synchronized(accountLocks[accountId]) {
             val resolved = EconomySettings.resolveCurrency(currency)
             val map = balances.computeIfAbsent(accountId) { ConcurrentHashMap() }
-            val normalizedAmount = normalizeAmount(amount)
+            val normalizedAmount = EconomySettings.normalizeAmount(amount)
             val before = map[resolved] ?: BigDecimal.ZERO
             val raw = map.merge(resolved, normalizedAmount) { old, new -> old.add(new) } ?: normalizedAmount
             val balance = correctAmount(accountId, resolved, raw)
@@ -139,7 +146,7 @@ object EconomyStorageService {
         synchronized(accountLocks[accountId]) {
             val resolved = EconomySettings.resolveCurrency(currency)
             val map = balances.computeIfAbsent(accountId) { ConcurrentHashMap() }
-            val normalizedAmount = normalizeAmount(amount)
+            val normalizedAmount = EconomySettings.normalizeAmount(amount)
             val before = map[resolved] ?: BigDecimal.ZERO
             // 在锁内检查余额是否充足
             if (before < normalizedAmount) {
@@ -173,7 +180,7 @@ object EconomyStorageService {
         synchronized(accountLocks[accountId]) {
             val resolved = EconomySettings.resolveCurrency(currency)
             val map = balances.computeIfAbsent(accountId) { ConcurrentHashMap() }
-            val normalizedAmount = normalizeAmount(amount)
+            val normalizedAmount = EconomySettings.normalizeAmount(amount)
             val before = map[resolved] ?: BigDecimal.ZERO
             val updated = before.subtract(normalizedAmount)
             val raw = if (updated.signum() <= 0) BigDecimal.ZERO else updated
@@ -195,7 +202,7 @@ object EconomyStorageService {
     fun rawSetBalance(accountId: UUID, currency: String, amount: BigDecimal): BigDecimal {
         synchronized(accountLocks[accountId]) {
             val resolved = EconomySettings.resolveCurrency(currency)
-            val normalized = normalizeAmount(amount)
+            val normalized = EconomySettings.normalizeAmount(amount)
             val balance = correctAmount(accountId, resolved, normalized)
             val map = balances.computeIfAbsent(accountId) { ConcurrentHashMap() }
             map[resolved] = balance
@@ -336,16 +343,12 @@ object EconomyStorageService {
             }
             val currency = trimmed.substring(0, idx).trim().lowercase()
             val rawAmount = trimmed.substring(idx + 1).trim().toBigDecimalOrNull() ?: return@forEach
-            result[currency] = normalizeAmount(rawAmount)
+            result[currency] = EconomySettings.normalizeAmount(rawAmount)
         }
         return result
     }
 
-    private fun normalizeAmount(value: BigDecimal): BigDecimal {
-        return value.setScale(0, RoundingMode.HALF_UP).coerceAtLeast(BigDecimal.ZERO)
-    }
-
     private fun correctAmount(accountId: UUID, currency: String, amount: BigDecimal): BigDecimal {
-        return if (amount.scale() > 0) normalizeAmount(amount) else amount
+        return if (amount.scale() > 0) EconomySettings.normalizeAmount(amount) else amount
     }
 }
