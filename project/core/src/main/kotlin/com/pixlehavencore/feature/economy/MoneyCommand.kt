@@ -280,6 +280,10 @@ object MoneyCommand {
 
         when (mode) {
             Mode.ADD -> {
+                if (!EconomyUtils.canDeposit(target, amount, currency)) {
+                    sender.msg("<red>目标无法接收存款（央行储备不足）。")
+                    return
+                }
                 if (!EconomyUtils.depositInternal(target, amount, currency)) {
                     sender.msg("<red>增加余额失败。")
                     return
@@ -287,8 +291,8 @@ object MoneyCommand {
             }
 
             Mode.REMOVE -> {
-                if (!EconomyUtils.has(target, amount, currency)) {
-                    sender.msg("<red>目标余额不足。")
+                if (!EconomyUtils.canWithdraw(target, amount, currency)) {
+                    sender.msg("<red>目标余额不足或央行储备不足。")
                     return
                 }
                 if (!EconomyUtils.withdraw(target, amount, currency)) {
@@ -298,19 +302,9 @@ object MoneyCommand {
             }
 
             Mode.SET -> {
-                val current = EconomyUtils.getBalance(target, currency)
-                if (current > BigDecimal.ZERO) {
-                    if (!EconomyUtils.withdraw(target, current, currency)) {
-                        sender.msg("<red>清零余额失败。")
-                        return
-                    }
-                }
-                if (amount > BigDecimal.ZERO && !EconomyUtils.depositInternal(target, amount, currency)) {
-                    // 回滚：将之前清零的金额存回
-                    if (current > BigDecimal.ZERO) {
-                        EconomyUtils.depositInternal(target, current, currency)
-                    }
-                    sender.msg("<red>设置余额失败。")
+                val resp = EconomyUtils.setBalance(target, amount, currency)
+                if (!resp.transactionSuccess()) {
+                    sender.msg("<red>设置余额失败: ${resp.errorMessage}")
                     return
                 }
             }
@@ -336,8 +330,8 @@ object MoneyCommand {
     }
 
     private fun transfer(sender: ProxyCommandSender, from: org.bukkit.entity.Player, target: OfflinePlayer, amount: BigDecimal, currency: String) {
-        if (!EconomyUtils.has(from, amount, currency)) {
-            sender.msg("<red>余额不足。")
+        if (!EconomyUtils.canWithdraw(from, amount, currency)) {
+            sender.msg("<red>余额不足或央行储备不足。")
             return
         }
         if (!EconomyUtils.withdraw(from, amount, currency)) {

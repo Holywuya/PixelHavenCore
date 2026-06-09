@@ -314,6 +314,39 @@ class VaultUnlockedEconomy : Economy {
     }
 
     // ─────────────────────────────────────────
+    // set — 原子设余额 (Vault2 优化实现)
+    // ─────────────────────────────────────────
+
+    override fun set(pluginName: String, accountID: UUID, amount: BigDecimal): EconomyResponse =
+        doSet(pluginName, accountID, EconomySettings.defaultCurrency, amount)
+
+    override fun set(pluginName: String, accountID: UUID, worldName: String, amount: BigDecimal): EconomyResponse =
+        doSet(pluginName, accountID, EconomySettings.defaultCurrency, amount)
+
+    override fun set(pluginName: String, accountID: UUID, worldName: String, currency: String, amount: BigDecimal): EconomyResponse =
+        doSet(pluginName, accountID, currency, amount)
+
+    private fun doSet(pluginName: String, accountID: UUID, currency: String, amount: BigDecimal): EconomyResponse {
+        val resolved = EconomySettings.resolveCurrency(currency)
+        val normalized = amount.setScale(0, RoundingMode.HALF_UP).coerceAtLeast(BigDecimal.ZERO)
+        val current = resolveBalance(accountID, resolved)
+        val diff = normalized.subtract(current)
+        if (diff.compareTo(BigDecimal.ZERO) == 0)
+            return response(BigDecimal.ZERO, normalized, EconomyResponse.ResponseType.SUCCESS, "")
+        // 央行托管账户走标准 withdraw/deposit 路径确保补偿链
+        if (CentralBankService.isCentralBankAccount(accountID) ||
+            CentralBankService.isManagedPlayerAccount(accountID, resolved)
+        ) {
+            if (diff > BigDecimal.ZERO) return deposit(pluginName, accountID, "", diff)
+            return withdraw(pluginName, accountID, "", diff.abs())
+        }
+        // 非托管账户：单次 rawSetBalance 原子操作
+        val newBalance = EconomyStorageService.rawSetBalance(accountID, resolved, normalized)
+        CentralBankService.compensateBalanceChange(accountID, diff.negate())
+        return response(normalized, newBalance, EconomyResponse.ResponseType.SUCCESS, "")
+    }
+
+    // ─────────────────────────────────────────
     // Transfer — 原子转账带回滚
     // ─────────────────────────────────────────
 
@@ -663,7 +696,7 @@ class Vault1EconomyBridge : Vault1Economy {
 
     override fun withdrawPlayer(player: OfflinePlayer, amount: Double): Vault1EconomyResponse {
         val bdAmount = BigDecimal.valueOf(amount).setScale(0, RoundingMode.HALF_UP)
-        val resp = sync.withdraw("phcore", player.uniqueId, "", EconomySettings.defaultCurrency, bdAmount)
+        val resp = sync.withdraw("vault-bridge", player.uniqueId, "", EconomySettings.defaultCurrency, bdAmount)
         return v1Response(resp)
     }
 
@@ -681,7 +714,7 @@ class Vault1EconomyBridge : Vault1Economy {
 
     override fun depositPlayer(player: OfflinePlayer, amount: Double): Vault1EconomyResponse {
         val bdAmount = BigDecimal.valueOf(amount).setScale(0, RoundingMode.HALF_UP)
-        val resp = sync.deposit("phcore", player.uniqueId, "", EconomySettings.defaultCurrency, bdAmount)
+        val resp = sync.deposit("vault-bridge", player.uniqueId, "", EconomySettings.defaultCurrency, bdAmount)
         return v1Response(resp)
     }
 
