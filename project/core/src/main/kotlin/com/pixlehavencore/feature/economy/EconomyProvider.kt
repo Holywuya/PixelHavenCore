@@ -5,7 +5,10 @@ import net.milkbowl.vault2.economy.AsyncEconomy
 import net.milkbowl.vault2.economy.Economy
 import net.milkbowl.vault2.economy.EconomyResponse
 import net.milkbowl.vault2.economy.MultiEconomyResponse
+import net.milkbowl.vault.economy.Economy as Vault1Economy
+import net.milkbowl.vault.economy.EconomyResponse as Vault1EconomyResponse
 import org.bukkit.Bukkit
+import org.bukkit.OfflinePlayer
 import org.bukkit.plugin.ServicePriority
 import taboolib.common.platform.function.info
 import taboolib.common.platform.function.warning
@@ -21,7 +24,9 @@ import java.util.concurrent.CompletableFuture
 
 object EconomyProvider {
 
-    private lateinit var economy: VaultUnlockedEconomy
+    internal lateinit var economy: VaultUnlockedEconomy
+        private set
+    private lateinit var vault1Bridge: Vault1EconomyBridge
 
     fun init() {
         if (::economy.isInitialized) {
@@ -33,13 +38,15 @@ object EconomyProvider {
         TaxService.init()
         CentralBankService.init()
         economy = VaultUnlockedEconomy()
+        vault1Bridge = Vault1EconomyBridge()
         val plugin = Bukkit.getPluginManager().getPlugin("phcore")
         if (plugin == null) {
             warning("[经济系统] 找不到核心插件实例，无法注册经济服务")
             return
         }
         Bukkit.getServicesManager().register(Economy::class.java, economy, plugin, ServicePriority.Normal)
-        info("[经济系统] 底层经济服务已注册 (VaultUnlockedAPI 2.20, AsyncEconomy 已启用)")
+        Bukkit.getServicesManager().register(Vault1Economy::class.java, vault1Bridge, plugin, ServicePriority.Normal)
+        info("[经济系统] 底层经济服务已注册 (VaultUnlockedAPI 2.20 + Vault1 兼容桥接, AsyncEconomy 已启用)")
     }
 
     fun reload() {
@@ -56,6 +63,7 @@ object EconomyProvider {
     fun stop() {
         if (this::economy.isInitialized) {
             Bukkit.getServicesManager().unregister(Economy::class.java, economy)
+            Bukkit.getServicesManager().unregister(Vault1Economy::class.java, vault1Bridge)
         }
         TaxService.shutdown()
         CentralBankService.stop()
@@ -576,4 +584,153 @@ class VaultUnlockedAsyncEconomy(private val sync: VaultUnlockedEconomy) : AsyncE
 
     private fun <T> completedFuture(value: T): CompletableFuture<T> =
         CompletableFuture.completedFuture(value)
+}
+
+// ─────────────────────────────────────────────
+// Vault1EconomyBridge — 兼容 Vault1 旧版 API
+// ─────────────────────────────────────────────
+
+class Vault1EconomyBridge : Vault1Economy {
+
+    private val sync: VaultUnlockedEconomy
+        get() = EconomyProvider.economy
+
+    // ── Meta ────────────────────────────────────
+    override fun isEnabled(): Boolean = EconomySettings.enabled
+    override fun getName(): String = "PHCore Economy"
+    override fun hasBankSupport(): Boolean = false
+    override fun fractionalDigits(): Int = 0
+
+    // ── Format / Currency ───────────────────────
+    override fun format(amount: Double): String =
+        sync.format("phcore", BigDecimal.valueOf(amount))
+
+    override fun currencyNamePlural(): String =
+        EconomySettings.getDefinition(EconomySettings.defaultCurrency).plural
+
+    override fun currencyNameSingular(): String =
+        EconomySettings.getDefinition(EconomySettings.defaultCurrency).singular
+
+    // ── Account ─────────────────────────────────
+    override fun hasAccount(playerName: String): Boolean = true
+    override fun hasAccount(playerName: String, worldName: String): Boolean = true
+    override fun hasAccount(player: OfflinePlayer): Boolean = true
+    override fun hasAccount(player: OfflinePlayer, worldName: String): Boolean = true
+
+    override fun createPlayerAccount(playerName: String): Boolean = true
+    override fun createPlayerAccount(playerName: String, worldName: String): Boolean = true
+    override fun createPlayerAccount(player: OfflinePlayer): Boolean = true
+    override fun createPlayerAccount(player: OfflinePlayer, worldName: String): Boolean = true
+
+    // ── Balance ─────────────────────────────────
+    override fun getBalance(playerName: String): Double {
+        val uuid = Bukkit.getOfflinePlayer(playerName).uniqueId
+        return sync.resolveBalance(uuid, EconomySettings.defaultCurrency).toDouble()
+    }
+
+    override fun getBalance(playerName: String, worldName: String): Double =
+        getBalance(playerName)
+
+    override fun getBalance(player: OfflinePlayer): Double =
+        sync.resolveBalance(player.uniqueId, EconomySettings.defaultCurrency).toDouble()
+
+    override fun getBalance(player: OfflinePlayer, worldName: String): Double =
+        getBalance(player)
+
+    // ── has ─────────────────────────────────────
+    override fun has(playerName: String, amount: Double): Boolean {
+        val uuid = Bukkit.getOfflinePlayer(playerName).uniqueId
+        return sync.resolveBalance(uuid, EconomySettings.defaultCurrency) >= BigDecimal.valueOf(amount)
+    }
+
+    override fun has(playerName: String, worldName: String, amount: Double): Boolean =
+        has(playerName, amount)
+
+    override fun has(player: OfflinePlayer, amount: Double): Boolean =
+        sync.resolveBalance(player.uniqueId, EconomySettings.defaultCurrency) >= BigDecimal.valueOf(amount)
+
+    override fun has(player: OfflinePlayer, worldName: String, amount: Double): Boolean =
+        has(player, amount)
+
+    // ── Withdraw ────────────────────────────────
+    override fun withdrawPlayer(playerName: String, amount: Double): Vault1EconomyResponse {
+        val player = Bukkit.getOfflinePlayer(playerName)
+        return withdrawPlayer(player, amount)
+    }
+
+    override fun withdrawPlayer(playerName: String, worldName: String, amount: Double): Vault1EconomyResponse =
+        withdrawPlayer(playerName, amount)
+
+    override fun withdrawPlayer(player: OfflinePlayer, amount: Double): Vault1EconomyResponse {
+        val bdAmount = BigDecimal.valueOf(amount).setScale(0, RoundingMode.HALF_UP)
+        val resp = sync.withdraw("phcore", player.uniqueId, "", EconomySettings.defaultCurrency, bdAmount)
+        return v1Response(resp)
+    }
+
+    override fun withdrawPlayer(player: OfflinePlayer, worldName: String, amount: Double): Vault1EconomyResponse =
+        withdrawPlayer(player, amount)
+
+    // ── Deposit ─────────────────────────────────
+    override fun depositPlayer(playerName: String, amount: Double): Vault1EconomyResponse {
+        val player = Bukkit.getOfflinePlayer(playerName)
+        return depositPlayer(player, amount)
+    }
+
+    override fun depositPlayer(playerName: String, worldName: String, amount: Double): Vault1EconomyResponse =
+        depositPlayer(playerName, amount)
+
+    override fun depositPlayer(player: OfflinePlayer, amount: Double): Vault1EconomyResponse {
+        val bdAmount = BigDecimal.valueOf(amount).setScale(0, RoundingMode.HALF_UP)
+        val resp = sync.deposit("phcore", player.uniqueId, "", EconomySettings.defaultCurrency, bdAmount)
+        return v1Response(resp)
+    }
+
+    override fun depositPlayer(player: OfflinePlayer, worldName: String, amount: Double): Vault1EconomyResponse =
+        depositPlayer(player, amount)
+
+    // ── Banks (不支持) ──────────────────────────
+    override fun bankBalance(name: String): Vault1EconomyResponse =
+        Vault1EconomyResponse(0.0, 0.0, Vault1EconomyResponse.ResponseType.NOT_IMPLEMENTED, "")
+
+    override fun bankHas(name: String, amount: Double): Vault1EconomyResponse =
+        Vault1EconomyResponse(0.0, 0.0, Vault1EconomyResponse.ResponseType.NOT_IMPLEMENTED, "")
+
+    override fun bankWithdraw(name: String, amount: Double): Vault1EconomyResponse =
+        Vault1EconomyResponse(0.0, 0.0, Vault1EconomyResponse.ResponseType.NOT_IMPLEMENTED, "")
+
+    override fun bankDeposit(name: String, amount: Double): Vault1EconomyResponse =
+        Vault1EconomyResponse(0.0, 0.0, Vault1EconomyResponse.ResponseType.NOT_IMPLEMENTED, "")
+
+    override fun isBankOwner(name: String, playerName: String): Vault1EconomyResponse =
+        Vault1EconomyResponse(0.0, 0.0, Vault1EconomyResponse.ResponseType.NOT_IMPLEMENTED, "")
+
+    override fun isBankOwner(name: String, player: OfflinePlayer): Vault1EconomyResponse =
+        Vault1EconomyResponse(0.0, 0.0, Vault1EconomyResponse.ResponseType.NOT_IMPLEMENTED, "")
+
+    override fun isBankMember(name: String, playerName: String): Vault1EconomyResponse =
+        Vault1EconomyResponse(0.0, 0.0, Vault1EconomyResponse.ResponseType.NOT_IMPLEMENTED, "")
+
+    override fun isBankMember(name: String, player: OfflinePlayer): Vault1EconomyResponse =
+        Vault1EconomyResponse(0.0, 0.0, Vault1EconomyResponse.ResponseType.NOT_IMPLEMENTED, "")
+
+    override fun getBanks(): MutableList<String> = ArrayList()
+
+    override fun createBank(name: String, playerName: String): Vault1EconomyResponse =
+        Vault1EconomyResponse(0.0, 0.0, Vault1EconomyResponse.ResponseType.NOT_IMPLEMENTED, "")
+
+    override fun createBank(name: String, player: OfflinePlayer): Vault1EconomyResponse =
+        Vault1EconomyResponse(0.0, 0.0, Vault1EconomyResponse.ResponseType.NOT_IMPLEMENTED, "")
+
+    override fun deleteBank(name: String): Vault1EconomyResponse =
+        Vault1EconomyResponse(0.0, 0.0, Vault1EconomyResponse.ResponseType.NOT_IMPLEMENTED, "")
+
+    // ── Helpers ─────────────────────────────────
+    private fun v1Response(resp: EconomyResponse): Vault1EconomyResponse {
+        val type = when (resp.type) {
+            EconomyResponse.ResponseType.SUCCESS -> Vault1EconomyResponse.ResponseType.SUCCESS
+            EconomyResponse.ResponseType.FAILURE -> Vault1EconomyResponse.ResponseType.FAILURE
+            EconomyResponse.ResponseType.NOT_IMPLEMENTED -> Vault1EconomyResponse.ResponseType.NOT_IMPLEMENTED
+        }
+        return Vault1EconomyResponse(resp.amount.toDouble(), resp.balance.toDouble(), type, resp.errorMessage)
+    }
 }
