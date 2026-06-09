@@ -8,8 +8,6 @@ import com.pixlehavencore.feature.base.back.BackSettings
 import com.pixlehavencore.feature.base.protection.ProtectionSettings
 import com.pixlehavencore.playerstate.PlayerStateService
 import com.pixlehavencore.feature.craftingbench.CraftingBenchService
-import com.pixlehavencore.feature.durability.DurabilityService
-import com.pixlehavencore.feature.durability.DurabilitySettings
 import com.pixlehavencore.feature.flight.FlightService
 import com.pixlehavencore.feature.flight.FlightSettings
 import com.pixlehavencore.feature.deathdrop.DeathDropSettings
@@ -87,8 +85,6 @@ object PixleHavenCore : Plugin() {
         TitleStorage.init()
         TitleService.init()
         TitlePlaceholders
-        DurabilitySettings.init()
-        DurabilityService.init()
         FlightService.init()
         logModulesStatus()
         info("Successfully running PixleHavenCore!")
@@ -125,7 +121,6 @@ object PixleHavenCore : Plugin() {
             "Baikiruto" to BaikirutoItemsUtil.isAvailable(),
             "CraftEngine" to CraftEngineItemsUtil.isAvailable(),
             "Vault Economy" to EconomyUtils.isAvailable(),
-            "Durability Display" to DurabilityService.isAvailable(),
         ))
         info("=== 启动完成 ===")
     }
@@ -154,7 +149,6 @@ object PixleHavenCore : Plugin() {
         PlaytimeStorage.stop()
         TitleService.stop()
         TitleStorage.stop()
-        DurabilityService.stop()
         FlightService.stop()
         VeinminerLimitService.stop()
         TradeService.stop()
