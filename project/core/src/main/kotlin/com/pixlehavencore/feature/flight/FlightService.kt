@@ -15,6 +15,7 @@ import taboolib.common.platform.function.submit
 import taboolib.common.platform.function.submitAsync
 import taboolib.platform.util.submit as submitOnEntity
 import java.time.Duration
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import taboolib.platform.util.PlayerSessionMap
@@ -75,8 +76,16 @@ object FlightService {
         }
         val dailySeconds = resolveDailySeconds(player)
         val permanentBonus = FlightBonusStorage.loadBonus(player.uniqueId)
-        playerData[player.uniqueId] = FlightPlayerData(baseSeconds = dailySeconds, permanentBonus = permanentBonus)
-        if (dailySeconds + permanentBonus > 0 && isWorldEnabled(player.world.name)) {
+        val savedBase = FlightBonusStorage.loadBaseSeconds(player.uniqueId)
+        val savedDay = FlightBonusStorage.loadDay(player.uniqueId)
+        val currentDay = effectiveDay()
+        val baseSeconds = if (savedBase != null && savedDay == currentDay) {
+            savedBase
+        } else {
+            dailySeconds
+        }
+        playerData[player.uniqueId] = FlightPlayerData(baseSeconds = baseSeconds, permanentBonus = permanentBonus)
+        if (baseSeconds + permanentBonus > 0 && isWorldEnabled(player.world.name)) {
             player.submitOnEntity { player.allowFlight = true }
         }
     }
@@ -85,6 +94,7 @@ object FlightService {
         val data = playerData[player.uniqueId]
         if (data != null) {
             FlightBonusStorage.saveBonus(player.uniqueId, data.permanentBonus)
+            FlightBonusStorage.saveBaseInfo(player.uniqueId, data.baseSeconds, effectiveDay())
         }
         player.isFlying = false
         player.allowFlight = false
@@ -340,6 +350,7 @@ object FlightService {
     }
 
     private fun performDailyReset() {
+        val currentDay = effectiveDay()
         for ((uuid, _) in playerData.entries()) {
             val player = Bukkit.getPlayer(uuid) ?: continue
             if (isBypass(player)) {
@@ -351,6 +362,7 @@ object FlightService {
             val oldData = playerData[uuid]
             val permanentBonus = oldData?.permanentBonus ?: 0
             playerData[uuid] = FlightPlayerData(baseSeconds = newDaily, permanentBonus = permanentBonus)
+            FlightBonusStorage.saveBaseInfo(uuid, newDaily, currentDay)
             if (newDaily + permanentBonus > 0 && isWorldEnabled(player.world.name)) {
                 player.submitOnEntity { player.allowFlight = true }
                 if (FlightSettings.msgDailyReset.isNotBlank()) {
@@ -372,6 +384,13 @@ object FlightService {
         val hour = parts.getOrNull(0)?.toIntOrNull() ?: 0
         val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
         return LocalTime.of(hour.coerceIn(0, 23), minute.coerceIn(0, 59))
+    }
+
+    private fun effectiveDay(): Long {
+        val resetTime = parseResetTime(FlightSettings.dailyResetTime)
+        val now = LocalTime.now()
+        return if (now >= resetTime) LocalDate.now().toEpochDay()
+        else LocalDate.now().minusDays(1).toEpochDay()
     }
 
     private fun calculateDelayToNext(target: LocalTime): Long {
