@@ -59,11 +59,12 @@ object DatabaseUtils {
             HikariConfig().apply {
                 this.poolName = poolName
                 jdbcUrl = "jdbc:sqlite:$sqliteFile"
-                maximumPoolSize = maxPoolSize
+                maximumPoolSize = maxPoolSize.coerceAtMost(4)
                 minimumIdle = minIdle
                 connectionTimeout = 10000
                 idleTimeout = 300000
                 maxLifetime = 1200000
+                connectionInitSql = "PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;"
             }
         }
     }
