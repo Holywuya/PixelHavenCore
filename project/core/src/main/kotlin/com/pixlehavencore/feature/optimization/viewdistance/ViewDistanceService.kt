@@ -114,8 +114,6 @@ object ViewDistanceService {
     }
 
     fun setPlayerDistance(proxy: ProxyPlayer, distance: Int) {
-        // 保留命令入口，但不再持久化到数据库或玩家偏好。
-        // Folia: 使用 proxy.cast 替代 Bukkit.getPlayer，避免跨线程调用
         val player = proxy.cast<Player>() ?: return
         player.submitOnEntity {
             applyDistance(player, distance)
@@ -123,7 +121,6 @@ object ViewDistanceService {
     }
 
     fun clearPlayerDistance(proxy: ProxyPlayer) {
-        // Folia: 使用 proxy.cast 替代 Bukkit.getPlayer
         val player = proxy.cast<Player>() ?: return
         player.submitOnEntity {
             applyDistance(player, ViewDistanceSettings.defaultDistance)
@@ -132,14 +129,6 @@ object ViewDistanceService {
 
     fun getPlayerDistance(proxy: ProxyPlayer): Int? {
         return clampByLimits(ViewDistanceSettings.defaultDistance)
-    }
-
-    fun setPingMode(proxy: ProxyPlayer, enabled: Boolean) {
-        // 保留命令入口，但不再持久化。
-    }
-
-    fun isPingModeEnabled(proxy: ProxyPlayer): Boolean {
-        return false
     }
 
     fun resolvePlayerDistance(proxy: ProxyPlayer): Int {
@@ -238,9 +227,6 @@ object ViewDistanceService {
             onlinePlayers().forEach { proxy ->
                 val player = proxy.cast<Player>() ?: return@forEach
                 player.submitOnEntity {
-                    if (!isPingModeEnabled(proxy)) {
-                        return@submitOnEntity
-                    }
                     val ping = PingAdapter.getPing(player)
                     if (ping < 0) {
                         return@submitOnEntity

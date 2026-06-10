@@ -75,8 +75,6 @@ ping:
   min: 2
   # 延迟调整的最大视野距离
   max: 32
-  # 允许玩家切换延迟视野调整的权限
-  togglePermission: "phcore.viewdistance.ping.toggle"
   # 延迟阈值与视野距离映射关系
   # 格式: "延迟毫秒数": 视野距离
   # 当玩家延迟超过阈值时，视野距离会相应降低

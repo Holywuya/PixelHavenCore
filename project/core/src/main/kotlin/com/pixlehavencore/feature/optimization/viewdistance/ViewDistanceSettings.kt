@@ -83,9 +83,6 @@ object ViewDistanceSettings {
     var pingMap: Map<Int, Int> = emptyMap()
         private set
 
-    var pingTogglePermission: String = "phcore.viewdistance.ping.toggle"
-        private set
-
     var bypassAfkPermission: String = "phcore.viewdistance.afk.bypass"
         private set
 
@@ -120,7 +117,6 @@ object ViewDistanceSettings {
         pingMin = clampDistance(config.getInt("ping.min", 2))
         pingMax = clampDistance(config.getInt("ping.max", 32))
         pingMap = parseIntMap("ping.values")
-        pingTogglePermission = config.getString("ping.togglePermission") ?: "phcore.viewdistance.ping.toggle"
         bypassAfkPermission = config.getString("afk.bypassPermission") ?: "phcore.viewdistance.afk.bypass"
     }
 

@@ -16,7 +16,6 @@ private val PERMISSION_ALIASES = mapOf(
     "phcore.viewdistance.admin" to listOf("phcore.vdc.admin"),
     "phcore.viewdistance.afk.bypass" to listOf("phcore.vdc.afk.bypass"),
     "phcore.viewdistance.dynamic.bypass" to listOf("phcore.vdc.dynamic.bypass"),
-    "phcore.viewdistance.ping.toggle" to listOf("phcore.vdc.ping.toggle"),
     "phcore.notification.admin" to listOf("phcore.notify.admin"),
     "phcore.entityclearer.admin" to listOf("phcore.entityclear.admin"),
     "phcore.veinminer.admin" to listOf("veinminer.admin"),
