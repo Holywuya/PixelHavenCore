@@ -38,8 +38,11 @@ object FlightCommand {
                 return@execute
             }
             val player = sender.requirePlayer() ?: return@execute
-            FlightService.enableFlight(player.cast())
-            sender.msg(FlightSettings.msgFlightOn)
+            if (FlightService.enableFlight(player.cast())) {
+                sender.msg(FlightSettings.msgFlightOn)
+            } else {
+                sender.msg(FlightSettings.msgNoTime)
+            }
         }
     }
 

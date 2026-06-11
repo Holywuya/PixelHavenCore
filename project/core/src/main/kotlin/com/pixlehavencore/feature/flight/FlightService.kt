@@ -129,7 +129,7 @@ object FlightService {
 
     // ========== 飞行控制 ==========
 
-    fun enableFlight(player: Player) {
+    fun enableFlight(player: Player): Boolean {
         val uuid = player.uniqueId
         if (isBypass(player)) {
             playerData[uuid] = FlightPlayerData(baseSeconds = -1, manualDisable = false)
@@ -137,17 +137,18 @@ object FlightService {
                 player.allowFlight = true
                 player.isFlying = true
             }
-            return
+            return true
         }
-        val data = playerData[uuid] ?: return
-        if (!isWorldEnabled(player.world.name)) return
-        if (data.effectiveSeconds <= 0) return
+        val data = playerData[uuid] ?: return false
+        if (!isWorldEnabled(player.world.name)) return false
+        if (data.effectiveSeconds <= 0) return false
         playerData[uuid] = data.copy(manualDisable = false)
         player.submitOnEntity {
             player.allowFlight = true
             player.isFlying = true
         }
         sendFlightActionBar(player, playerData[uuid] ?: data)
+        return true
     }
 
     fun disableFlight(player: Player) {
@@ -164,14 +165,12 @@ object FlightService {
     }
 
     fun toggleFlight(player: Player): Boolean {
-        val data = playerData[player.uniqueId] ?: return false
-        return if (player.isFlying || !data.manualDisable) {
-            disableFlight(player)
-            false
-        } else {
-            enableFlight(player)
-            true
+        if (playerData[player.uniqueId] == null) return false
+        if (player.isFlying) {
+            player.submitOnEntity { player.isFlying = false }
+            return false
         }
+        return enableFlight(player)
     }
 
     // ========== 管理员操作 ==========
