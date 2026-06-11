@@ -2,6 +2,7 @@ package com.pixlehavencore.feature.flight
 
 import com.pixlehavencore.bridge.TextBridge
 import com.pixlehavencore.util.ADMIN_PERMISSION
+import com.pixlehavencore.util.DominionBridge
 import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import com.pixlehavencore.util.TextUtils
 import com.pixlehavencore.util.cancelTaskSafely
@@ -141,7 +142,14 @@ object FlightService {
         }
         val data = playerData[uuid] ?: return false
         if (!isWorldEnabled(player.world.name)) return false
-        if (data.effectiveSeconds <= 0) return false
+        if (data.effectiveSeconds <= 0) {
+            player.sendMessage(TextUtils.parse(FlightSettings.msgNoTime))
+            return false
+        }
+        if (DominionBridge.isAvailable() && !DominionBridge.canFlyAt(player, player.location)) {
+            player.sendMessage(TextUtils.parse(FlightSettings.msgDominionBlocked))
+            return false
+        }
         playerData[uuid] = data.copy(manualDisable = false)
         player.submitOnEntity {
             player.allowFlight = true
@@ -289,6 +297,14 @@ object FlightService {
                     }
 
                     if (player.isFlying) {
+                        if (DominionBridge.isAvailable() && !DominionBridge.canFlyAt(player, player.location)) {
+                            player.isFlying = false
+                            clearActionBar(player)
+                            if (FlightSettings.msgDominionBlocked.isNotBlank()) {
+                                TextBridge.sendActionBar(player, TextUtils.parse(FlightSettings.msgDominionBlocked))
+                            }
+                            return@submitOnEntity
+                        }
                         if (data.isUnlimited) {
                             sendFlightActionBar(player, data)
                             return@submitOnEntity

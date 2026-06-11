@@ -58,6 +58,7 @@ object FlightSettings {
         private set
     var msgDailyReset: String = "&a每日飞行时间已重置。"
         private set
+    var msgDominionBlocked: String = "&c当前领地禁止飞行。"
 
     fun init() {
         reload()
@@ -86,6 +87,7 @@ object FlightSettings {
         msgReloadSuccess = config.getString("messages.reload-success") ?: msgReloadSuccess
         msgTimeExpired = config.getString("messages.time-expired") ?: msgTimeExpired
         msgDailyReset = config.getString("messages.daily-reset") ?: msgDailyReset
+        msgDominionBlocked = config.getString("messages.dominion-blocked") ?: msgDominionBlocked
     }
 
     private fun parseGroups(): List<FlightGroup> {

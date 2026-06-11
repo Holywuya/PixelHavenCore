@@ -48,3 +48,4 @@ messages:
   reload-success: "&a飞行模块已重载。"
   time-expired: "&c飞行时间已用尽！"
   daily-reset: "&a每日飞行时间已重置。"
+  dominion-blocked: "&c当前领地禁止飞行。"
