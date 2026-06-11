@@ -14,13 +14,11 @@ object ItemUtils {
 
     fun looksLikeLibrarySpec(spec: String): Boolean {
         return CraftEngineItemsUtil.looksLikeCeSpec(spec)
-            || BaikirutoItemsUtil.looksLikeBkSpec(spec)
             || MythicItemsUtil.looksLikeMmSpec(spec)
     }
 
     fun getItemBySpec(spec: String, player: Player? = null): ItemStack? {
         CraftEngineItemsUtil.getItemBySpec(spec, player)?.let { return it }
-        BaikirutoItemsUtil.getItemBySpec(spec)?.let { return it }
         MythicItemsUtil.getItemBySpec(spec)?.let { return it }
         return null
     }
@@ -34,14 +32,12 @@ object ItemUtils {
 
     fun getNamespacedItemIdBySpec(spec: String): String? {
         CraftEngineItemsUtil.getItemIdBySpec(spec)?.let { return "ce:$it" }
-        BaikirutoItemsUtil.getItemIdBySpec(spec)?.let { return "bai:$it" }
         MythicItemsUtil.getItemIdBySpec(spec)?.let { return "mm:$it" }
         return null
     }
 
     fun getNamespacedItemId(item: ItemStack?): String? {
         CraftEngineItemsUtil.getItemId(item)?.let { return "ce:$it" }
-        BaikirutoItemsUtil.getItemId(item)?.let { return "bai:$it" }
         return null
     }
 

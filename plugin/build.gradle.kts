@@ -10,7 +10,6 @@ taboolib {
         }
         dependencies {
             name("MythicMobs").with("bukkit").optional(true)
-            name("Baikiruto").with("bukkit").optional(true)
             name("CraftEngine").with("bukkit").optional(true)
             name("PacketEvents").with("bukkit").optional(true)
         }

@@ -42,7 +42,6 @@ import com.pixlehavencore.feature.title.TitleSettings
 import com.pixlehavencore.feature.title.TitleStorage
 import com.pixlehavencore.feature.title.TitleService
 import com.pixlehavencore.feature.title.TitlePlaceholders
-import com.pixlehavencore.util.BaikirutoItemsUtil
 import com.pixlehavencore.util.CraftEngineItemsUtil
 import com.pixlehavencore.util.EconomyUtils
 import com.pixlehavencore.util.ItemUtils
@@ -118,7 +117,6 @@ object PixleHavenCore : Plugin() {
             "Entity Clearer" to EntityClearerService.isEnabled(),
         ))
         logEnabledGroup("软依赖", listOf(
-            "Baikiruto" to BaikirutoItemsUtil.isAvailable(),
             "CraftEngine" to CraftEngineItemsUtil.isAvailable(),
             "Vault Economy" to EconomyUtils.isAvailable(),
         ))
