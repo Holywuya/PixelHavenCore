@@ -5,6 +5,8 @@ import org.bukkit.block.Block
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.Damageable
+import org.bukkit.Bukkit
+import org.bukkit.event.block.BlockBreakEvent
 import com.pixlehavencore.util.InventoryUtils
 import taboolib.common.platform.ProxyGameMode
 import taboolib.platform.util.modifyMeta
@@ -187,6 +189,12 @@ object VeinminerService {
                 return@forEach
             }
             if (block.type == Material.AIR) {
+                return@forEach
+            }
+            // 触发 BlockBreakEvent 保证任务插件（如 ODailyQuests）能统计连锁破坏的方块
+            val breakEvent = BlockBreakEvent(block, player)
+            Bukkit.getPluginManager().callEvent(breakEvent)
+            if (breakEvent.isCancelled) {
                 return@forEach
             }
             if (VeinminerSettings.mergeItemDrops) {
