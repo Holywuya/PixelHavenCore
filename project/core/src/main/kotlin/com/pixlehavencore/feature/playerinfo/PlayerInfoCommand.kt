@@ -22,9 +22,17 @@ object PlayerInfoCommand {
             suggestPlayers()
             execute<ProxyCommandSender> { sender, _, argument ->
                 if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
+                if (!PlayerInfoSettings.enabled) {
+                    sender.msg("<red>玩家信息模块未启用。")
+                    return@execute
+                }
                 val viewer = sender.requirePlayer()?.cast<Player>() ?: return@execute
                 val targetName = argument.toString().trim()
                 val target = resolveOfflinePlayer(targetName) ?: run {
+                    sender.msg("<red>未找到玩家: $targetName")
+                    return@execute
+                }
+                if (!target.hasPlayedBefore() && !target.isOnline) {
                     sender.msg("<red>未找到玩家: $targetName")
                     return@execute
                 }
