@@ -1,0 +1,6 @@
+enabled: true
+
+titles:
+  dashboard: "&8玩家信息 - {player}"
+  inventory: "&8查看背包 - {player}"
+  enderChest: "&8查看末影箱 - {player}"
