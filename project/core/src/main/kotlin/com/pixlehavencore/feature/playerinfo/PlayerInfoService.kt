@@ -24,8 +24,9 @@ import taboolib.common.platform.event.SubscribeEvent
 import taboolib.common.platform.function.submit
 import taboolib.platform.util.modifyMeta
 import taboolib.platform.util.submit as submitOnEntity
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -34,7 +35,7 @@ object PlayerInfoService {
     private val sessions = ConcurrentHashMap<Int, Session>()
     private val actionKey = NamespacedKey("phcore", "playerinfo_action")
 
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+    private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault())
 
     private const val DASHBOARD_ROWS = 3
     private const val INV_ROWS = 6
@@ -88,7 +89,6 @@ object PlayerInfoService {
                 sessions[System.identityHashCode(inventory)] = Session(
                     viewer = viewer.uniqueId,
                     target = target.uniqueId,
-                    targetName = targetName,
                     type = SessionType.DASHBOARD
                 )
                 viewer.openInventory(inventory)
@@ -108,7 +108,7 @@ object PlayerInfoService {
         val online = target.player
         if (online != null) {
             online.submitOnEntity {
-                val contents = online.inventory.contents.copyOf(54)
+                val contents = online.inventory.contents.copyOf()
                 viewer.submitOnEntity {
                     if (!viewer.isOnline) return@submitOnEntity
                     openInvWindow(viewer, title, contents, target)
@@ -116,7 +116,6 @@ object PlayerInfoService {
             }
         } else {
             submit(async = true) {
-                OfflineInventoryUtils.captureRegistryAccess()
                 val snapshot = OfflineInventoryUtils.load(target)
                 viewer.submitOnEntity {
                     if (!viewer.isOnline) return@submitOnEntity
@@ -141,7 +140,6 @@ object PlayerInfoService {
         sessions[System.identityHashCode(inventory)] = Session(
             viewer = viewer.uniqueId,
             target = target.uniqueId,
-            targetName = targetName,
             type = SessionType.INVENTORY
         )
         viewer.openInventory(inventory)
@@ -159,7 +157,7 @@ object PlayerInfoService {
         val online = target.player
         if (online != null) {
             online.submitOnEntity {
-                val contents = online.enderChest.contents.copyOf(27)
+                val contents = online.enderChest.contents.copyOf()
                 viewer.submitOnEntity {
                     if (!viewer.isOnline) return@submitOnEntity
                     openECWindow(viewer, title, contents, target)
@@ -167,7 +165,6 @@ object PlayerInfoService {
             }
         } else {
             submit(async = true) {
-                OfflineInventoryUtils.captureRegistryAccess()
                 val snapshot = OfflineInventoryUtils.load(target)
                 viewer.submitOnEntity {
                     if (!viewer.isOnline) return@submitOnEntity
@@ -192,7 +189,6 @@ object PlayerInfoService {
         sessions[System.identityHashCode(inventory)] = Session(
             viewer = viewer.uniqueId,
             target = target.uniqueId,
-            targetName = targetName,
             type = SessionType.ENDER_CHEST
         )
         viewer.openInventory(inventory)
@@ -259,7 +255,6 @@ object PlayerInfoService {
             owningPlayer = target
         }
         val statusText = if (target.isOnline) "&a在线" else "&7离线"
-        @Suppress("UNCHECKED_CAST")
         TextBridge.setDisplayName(item, TextUtils.parseItem("&e$name"))
         @Suppress("UNCHECKED_CAST")
         TextBridge.setLore(item, TextUtils.parseItemLore(listOf(
@@ -299,7 +294,7 @@ object PlayerInfoService {
 
     private fun formatTimestamp(millis: Long): String {
         if (millis <= 0) return "&7未知"
-        return "&f${dateFormat.format(Date(millis))}"
+        return "&f${dateFormat.format(Instant.ofEpochMilli(millis))}"
     }
 
     // ══════════════════════════════════════
@@ -309,7 +304,6 @@ object PlayerInfoService {
     private data class Session(
         val viewer: UUID,
         val target: UUID,
-        val targetName: String,
         val type: SessionType
     )
 
