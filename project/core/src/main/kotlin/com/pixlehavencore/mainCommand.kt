@@ -15,7 +15,7 @@ import com.pixlehavencore.feature.optimization.entityclearer.EntityClearerServic
 import com.pixlehavencore.feature.optimization.viewdistance.ViewDistanceService
 import com.pixlehavencore.feature.playerinv.PlayerInvService
 import com.pixlehavencore.feature.mmhealthbar.MMHealthBarService
-import com.pixlehavencore.feature.security.SecurityService
+import com.pixlehavencore.feature.playerinfo.PlayerInfoService
 import com.pixlehavencore.feature.trade.TradeService
 import com.pixlehavencore.feature.vanish.VanishSettings
 import com.pixlehavencore.feature.veinminer.VeinminerSettings
@@ -142,7 +142,7 @@ object MainCommand {
             ReloadStep("base-killme", false) { KillmeSettings.init() },
             ReloadStep("base-back", false) { BackService.reload() },
             ReloadStep("base-protection", false) { ProtectionSettings.init() },
-            ReloadStep("security", false) { SecurityService.reload() },
+            ReloadStep("playerinfo", false) { PlayerInfoService.reload() },
             ReloadStep("mm-healthbar", false) { MMHealthBarService.reload() },
             ReloadStep("playtime-settings", false) { PlaytimeSettings.reload() },
             ReloadStep("playtime-storage", false) { PlaytimeStorage.reload() },

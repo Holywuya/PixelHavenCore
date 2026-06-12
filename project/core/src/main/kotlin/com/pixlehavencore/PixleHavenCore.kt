@@ -24,8 +24,8 @@ import com.pixlehavencore.feature.notification.NotificationSettings
 import com.pixlehavencore.feature.playerinv.PlayerInvService
 import com.pixlehavencore.feature.playerinv.PlayerInvSettings
 import com.pixlehavencore.feature.mmhealthbar.MMHealthBarService
-import com.pixlehavencore.feature.security.SecurityService
-import com.pixlehavencore.feature.security.SecuritySettings
+import com.pixlehavencore.feature.playerinfo.PlayerInfoService
+import com.pixlehavencore.feature.playerinfo.PlayerInfoSettings
 import com.pixlehavencore.feature.trade.TradeService
 import com.pixlehavencore.feature.vanish.VanishService
 import com.pixlehavencore.feature.vanish.VanishSettings
@@ -74,7 +74,7 @@ object PixleHavenCore : Plugin() {
         BackService.init()
         ProtectionSettings.init()
         PlayerStateService.init()
-        SecurityService.init()
+        PlayerInfoService.init()
         MMHealthBarService.init()
         PlaytimeSettings.init()
         PlaytimeStorage.init()
@@ -107,7 +107,7 @@ object PixleHavenCore : Plugin() {
             "Economy System" to EconomySettings.enabled,
             "Playtime" to PlaytimeSettings.enabled,
             "Crafting Bench" to CraftingBenchService.isEnabled(),
-            "Security" to SecuritySettings.enabled,
+            "PlayerInfo" to PlayerInfoSettings.enabled,
             "MM HealthBar" to MMHealthBarService.isEnabled(),
             "Title" to TitleSettings.enabled,
             "Flight" to FlightSettings.enabled,
@@ -139,7 +139,7 @@ object PixleHavenCore : Plugin() {
         ViewDistanceService.stop()
         DeathDropUsageStorage.close()
         PlayerInvService.close()
-        SecurityService.stop()
+        PlayerInfoService.stop()
         MMHealthBarService.stop()
         CraftingBenchService.stop()
         EconomyProvider.stop()
