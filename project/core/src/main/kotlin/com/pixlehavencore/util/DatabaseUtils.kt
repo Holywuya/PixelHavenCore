@@ -14,6 +14,7 @@ import taboolib.expansion.setupDataContainer
 import taboolib.module.configuration.Configuration
 import java.io.File
 import java.sql.Connection
+import java.sql.DriverManager
 import java.sql.Timestamp
 
 object DatabaseUtils {
@@ -27,6 +28,21 @@ object DatabaseUtils {
 
     fun quoted(column: String): String {
         return if (isMySql) "`$column`" else "\"$column\""
+    }
+
+    fun initSqliteDatabase() {
+        if (isMySql) return
+        try {
+            val url = "jdbc:sqlite:${File(getDataFolder(), PixleHavenSettings.sqliteFile).absolutePath}"
+            DriverManager.getConnection(url).use { conn ->
+                conn.createStatement().use { stmt ->
+                    stmt.execute("PRAGMA journal_mode=WAL;")
+                    stmt.execute("PRAGMA synchronous=NORMAL;")
+                }
+            }
+        } catch (e: Exception) {
+            warning("初始化 SQLite 数据库失败: ${e.message}")
+        }
     }
 
     fun newHikariDataSource(
@@ -64,7 +80,7 @@ object DatabaseUtils {
                 connectionTimeout = 10000
                 idleTimeout = 300000
                 maxLifetime = 1200000
-                connectionInitSql = "PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;"
+                connectionInitSql = "PRAGMA journal_mode=WAL; PRAGMA busy_timeout=30000;"
             }
         }
     }
