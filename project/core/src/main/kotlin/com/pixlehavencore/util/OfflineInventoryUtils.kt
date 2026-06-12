@@ -77,7 +77,7 @@ object OfflineInventoryUtils {
             val enderChest = parseItemList(rootTag, "EnderItems", 27, registryAccess)
             Snapshot(inventory = inventory, enderChest = enderChest)
         }.onFailure { ex ->
-            warning("[Security] 读取离线玩家数据失败($playerId): ${ex.message}")
+            warning("[OfflineInventory] 读取离线玩家数据失败($playerId): ${ex.message}")
         }.getOrNull()
     }
 
@@ -88,7 +88,7 @@ object OfflineInventoryUtils {
             val dedicatedServer = craftServerClass.getMethod("getServer").invoke(server)
             dedicatedServer.javaClass.getMethod("registryAccess").invoke(dedicatedServer)
         }.onFailure { ex ->
-            warning("[Security] 准备离线数据读取上下文失败: ${ex.message}")
+            warning("[OfflineInventory] 准备离线数据读取上下文失败: ${ex.message}")
         }.getOrNull()
     }
 
