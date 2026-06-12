@@ -150,6 +150,39 @@ object MoneyCommand {
             sender.msg("<aqua>/economy cbank inject <金额> <gray>- 向中心银行注资")
             sender.msg("<aqua>/economy cbank drain <金额> <gray>- 从中心银行缩表")
         }
+
+        literal("view") {
+            execute<ProxyCommandSender> { sender, _, _ ->
+                if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
+                sender.showCentralBankStatus()
+            }
+        }
+
+        literal("inject") {
+            dynamic(comment = "amount") {
+                execute<ProxyCommandSender> { sender, context, _ ->
+                    if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
+                    val amount = parseAmount(context.getOrNull("amount") ?: "", false) ?: run {
+                        sender.msg("<red>金额格式无效。")
+                        return@execute
+                    }
+                    sender.injectCentralBank(amount)
+                }
+            }
+        }
+
+        literal("drain") {
+            dynamic(comment = "amount") {
+                execute<ProxyCommandSender> { sender, context, _ ->
+                    if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
+                    val amount = parseAmount(context.getOrNull("amount") ?: "", false) ?: run {
+                        sender.msg("<red>金额格式无效。")
+                        return@execute
+                    }
+                    sender.drainCentralBank(amount)
+                }
+            }
+        }
     }
 
     @CommandBody
