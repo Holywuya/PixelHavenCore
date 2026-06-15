@@ -9,6 +9,8 @@ import com.pixlehavencore.util.cancelTaskSafely
 import taboolib.common.platform.function.submitAsync
 import taboolib.common.platform.function.warning
 import taboolib.expansion.MultipleHandler
+import com.pixlehavencore.util.DominionBridge
+import com.pixlehavencore.util.DominionBridge.toSizeInfo
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDateTime
@@ -238,6 +240,25 @@ object TaxService {
             }
             settled = settled.add(collected)
             outstandingDebt = outstandingDebt.add(remainingDebt)
+        }
+
+        // 领地税结算
+        if (TaxSettings.dominionTaxEnabled && DominionBridge.isAvailable()) {
+            val dominions = DominionBridge.getAllDominions()
+            dominions.forEach { dominion ->
+                val ownerId = dominion.owner
+                val size = dominion.toSizeInfo()
+                val taxBase = when (TaxSettings.dominionTaxBase) {
+                    TaxSettings.DominionTaxBase.SQUARE_AREA -> java.math.BigDecimal.valueOf(size.squareArea)
+                    TaxSettings.DominionTaxBase.VOLUME -> java.math.BigDecimal.valueOf(size.volume)
+                }
+                val tax = TaxSettings.computeDominionTax(taxBase)
+                if (tax <= java.math.BigDecimal.ZERO) return@forEach
+                val collected = collectTaxFromAccount(ownerId, tax)
+                settled = settled.add(collected)
+                val remainingDebt = EconomySettings.normalizeAmount(tax.subtract(collected))
+                outstandingDebt = outstandingDebt.add(remainingDebt)
+            }
         }
 
         CentralBankService.recordCollectedTax(EconomySettings.normalizeAmount(settled))
