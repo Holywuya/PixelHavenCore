@@ -79,4 +79,30 @@ settlement:
     # 占位符:
     #   {amount}      - 本次实际收税总额
     #   {outstanding} - 本次结税后仍未收回的欠税总额
-    message: "&6[税收] 本期统一结税完成，实收税额: &f{amount} &7剩余欠税: &f{outstanding}"
+     message: "&6[税收] 本期统一结税完成，实收税额: &f{amount} &7剩余欠税: &f{outstanding}"
+
+# 领地税配置
+# 根据玩家拥有的领地大小，在每次结税时一并收取领地维护费
+dominion:
+  # 是否启用领地税（true=启用，false=禁用）
+  enabled: false
+  # 计税基准：square=底面积(x×z)  |  volume=体积(x×y×z)
+  tax-base: "square"
+  # 领地税税档（边际累进税率，与收入税同模式）
+  # 示例：1000 m² 领地 → 税 = (1000-100)*1% = 9 coin
+  tax-brackets:
+    tier1:
+      min: 0
+      rate: 0.0
+    tier2:
+      min: 100
+      rate: 0.01
+    tier3:
+      min: 1000
+      rate: 0.02
+    tier4:
+      min: 5000
+      rate: 0.05
+    tier5:
+      min: 10000
+      rate: 0.10
