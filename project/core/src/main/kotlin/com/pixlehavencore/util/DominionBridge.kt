@@ -57,4 +57,9 @@ object DominionBridge {
         val dominion = dominionAPI.getDominion(location) ?: return null
         return dominion.toSizeInfo()
     }
+
+    fun getAllDominions(): List<DominionDTO> {
+        val dominionAPI = api ?: return emptyList()
+        return dominionAPI.allDominions
+    }
 }
