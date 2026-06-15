@@ -52,6 +52,15 @@ object TaxSettings {
     var useMarginalRate: Boolean = true
         private set
 
+    var dominionTaxEnabled: Boolean = false
+        private set
+
+    var dominionTaxBase: DominionTaxBase = DominionTaxBase.SQUARE_AREA
+        private set
+
+    var dominionTaxBrackets: List<TaxBracket> = emptyList()
+        private set
+
     fun init() {
         reload()
     }
@@ -73,6 +82,13 @@ object TaxSettings {
             ?: "&6[税收] 本期税款统一结算完成，累计税额: &f{amount}"
         brackets = loadBrackets()
         useMarginalRate = config.getBoolean("use-marginal-rate", true)
+        dominionTaxEnabled = config.getBoolean("dominion.enabled", false)
+        dominionTaxBase = try {
+            DominionTaxBase.valueOf(config.getString("dominion.tax-base", "square")!!.uppercase())
+        } catch (_: IllegalArgumentException) {
+            DominionTaxBase.SQUARE_AREA
+        }
+        dominionTaxBrackets = loadDominionTaxBrackets()
     }
 
     fun resolveRate(amount: BigDecimal): Double {
@@ -101,6 +117,36 @@ object TaxSettings {
 
     private fun loadBrackets(): List<TaxBracket> {
         val section = config.getConfigurationSection("tax-brackets") ?: return emptyList()
+        return section.getKeys(false).mapNotNull { key ->
+            val node = section.getConfigurationSection(key) ?: return@mapNotNull null
+            TaxBracket(
+                min = node.getDouble("min", 0.0).coerceAtLeast(0.0).toBigDecimal(),
+                rate = node.getDouble("rate", 0.0).coerceAtLeast(0.0)
+            )
+        }.sortedBy { it.min }
+    }
+
+    enum class DominionTaxBase { SQUARE_AREA, VOLUME }
+
+    fun computeDominionTax(size: BigDecimal): BigDecimal {
+        if (size <= BigDecimal.ZERO || dominionTaxBrackets.isEmpty()) return BigDecimal.ZERO
+        var totalTax = BigDecimal.ZERO
+        for (i in dominionTaxBrackets.indices) {
+            val floor = dominionTaxBrackets[i].min
+            val ceiling = if (i + 1 < dominionTaxBrackets.size) dominionTaxBrackets[i + 1].min else null
+            if (size <= floor) break
+            val taxable = if (ceiling != null) {
+                size.coerceAtMost(ceiling).subtract(floor)
+            } else {
+                size.subtract(floor)
+            }.coerceAtLeast(BigDecimal.ZERO)
+            totalTax = totalTax.add(taxable.multiply(BigDecimal.valueOf(dominionTaxBrackets[i].rate)))
+        }
+        return totalTax.setScale(0, java.math.RoundingMode.HALF_UP).coerceAtLeast(BigDecimal.ZERO)
+    }
+
+    private fun loadDominionTaxBrackets(): List<TaxBracket> {
+        val section = config.getConfigurationSection("dominion.tax-brackets") ?: return emptyList()
         return section.getKeys(false).mapNotNull { key ->
             val node = section.getConfigurationSection(key) ?: return@mapNotNull null
             TaxBracket(
