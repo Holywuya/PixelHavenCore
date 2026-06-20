@@ -46,18 +46,18 @@ object PlaytimeSettings {
     fun reload() {
         config.reload()
         enabled = config.getBoolean("enabled", true)
-        autoSaveTicks = config.getLong("autoSaveTicks", 200L).coerceAtLeast(20L)
+        autoSaveTicks = config.getLong("auto-save-ticks", 200L).coerceAtLeast(20L)
         papiEnabled = config.getBoolean("papi.enabled", true)
-        defaultFormat = config.getString("papi.defaultFormat")?.lowercase()?.takeIf {
+        defaultFormat = config.getString("papi.default-format")?.lowercase()?.takeIf {
             it in setOf("readable", "seconds", "minutes", "hours")
         } ?: "readable"
-        leaderboardMaxLimit = config.getInt("leaderboard.maxLimit", 100).coerceIn(1, 100)
-        leaderboardDefaultLimit = config.getInt("leaderboard.defaultLimit", 10).coerceIn(1, leaderboardMaxLimit)
-        cleanupDefaultDays = config.getInt("cleanup.defaultDays", 90).coerceAtLeast(1)
-        cleanupBatchSize = config.getInt("cleanup.batchSize", 50).coerceAtLeast(1)
+        leaderboardMaxLimit = config.getInt("leaderboard.max-limit", 100).coerceIn(1, 100)
+        leaderboardDefaultLimit = config.getInt("leaderboard.default-limit", 10).coerceIn(1, leaderboardMaxLimit)
+        cleanupDefaultDays = config.getInt("cleanup.default-days", 90).coerceAtLeast(1)
+        cleanupBatchSize = config.getInt("cleanup.batch-size", 50).coerceAtLeast(1)
         dailyResetTime = config.getString("resetSchedule.daily")?.takeIf { isValidTime(it) } ?: "00:00"
-        weeklyResetDay = config.getInt("resetSchedule.weeklyDay", 1).coerceIn(1, 7)
-        monthlyResetDay = config.getInt("resetSchedule.monthlyDay", 1).coerceIn(1, 28)
+        weeklyResetDay = config.getInt("resetSchedule.weekly-day", 1).coerceIn(1, 7)
+        monthlyResetDay = config.getInt("resetSchedule.monthly-day", 1).coerceIn(1, 28)
     }
 
     fun formatSeconds(seconds: Long): String {

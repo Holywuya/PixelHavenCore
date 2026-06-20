@@ -7,6 +7,7 @@ version: 4
 # 装备上带有 nodrop 标记的物品不会进入墓碑，会保留在玩家身上。
 # =============================================================================
 
+# 功能开关（true = 启用，false = 禁用）
 enabled: true
 
 # 生效世界
@@ -15,38 +16,41 @@ worlds:
   - world_nether
 
 # 每日死亡不掉落次数
-dailyKeepCount: 3
+daily-keep-count: 3
 
 # 拥有此权限的玩家不受限制
-exemptPermission: "phcore.deathdrop.exempt"
+exempt-permission: "phcore.deathdrop.exempt"
 
 # 保留次数时提示
 # {consume} 本次消耗次数（固定为 1）
 # {left}  今日剩余次数
 # {used}  今日已使用次数
 # {total} 每日总次数
-keepMessage: "&a本次死亡不掉落，已消耗 &f{consume}&a 次保护，今日剩余：&f{left}&a/&f{total}"
+keep-message: "&a本次死亡不掉落，已消耗 &f{consume}&a 次保护，今日剩余：&f{left}&a/&f{total}"
+
+# 保护耗尽时提示（不掉落未启用或次数用尽且无墓碑时）
+out-of-protection-message: "&c今日死亡保护次数已用尽，物品正常掉落。"
 
 # 生成墓碑时提示
-graveSpawnMessage: "&c今日死亡保护次数已用尽，已生成墓碑，物品已暂存。"
+grave-spawn-message: "&c今日死亡保护次数已用尽，已生成墓碑，物品已暂存。"
 
 # 从墓碑取回后提示
-graveRetrievedMessage: "&a已从墓碑取回所有可领取物品。"
+grave-retrieved-message: "&a已从墓碑取回所有可领取物品。"
 
 # 取回时背包已满的提示
-graveFullInventoryDropMessage: "&e背包已满，墓碑物品已掉落在脚下。"
+grave-full-inventory-drop-message: "&e背包已满，墓碑物品已掉落在脚下。"
 
 # 墓碑空了的提示
-graveEmptyMessage: "&7这个墓碑已经空了。"
+grave-empty-message: "&7这个墓碑已经空了。"
 
 # 墓碑已过期的提示
-graveExpiredMessage: "&c墓碑已消失，无法领取。"
+grave-expired-message: "&c墓碑已消失，无法领取。"
 
 # 非墓碑主人尝试领取时提示
-graveNotOwnerMessage: "&c这是别人的墓碑。"
+grave-not-owner-message: "&c这是别人的墓碑。"
 
 # 墓碑标题
-graveTitle: "&8墓碑 - {player}"
+grave-title: "&8墓碑 - {player}"
 
 # 墓碑保留时长（秒）
-graveExpireSeconds: 1800
+grave-expire-seconds: 1800

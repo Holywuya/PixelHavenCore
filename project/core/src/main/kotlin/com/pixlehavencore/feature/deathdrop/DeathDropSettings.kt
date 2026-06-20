@@ -32,9 +32,9 @@ object DeathDropSettings {
         config.reload()
         enabled = config.getBoolean("enabled", true)
         worlds = config.getStringList("worlds").toSet()
-        dailyKeepCount = config.getInt("dailyKeepCount", 3).coerceAtLeast(0)
-        exemptPermission = config.getString("exemptPermission") ?: "phcore.deathdrop.exempt"
-        keepMessage = config.getString("keepMessage") ?: "&a本次死亡不掉落，已消耗 &f{consume}&a 次保护，今日剩余：&f{left}&a/&f{total}"
-        outOfProtectionMessage = config.getString("outOfProtectionMessage") ?: "&c今日死亡保护次数已用尽，物品正常掉落。"
+        dailyKeepCount = config.getInt("daily-keep-count", 3).coerceAtLeast(0)
+        exemptPermission = config.getString("exempt-permission") ?: "phcore.deathdrop.exempt"
+        keepMessage = config.getString("keep-message") ?: "&a本次死亡不掉落，已消耗 &f{consume}&a 次保护，今日剩余：&f{left}&a/&f{total}"
+        outOfProtectionMessage = config.getString("out-of-protection-message") ?: "&c今日死亡保护次数已用尽，物品正常掉落。"
     }
 }
