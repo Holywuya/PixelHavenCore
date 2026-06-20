@@ -10,8 +10,8 @@ enabled: true
 
 # 生效世界列表（留空 = 所有世界生效）
 enabled-worlds:
-   - sky-overworld
-   - sky-nether
+  - sky-overworld
+  - sky-nether
 
 # 每日重置时间（HH:mm 格式，24 小时制）
 daily-reset-time: "00:00"

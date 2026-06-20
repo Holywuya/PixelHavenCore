@@ -61,7 +61,12 @@ eventNotifications:
   serverRestart:
     enabled: true
     # 重启前几分钟开始警告
-    warningMinutes: [60, 30, 15, 5, 1]
+    warningMinutes:
+      - 60
+      - 30
+      - 15
+      - 5
+      - 1
     format: "&c[警告] &7服务器将在 &b{minutes} &7分钟后重启！"
 
 # 消息配置
