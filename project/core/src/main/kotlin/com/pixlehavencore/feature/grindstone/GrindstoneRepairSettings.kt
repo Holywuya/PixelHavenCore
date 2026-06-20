@@ -46,13 +46,13 @@ object GrindstoneRepairSettings {
     fun reload() {
         config.reload()
         enabled = config.getBoolean("grindstoneRepair.enabled", true)
-        requireSneak = config.getBoolean("grindstoneRepair.requireSneak", false)
+        requireSneak = config.getBoolean("grindstoneRepair.require-sneak", false)
         permission = config.getString("grindstoneRepair.permission") ?: ""
-        restorePerItem = config.getInt("grindstoneRepair.restorePerItem", 100).coerceAtLeast(0)
-        restorePercent = config.getDouble("grindstoneRepair.restorePercent", 0.0).coerceAtLeast(0.0)
+        restorePerItem = config.getInt("grindstoneRepair.restore-per-item", 100).coerceAtLeast(0)
+        restorePercent = config.getDouble("grindstoneRepair.restore-percent", 0.0).coerceAtLeast(0.0)
         chance = config.getDouble("grindstoneRepair.chance", 1.0).coerceIn(0.0, 1.0)
-        messageSuccess = config.getString("grindstoneRepair.messages.success") ?: "&a修复了 +{amount} 耐久度。"
-        messageFailed = config.getString("grindstoneRepair.messages.failed") ?: "&c修复失败。"
+        messageSuccess = config.getString("grindstoneRepair.messages.message-success") ?: "&a修复了 +{amount} 耐久度。"
+        messageFailed = config.getString("grindstoneRepair.messages.message-failed") ?: "&c修复失败。"
         repairRules = loadRules()
     }
 
@@ -96,7 +96,7 @@ object GrindstoneRepairSettings {
                     return@mapNotNull null
                 }
                 val flat = node.getInt("restore", restorePerItem).coerceAtLeast(0)
-                val percent = node.getDouble("restorePercent", restorePercent).coerceAtLeast(0.0)
+                val percent = node.getDouble("restore-percent", restorePercent).coerceAtLeast(0.0)
                 RepairRule(main = main, materials = materials, restore = RestoreRule(flat = flat, percent = percent))
             }
         }
@@ -127,7 +127,7 @@ object GrindstoneRepairSettings {
 
         val single = node.getString("material")?.trim()?.takeIf { it.isNotBlank() }
         if (single != null) {
-            val amount = node.getInt("materialAmount", 1).coerceAtLeast(1)
+            val amount = node.getInt("material-amount", 1).coerceAtLeast(1)
             return listOf(MaterialRule(spec = single, amount = amount))
         }
         return emptyList()

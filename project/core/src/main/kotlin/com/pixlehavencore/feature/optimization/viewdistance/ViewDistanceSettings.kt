@@ -93,31 +93,31 @@ object ViewDistanceSettings {
     fun reload() {
         config.reload()
         enabled = config.getBoolean("enabled", false)
-        syncSimulationDistance = config.getBoolean("syncSimulationDistance", true)
-        defaultDistance = clampDistance(config.getInt("defaultDistance", 10))
-        maxDistance = clampDistance(config.getInt("maxDistance", 32))
-        minDistance = clampDistance(config.getInt("minDistance", 2))
-        displayOnJoin = config.getBoolean("displayOnJoin", true)
-        displayJoinMessage = config.getString("displayJoinMessage") ?: "&7View distance set to &f{distance}&7."
-        afkEnterMessage = config.getString("afk.enterMessage") ?: "&7你已进入 AFK 状态。"
-        afkExitMessage = config.getString("afk.exitMessage") ?: "&a你已退出 AFK 状态。"
+        syncSimulationDistance = config.getBoolean("sync-simulation-distance", true)
+        defaultDistance = clampDistance(config.getInt("default-distance", 10))
+        maxDistance = clampDistance(config.getInt("max-distance", 32))
+        minDistance = clampDistance(config.getInt("min-distance", 2))
+        displayOnJoin = config.getBoolean("display-on-join", true)
+        displayJoinMessage = config.getString("display-join-message") ?: "&7View distance set to &f{distance}&7."
+        afkEnterMessage = config.getString("afk.enter-message") ?: "&7你已进入 AFK 状态。"
+        afkExitMessage = config.getString("afk.exit-message") ?: "&a你已退出 AFK 状态。"
         afkEnabled = config.getBoolean("afk.enabled", true)
-        afkOnJoin = config.getBoolean("afk.afkOnJoin", false)
+        afkOnJoin = config.getBoolean("afk.afk-on-join", false)
         afkSeconds = config.getInt("afk.seconds", 60).coerceAtLeast(5)
         afkDistance = clampDistance(config.getInt("afk.distance", 2))
-        spectatorsCanAfk = config.getBoolean("afk.spectatorsCanAfk", true)
+        spectatorsCanAfk = config.getBoolean("afk.spectators-can-afk", true)
         dynamicEnabled = config.getBoolean("dynamic.enabled", false)
-        dynamicIntervalTicks = config.getLong("dynamic.intervalTicks", 1200L).coerceAtLeast(20L)
+        dynamicIntervalTicks = config.getLong("dynamic.interval-ticks", 1200L).coerceAtLeast(20L)
         dynamicMin = clampDistance(config.getInt("dynamic.min", 2))
         dynamicMax = clampDistance(config.getInt("dynamic.max", 32))
         dynamicMsptMap = parseIntMap("dynamic.mspt")
-        dynamicBypassPermission = config.getString("dynamic.bypassPermission") ?: "phcore.viewdistance.dynamic.bypass"
+        dynamicBypassPermission = config.getString("dynamic.bypass-permission") ?: "phcore.viewdistance.dynamic.bypass"
         pingEnabled = config.getBoolean("ping.enabled", false)
-        pingIntervalTicks = config.getLong("ping.intervalTicks", 600L).coerceAtLeast(20L)
+        pingIntervalTicks = config.getLong("ping.interval-ticks", 600L).coerceAtLeast(20L)
         pingMin = clampDistance(config.getInt("ping.min", 2))
         pingMax = clampDistance(config.getInt("ping.max", 32))
         pingMap = parseIntMap("ping.values")
-        bypassAfkPermission = config.getString("afk.bypassPermission") ?: "phcore.viewdistance.afk.bypass"
+        bypassAfkPermission = config.getString("afk.bypass-permission") ?: "phcore.viewdistance.afk.bypass"
     }
 
     fun clampDistance(value: Int): Int {
