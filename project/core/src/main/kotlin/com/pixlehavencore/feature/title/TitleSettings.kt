@@ -137,19 +137,19 @@ object TitleSettings {
 
         guiTitle = config.getString("gui.title") ?: guiTitle
         guiRows = config.getInt("gui.rows", 6).coerceIn(1, 6)
-        borderItem = resolveMaterial(config.getString("gui.border_item"), borderItem)
-        categorySlots = config.getIntegerList("gui.category_slots").ifEmpty { listOf(7, 17, 26, 35, 44) }
-        titleStartSlot = config.getInt("gui.title_start_slot", 10)
-        pageSize = config.getInt("gui.page_size", 28).coerceIn(1, (guiRows - 2) * 7)
-        prevPageSlot = config.getInt("gui.prev_page_slot", 48)
-        infoSlot = config.getInt("gui.info_slot", 49)
-        nextPageSlot = config.getInt("gui.next_page_slot", 50)
-        activeIndicator = resolveMaterial(config.getString("gui.active_indicator"), activeIndicator)
-        expiredIndicator = resolveMaterial(config.getString("gui.expired_indicator"), expiredIndicator)
-        availableIndicator = resolveMaterial(config.getString("gui.available_indicator"), availableIndicator)
-        lockedIndicator = resolveMaterial(config.getString("gui.locked_indicator"), lockedIndicator)
-        borderAccent = resolveMaterial(config.getString("gui.border_accent"), borderAccent)
-        val raritySection = config.getConfigurationSection("gui.rarity_colors")
+        borderItem = resolveMaterial(config.getString("gui.border-item"), borderItem)
+        categorySlots = config.getIntegerList("gui.category-slots").ifEmpty { listOf(7, 17, 26, 35, 44) }
+        titleStartSlot = config.getInt("gui.title-start-slot", 10)
+        pageSize = config.getInt("gui.page-size", 28).coerceIn(1, (guiRows - 2) * 7)
+        prevPageSlot = config.getInt("gui.prev-page-slot", 48)
+        infoSlot = config.getInt("gui.info-slot", 49)
+        nextPageSlot = config.getInt("gui.next-page-slot", 50)
+        activeIndicator = resolveMaterial(config.getString("gui.active-indicator"), activeIndicator)
+        expiredIndicator = resolveMaterial(config.getString("gui.expired-indicator"), expiredIndicator)
+        availableIndicator = resolveMaterial(config.getString("gui.available-indicator"), availableIndicator)
+        lockedIndicator = resolveMaterial(config.getString("gui.locked-indicator"), lockedIndicator)
+        borderAccent = resolveMaterial(config.getString("gui.border-accent"), borderAccent)
+        val raritySection = config.getConfigurationSection("gui.rarity-colors")
         if (raritySection != null) {
             val map = mutableMapOf<String, String>()
             raritySection.getKeys(false).forEach { key ->
@@ -158,11 +158,11 @@ object TitleSettings {
             rarityColors = map
         }
 
-        defaultTitleEnabled = config.getBoolean("default_title.enabled", false)
-        defaultTitleId = config.getString("default_title.title_id") ?: ""
-        defaultTitleAutoEquip = config.getBoolean("default_title.auto_equip", true)
+        defaultTitleEnabled = config.getBoolean("default-title.enabled", false)
+        defaultTitleId = config.getString("default-title.title-id") ?: ""
+        defaultTitleAutoEquip = config.getBoolean("default-title.auto-equip", true)
 
-        expiryCheckTicks = config.getLong("expiry.check_interval_ticks", 6000L).coerceAtLeast(200L)
+        expiryCheckTicks = config.getLong("expiry.check-interval-ticks", 6000L).coerceAtLeast(200L)
 
         loadMessages()
 
@@ -184,35 +184,35 @@ object TitleSettings {
     fun getTitleCount(): Int = titleDefinitions.size
 
     private fun loadMessages() {
-        msgActivated = readMsg("messages.title_activated", msgActivated)
-        msgDeactivated = readMsg("messages.title_deactivated", msgDeactivated)
-        msgNotOwned = readMsg("messages.title_not_owned", msgNotOwned)
-        msgExpired = readMsg("messages.title_expired", msgExpired)
-        msgNoPermission = readMsg("messages.title_no_permission", msgNoPermission)
-        msgGiven = readMsg("messages.title_given", msgGiven)
-        msgRemoved = readMsg("messages.title_removed", msgRemoved)
-        msgReload = readMsg("messages.reload_success", msgReload)
-        msgNoTitleActive = readMsg("messages.no_title_active", msgNoTitleActive)
-        msgGuiNoTitles = readMsg("messages.gui_no_titles", msgGuiNoTitles)
-        msgGuiPageInfo = readMsg("messages.gui_page_info", msgGuiPageInfo)
-        msgGuiCategoryAll = readMsg("messages.gui_category_all", msgGuiCategoryAll)
-        msgGuiCategoryFilter = readMsg("messages.gui_category_filter", msgGuiCategoryFilter)
-        msgGuiCategoryCurrent = readMsg("messages.gui_category_current", msgGuiCategoryCurrent)
-        msgGuiPrevPage = readMsg("messages.gui_prev_page", msgGuiPrevPage)
-        msgGuiNextPage = readMsg("messages.gui_next_page", msgGuiNextPage)
-        msgGuiEquipped = readMsg("messages.gui_equipped", msgGuiEquipped)
-        msgGuiClickUnequip = readMsg("messages.gui_click_unequip", msgGuiClickUnequip)
-        msgGuiExpired = readMsg("messages.gui_expired", msgGuiExpired)
-        msgGuiAvailable = readMsg("messages.gui_available", msgGuiAvailable)
-        msgGuiClickEquip = readMsg("messages.gui_click_equip", msgGuiClickEquip)
-        msgGuiPermanent = readMsg("messages.gui_permanent", msgGuiPermanent)
-        msgGuiNotOwned = readMsg("messages.gui_not_owned", msgGuiNotOwned)
-        msgGuiTitleSystem = readMsg("messages.gui_title_system", msgGuiTitleSystem)
-        msgGuiOwned = readMsg("messages.gui_owned", msgGuiOwned)
-        msgGuiTotal = readMsg("messages.gui_total", msgGuiTotal)
-        msgGuiCategory = readMsg("messages.gui_category", msgGuiCategory)
-        msgGuiRarity = readMsg("messages.gui_rarity", msgGuiRarity)
-        msgGuiRemaining = readMsg("messages.gui_remaining", msgGuiRemaining)
+        msgActivated = readMsg("messages.title-activated", msgActivated)
+        msgDeactivated = readMsg("messages.title-deactivated", msgDeactivated)
+        msgNotOwned = readMsg("messages.title-not-owned", msgNotOwned)
+        msgExpired = readMsg("messages.title-expired", msgExpired)
+        msgNoPermission = readMsg("messages.title-no-permission", msgNoPermission)
+        msgGiven = readMsg("messages.title-given", msgGiven)
+        msgRemoved = readMsg("messages.title-removed", msgRemoved)
+        msgReload = readMsg("messages.reload-success", msgReload)
+        msgNoTitleActive = readMsg("messages.no-title-active", msgNoTitleActive)
+        msgGuiNoTitles = readMsg("messages.gui-no-titles", msgGuiNoTitles)
+        msgGuiPageInfo = readMsg("messages.gui-page-info", msgGuiPageInfo)
+        msgGuiCategoryAll = readMsg("messages.gui-category-all", msgGuiCategoryAll)
+        msgGuiCategoryFilter = readMsg("messages.gui-category-filter", msgGuiCategoryFilter)
+        msgGuiCategoryCurrent = readMsg("messages.gui-category-current", msgGuiCategoryCurrent)
+        msgGuiPrevPage = readMsg("messages.gui-prev-page", msgGuiPrevPage)
+        msgGuiNextPage = readMsg("messages.gui-next-page", msgGuiNextPage)
+        msgGuiEquipped = readMsg("messages.gui-equipped", msgGuiEquipped)
+        msgGuiClickUnequip = readMsg("messages.gui-click-unequip", msgGuiClickUnequip)
+        msgGuiExpired = readMsg("messages.gui-expired", msgGuiExpired)
+        msgGuiAvailable = readMsg("messages.gui-available", msgGuiAvailable)
+        msgGuiClickEquip = readMsg("messages.gui-click-equip", msgGuiClickEquip)
+        msgGuiPermanent = readMsg("messages.gui-permanent", msgGuiPermanent)
+        msgGuiNotOwned = readMsg("messages.gui-not-owned", msgGuiNotOwned)
+        msgGuiTitleSystem = readMsg("messages.gui-title-system", msgGuiTitleSystem)
+        msgGuiOwned = readMsg("messages.gui-owned", msgGuiOwned)
+        msgGuiTotal = readMsg("messages.gui-total", msgGuiTotal)
+        msgGuiCategory = readMsg("messages.gui-category", msgGuiCategory)
+        msgGuiRarity = readMsg("messages.gui-rarity", msgGuiRarity)
+        msgGuiRemaining = readMsg("messages.gui-remaining", msgGuiRemaining)
     }
 
     private fun readMsg(path: String, fallback: String): String {
