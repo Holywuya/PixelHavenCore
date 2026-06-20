@@ -34,8 +34,8 @@ object EconomySettings {
     fun reload() {
         config.reload()
         enabled = config.getBoolean("enabled", true)
-        defaultCurrency = normalizeCurrency(config.getString("defaultCurrency") ?: "coin")
-        autoSaveTicks = config.getLong("storage.autoSaveTicks", 100L).coerceAtLeast(20L)
+        defaultCurrency = normalizeCurrency(config.getString("default-currency") ?: "coin")
+        autoSaveTicks = config.getLong("storage.auto-save-ticks", 100L).coerceAtLeast(20L)
         currencies = loadCurrencies()
         if (!currencies.containsKey(defaultCurrency)) {
             currencies = linkedMapOf(defaultCurrency to fallbackDefinition(defaultCurrency)).apply {

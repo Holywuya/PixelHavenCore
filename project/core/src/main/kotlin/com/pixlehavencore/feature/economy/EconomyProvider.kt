@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+
 package com.pixlehavencore.feature.economy
 
 import net.milkbowl.vault2.economy.AccountPermission

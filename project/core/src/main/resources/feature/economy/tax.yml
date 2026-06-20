@@ -10,7 +10,7 @@ version: 6
 #   - 税款自动转入中心银行 C 账户
 #   - 支持多种交易场景的税收控制
 
-# 总开关（true=启用，false=禁用）
+# 功能开关（true = 启用，false = 禁用）
 enabled: true
 
 # 交易场景税收开关
@@ -79,7 +79,7 @@ settlement:
     # 占位符:
     #   {amount}      - 本次实际收税总额
     #   {outstanding} - 本次结税后仍未收回的欠税总额
-     message: "&6[税收] 本期统一结税完成，实收税额: &f{amount} &7剩余欠税: &f{outstanding}"
+    message: "&6[税收] 本期统一结税完成，实收税额: &f{amount} &7剩余欠税: &f{outstanding}"
 
 # 领地税配置
 # 根据玩家拥有的领地大小，在每次结税时一并收取领地维护费

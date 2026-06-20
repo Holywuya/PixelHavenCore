@@ -9,18 +9,18 @@ version: 1
 #   - 支持活跃玩家统计和沉睡资产回收
 #   - 提供宏观调控和动态扩缩容机制
 
-# 总开关（true=启用，false=禁用）
+# 功能开关（true = 启用，false = 禁用）
 # 启用后，默认货币的 Vault 发放/扣费都会经由 C/D 账户路由
 enabled: true
 
 # 期望的"人均基础余额"
 # 系统会基于活跃玩家数估算合理货币供给
-expected-balance: "10000"
+expected-balance: 10000
 
 # 供给缓冲倍数
 # 最终理论供给 = expected-balance * buffer-multiplier * 活跃人数
 # 用于应对短期波动和预留缓冲空间
-buffer-multiplier: "2.0"
+buffer-multiplier: 2.0
 
 # 活跃玩家判定天数
 # 最近在此天数内有登录/经济活动记录的玩家，会被计入活跃样本
@@ -33,7 +33,7 @@ dormant-threshold-days: 60
 # 沉睡资产每周回收比例（范围: 0.0-1.0）
 # 回收资金会直接回流中心银行 C 账户
 # 例如: 0.01 表示每周回收 1% 的沉睡资产
-dormant-recovery-rate: "0.01"
+dormant-recovery-rate: 0.01
 
 # 宏观指标刷新间隔（单位：分钟）
 # 用于更新活跃 M0、总余额、动态扩容等统计
@@ -61,7 +61,7 @@ inactivity-weights:
 # C 账户最大负余额阈值
 # 当补偿导致 C 账户余额低于此值时暂停补偿并记录警告
 # 设为 -1 表示无限制
-max-negative-reserve: "-1"
+max-negative-reserve: -1
 
 # 货币供给模式
 # FIXED   — C 账户余额为硬上限，不自动扩缩
