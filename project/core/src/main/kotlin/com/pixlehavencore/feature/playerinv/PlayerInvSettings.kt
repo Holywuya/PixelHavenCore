@@ -236,10 +236,10 @@ object PlayerInvSettings {
         config.reload()
         enabled = config.getBoolean("enabled", true)
 
-        defaultRows = config.getInt("personal.defaultRows", 2).coerceIn(1, 6)
-        maxRows = config.getInt("personal.maxRows", 6).coerceIn(defaultRows, 6)
+        defaultRows = config.getInt("personal.default-rows", 2).coerceIn(1, 6)
+        maxRows = config.getInt("personal.max-rows", 6).coerceIn(defaultRows, 6)
 
-        personalRowsByPermission = config.getMapList("personal.rowsByPermission")
+        personalRowsByPermission = config.getMapList("personal.rows-by-permission")
             .mapNotNull { map ->
                 val permission = map["permission"]?.toString()?.trim().orEmpty()
                 val rows = map["rows"]?.toString()?.toIntOrNull()?.coerceIn(defaultRows, maxRows)
@@ -251,43 +251,43 @@ object PlayerInvSettings {
             }
             .sortedByDescending { it.rows }
 
-        sharedInitialRows = config.getInt("shared.initialRows", 3).coerceIn(1, 6)
-        sharedMaxRows = config.getInt("shared.maxRows", 6).coerceIn(sharedInitialRows, 6)
-        sharedUnlockCost = config.getDouble("shared.unlock.costPerSlot", 1000.0).coerceAtLeast(0.0)
-        sharedLockedMaterial = ItemUtils.matchMaterial(config.getString("shared.unlock.lockedMaterial", "BARRIER"), Material.BARRIER) ?: Material.BARRIER
+        sharedInitialRows = config.getInt("shared.initial-rows", 3).coerceIn(1, 6)
+        sharedMaxRows = config.getInt("shared.max-rows", 6).coerceIn(sharedInitialRows, 6)
+        sharedUnlockCost = config.getDouble("shared.unlock.cost-per-slot", 1000.0).coerceAtLeast(0.0)
+        sharedLockedMaterial = ItemUtils.matchMaterial(config.getString("shared.unlock.locked-material", "BARRIER"), Material.BARRIER) ?: Material.BARRIER
 
         title = config.getString("title") ?: "&8随身仓库 - {player}"
-        sharedTitle = config.getString("sharedTitle") ?: "&8共享仓库 - {name}"
+        sharedTitle = config.getString("shared-title") ?: "&8共享仓库 - {name}"
 
         databaseTable = sanitizeTableName(config.getString("database.table") ?: "player_inv")
-        sharedTable = sanitizeTableName(config.getString("database.sharedTable") ?: "shared_inv")
-        sharedMemberTable = sanitizeTableName(config.getString("database.sharedMemberTable") ?: "shared_inv_member")
+        sharedTable = sanitizeTableName(config.getString("database.shared-table") ?: "shared_inv")
+        sharedMemberTable = sanitizeTableName(config.getString("database.shared-member-table") ?: "shared_inv_member")
 
-        commandAliasShared = config.getString("commands.sharedAlias")?.trim()?.ifBlank { "pi" } ?: "pi"
+        commandAliasShared = config.getString("commands.shared-alias")?.trim()?.ifBlank { "pi" } ?: "pi"
 
         disabledMessage = config.getString("messages.disabled") ?: "&c仓库模块当前已禁用"
-        noPermissionMessage = config.getString("messages.noPermission") ?: "&c你没有权限使用仓库"
-        playerNotFoundMessage = config.getString("messages.playerNotFound") ?: "&c未找到玩家 {player}"
-        openSelfMessage = config.getString("messages.openSelf") ?: ""
-        openOtherMessage = config.getString("messages.openOther") ?: "&a已打开玩家 &f{player} &a的仓库"
-        saveFailedMessage = config.getString("messages.saveFailed") ?: "&c仓库保存失败，请稍后重试"
+        noPermissionMessage = config.getString("messages.no-permission") ?: "&c你没有权限使用仓库"
+        playerNotFoundMessage = config.getString("messages.player-not-found") ?: "&c未找到玩家 {player}"
+        openSelfMessage = config.getString("messages.open-self") ?: ""
+        openOtherMessage = config.getString("messages.open-other") ?: "&a已打开玩家 &f{player} &a的仓库"
+        saveFailedMessage = config.getString("messages.save-failed") ?: "&c仓库保存失败，请稍后重试"
         reloadMessage = config.getString("messages.reload") ?: "&a仓库配置已重载"
 
-        sharedCreateNoQuotaMessage = config.getString("messages.sharedCreateNoQuota") ?: "&c你没有共享仓库创建次数"
-        sharedCreatedMessage = config.getString("messages.sharedCreated") ?: "&a共享仓库 &f{name} &a创建成功"
-        sharedExistsMessage = config.getString("messages.sharedExists") ?: "&c共享仓库名称已存在 {name}"
-        sharedNotFoundMessage = config.getString("messages.sharedNotFound") ?: "&c共享仓库不存在 {name}"
-        sharedNoAccessMessage = config.getString("messages.sharedNoAccess") ?: "&c你没有权限访问共享仓库 {name}"
-        sharedMemberAddedMessage = config.getString("messages.sharedMemberAdded") ?: "&a已添加成员 &f{player} &a到共享仓库 &f{name}&a"
-        sharedMemberRemovedMessage = config.getString("messages.sharedMemberRemoved") ?: "&a已从共享仓库 &f{name} &a移除成员 &f{player}&a"
-        sharedUpgradeMessage = config.getString("messages.sharedUpgrade") ?: "&a共享仓库 &f{name} &a已升级到 &f{size} &a格"
-        sharedQuotaGrantedMessage = config.getString("messages.sharedQuotaGranted") ?: "&a已给予玩家 &f{player} &a共享仓库创建次数 &f{amount}&a"
-        sortDoneMessage = config.getString("messages.sortDone") ?: "&a仓库已整理"
-        sharedSortNotOwnerMessage = config.getString("messages.sharedSortNotOwner") ?: "&c只有共享仓库创建者可以整理"
-        sharedUnlockNeedMoneyMessage = config.getString("messages.sharedUnlockNeedMoney") ?: "&c解锁失败，余额不足。需 &f{cost}"
-        sharedUnlockSuccessMessage = config.getString("messages.sharedUnlockSuccess") ?: "&a已解锁共享仓库格子，消耗 &f{cost}"
-        sharedLockedName = config.getString("messages.sharedLockedName") ?: "&c未解锁格子"
-        sharedLockedLore = config.getStringList("messages.sharedLockedLore").ifEmpty { listOf("&7解锁费用: &f{cost}", "&e左键点击解锁") }
+        sharedCreateNoQuotaMessage = config.getString("messages.shared-create-no-quota") ?: "&c你没有共享仓库创建次数"
+        sharedCreatedMessage = config.getString("messages.shared-created") ?: "&a共享仓库 &f{name} &a创建成功"
+        sharedExistsMessage = config.getString("messages.shared-exists") ?: "&c共享仓库名称已存在 {name}"
+        sharedNotFoundMessage = config.getString("messages.shared-not-found") ?: "&c共享仓库不存在 {name}"
+        sharedNoAccessMessage = config.getString("messages.shared-no-access") ?: "&c你没有权限访问共享仓库 {name}"
+        sharedMemberAddedMessage = config.getString("messages.shared-member-added") ?: "&a已添加成员 &f{player} &a到共享仓库 &f{name}&a"
+        sharedMemberRemovedMessage = config.getString("messages.shared-member-removed") ?: "&a已从共享仓库 &f{name} &a移除成员 &f{player}&a"
+        sharedUpgradeMessage = config.getString("messages.shared-upgrade") ?: "&a共享仓库 &f{name} &a已升级到 &f{size} &a格"
+        sharedQuotaGrantedMessage = config.getString("messages.shared-quota-granted") ?: "&a已给予玩家 &f{player} &a共享仓库创建次数 &f{amount}&a"
+        sortDoneMessage = config.getString("messages.sort-done") ?: "&a仓库已整理"
+        sharedSortNotOwnerMessage = config.getString("messages.shared-sort-not-owner") ?: "&c只有共享仓库创建者可以整理"
+        sharedUnlockNeedMoneyMessage = config.getString("messages.shared-unlock-need-money") ?: "&c解锁失败，余额不足。需 &f{cost}"
+        sharedUnlockSuccessMessage = config.getString("messages.shared-unlock-success") ?: "&a已解锁共享仓库格子，消耗 &f{cost}"
+        sharedLockedName = config.getString("messages.shared-locked-name") ?: "&c未解锁格子"
+        sharedLockedLore = config.getStringList("messages.shared-locked-lore").ifEmpty { listOf("&7解锁费用: &f{cost}", "&e左键点击解锁") }
 
         sharedManagerTitle = config.getString("shared.manage.title") ?: "&8共享仓库管理 - {name}"
         sharedManagerMembersItem = config.getString("shared.manage.items.members.material") ?: "PLAYER_HEAD"
@@ -295,15 +295,15 @@ object PlayerInvSettings {
         sharedManagerRemoveItem = config.getString("shared.manage.items.remove.material") ?: "RED_WOOL"
         sharedManagerBackItem = config.getString("shared.manage.items.back.material") ?: "ARROW"
         sharedManagerEntryItem = config.getString("shared.manage.items.entry.material") ?: "COMPARATOR"
-        sharedManagerToggleVisibilityItem = config.getString("shared.manage.items.toggleVisibility.material") ?: "LIME_CONCRETE"
-        memberPreviewLimit = config.getInt("shared.manage.memberPreviewLimit", 5).coerceAtLeast(1)
-        sharedManageHintLore = config.getStringList("shared.manage.hintLore").ifEmpty { listOf("&7仅创建者可使用") }
+        sharedManagerToggleVisibilityItem = config.getString("shared.manage.items.toggle-visibility.material") ?: "LIME_CONCRETE"
+        memberPreviewLimit = config.getInt("shared.manage.member-preview-limit", 5).coerceAtLeast(1)
+        sharedManageHintLore = config.getStringList("shared.manage.hint-lore").ifEmpty { listOf("&7仅创建者可使用") }
         sharedMembersName = config.getString("shared.manage.items.members.name") ?: "&b成员列表"
         sharedMembersLore = config.getStringList("shared.manage.items.members.lore").ifEmpty {
             listOf("&7当前成员:", "{members}", "&e点击聊天输出完整列表")
         }
-        sharedMembersPublicName = config.getString("shared.manage.items.members.publicName") ?: "&e公开仓库"
-        sharedMembersPublicLore = config.getStringList("shared.manage.items.members.publicLore").ifEmpty {
+        sharedMembersPublicName = config.getString("shared.manage.items.members.public-name") ?: "&e公开仓库"
+        sharedMembersPublicLore = config.getStringList("shared.manage.items.members.public-lore").ifEmpty {
             listOf("&7此仓库为公开状态", "&7所有玩家均可访问")
         }
         sharedAddName = config.getString("shared.manage.items.add.name") ?: "&a添加使用"
@@ -312,28 +312,28 @@ object PlayerInvSettings {
         sharedRemoveLore = config.getStringList("shared.manage.items.remove.lore").ifEmpty { listOf("&7点击后在聊天输入玩家ID") }
         sharedBackName = config.getString("shared.manage.items.back.name") ?: "&e返回仓库"
         sharedBackLore = config.getStringList("shared.manage.items.back.lore").ifEmpty { listOf("&7返回共享仓库界面") }
-        sharedToggleToPublicName = config.getString("shared.manage.items.toggleVisibility.toPublicName") ?: "&a切换为公开"
-        sharedToggleToPublicLore = config.getStringList("shared.manage.items.toggleVisibility.toPublicLore").ifEmpty {
+        sharedToggleToPublicName = config.getString("shared.manage.items.toggle-visibility.to-public-name") ?: "&a切换为公开"
+        sharedToggleToPublicLore = config.getStringList("shared.manage.items.toggle-visibility.to-public-lore").ifEmpty {
             listOf("&7点击将此仓库设为公开", "&7所有人均可访问")
         }
-        sharedToggleToPrivateName = config.getString("shared.manage.items.toggleVisibility.toPrivateName") ?: "&c切换为私有"
-        sharedToggleToPrivateLore = config.getStringList("shared.manage.items.toggleVisibility.toPrivateLore").ifEmpty {
+        sharedToggleToPrivateName = config.getString("shared.manage.items.toggle-visibility.to-private-name") ?: "&c切换为私有"
+        sharedToggleToPrivateLore = config.getStringList("shared.manage.items.toggle-visibility.to-private-lore").ifEmpty {
             listOf("&7点击将此仓库设为私有", "&7仅成员可访问")
         }
         sharedEntryName = config.getString("shared.manage.items.entry.name") ?: "&e仓库管理"
         sharedEntryLore = config.getStringList("shared.manage.items.entry.lore").ifEmpty { listOf("&7仅创建者可点击", "&e点击打开管理界面") }
 
-        chatInputAddPrompt = config.getString("messages.chatInputAddPrompt") ?: "&e请输入要添加的玩家ID，输入 &fcancel &e取消"
-        chatInputRemovePrompt = config.getString("messages.chatInputRemovePrompt") ?: "&e请输入要移除的玩家ID，输入 &fcancel &e取消"
-        chatInputCancelled = config.getString("messages.chatInputCancelled") ?: "&e已取消输入"
-        chatInputDone = config.getString("messages.chatInputDone") ?: "&a操作完成"
-        chatInputPlayerNotFound = config.getString("messages.chatInputPlayerNotFound") ?: "&c未找到玩家 {player}"
-        sharedManageNoPermission = config.getString("messages.sharedManageNoPermission") ?: "&c只有共享仓库创建者可以管理"
-        sharedSetPublicMessage = config.getString("messages.sharedSetPublic") ?: "&a共享仓库 &f{name} &a已设置为公开"
-        sharedSetPrivateMessage = config.getString("messages.sharedSetPrivate") ?: "&a共享仓库 &f{name} &a已设置为私有"
-        sharedMembersChatHeader = config.getString("messages.sharedMembersChatHeader") ?: "&6=== 共享仓库成员: {name} ==="
-        sharedMembersChatItem = config.getString("messages.sharedMembersChatItem") ?: "&b- {player}"
-        personalOverflowFallbackMessage = config.getString("messages.personalOverflowFallback")
+        chatInputAddPrompt = config.getString("messages.chat-input-add-prompt") ?: "&e请输入要添加的玩家ID，输入 &fcancel &e取消"
+        chatInputRemovePrompt = config.getString("messages.chat-input-remove-prompt") ?: "&e请输入要移除的玩家ID，输入 &fcancel &e取消"
+        chatInputCancelled = config.getString("messages.chat-input-cancelled") ?: "&e已取消输入"
+        chatInputDone = config.getString("messages.chat-input-done") ?: "&a操作完成"
+        chatInputPlayerNotFound = config.getString("messages.chat-input-player-not-found") ?: "&c未找到玩家 {player}"
+        sharedManageNoPermission = config.getString("messages.shared-manage-no-permission") ?: "&c只有共享仓库创建者可以管理"
+        sharedSetPublicMessage = config.getString("messages.shared-set-public") ?: "&a共享仓库 &f{name} &a已设置为公开"
+        sharedSetPrivateMessage = config.getString("messages.shared-set-private") ?: "&a共享仓库 &f{name} &a已设置为私有"
+        sharedMembersChatHeader = config.getString("messages.shared-members-chat-header") ?: "&6=== 共享仓库成员: {name} ==="
+        sharedMembersChatItem = config.getString("messages.shared-members-chat-item") ?: "&b- {player}"
+        personalOverflowFallbackMessage = config.getString("messages.personal-overflow-fallback")
             ?: "&e邮件系统不可用，超额物品已返还至你的背包/脚下"
     }
 
