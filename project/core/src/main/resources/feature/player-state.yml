@@ -8,5 +8,5 @@ version: 1
 #   - 存储死亡位置和传送来源位置
 #   - 供 BackService 等模块通过 PlayerStateService 查询
 
-# 总开关（true=启用，false=禁用）
+# 功能开关（true = 启用，false = 禁用）
 enabled: true

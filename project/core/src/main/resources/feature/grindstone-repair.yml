@@ -14,23 +14,23 @@ grindstoneRepair:
   # 总开关（true=启用，false=禁用）
   enabled: true
   # 是否需要潜行才能触发修复（true=需要，false=不需要）
-  requireSneak: false
+  require-sneak: false
   # 使用权限（为空字符串 "" 则不限制权限）
   permission: ""
-  # 默认每个材料恢复的耐久值（当 restorePercent 为 0 时使用）
-  restorePerItem: 100
+  # 默认每个材料恢复的耐久值（当 restore-percent 为 0 时使用）
+  restore-per-item: 100
   # 默认按最大耐久百分比恢复（范围: 0.0-1.0）
-  # 设为 0.0 则使用固定恢复量 restorePerItem
-  restorePercent: 0.0
+  # 设为 0.0 则使用固定恢复量 restore-per-item
+  restore-percent: 0.0
   # 修复成功概率（范围: 0.0-1.0）
   # 1.0 表示 100% 成功
   chance: 1.0
   # 消息配置
   messages:
     # 修复成功消息（占位符: {amount} - 恢复的耐久值）
-    success: "&a修复了 +{amount} 耐久度。"
+    message-success: "&a修复了 +{amount} 耐久度。"
     # 修复失败消息
-    failed: "&c修复失败。"
+    message-failed: "&c修复失败。"
   # 修复规则配置
   # 每条规则定义一种物品的修复方式
   # 支持原版物品、bai:<id>（BaiKiruto）或 ce:<namespace:id>（CraftEngine）
@@ -44,7 +44,7 @@ grindstoneRepair:
       # 固定恢复量
       restore: 100
       # 百分比恢复（0.0 表示不使用百分比）
-      restorePercent: 0.0
+      restore-percent: 0.0
     # 自定义镐修复规则（BaiKiruto 自定义物品）
     custom_pickaxe:
       # 主手物品（BaiKiruto 自定义物品 ID）
@@ -66,7 +66,7 @@ grindstoneRepair:
       # 固定恢复量
       restore: 250
       # 百分比恢复
-      restorePercent: 0.0
+      restore-percent: 0.0
     # 自定义鞘翅修复规则
     custom_elytra:
       # 主手物品
@@ -82,6 +82,6 @@ grindstoneRepair:
       # 固定恢复量（设为 0 表示不使用固定恢复）
       restore: 0
       # 百分比恢复（0.2 表示恢复最大耐久的 20%）
-      restorePercent: 0.2
+      restore-percent: 0.2
 
   # materials 支持多个候选材料；amount 表示该候选材料单次消耗数量

@@ -1,49 +1,49 @@
 # 仓库模块配置文件
 # version: 4
 
-# ============================================================
+# =============================================================================
 # 基础开关
-# ============================================================
+# =============================================================================
 enabled: true
 
-# ============================================================
+# =============================================================================
 # 个人仓库配置
-# ============================================================
+# =============================================================================
 personal:
   # 默认仓库行数（每行9格，即默认18格）
-  defaultRows: 2
+  default-rows: 2
 
   # 最大仓库行数（不超过6行=54格）
-  maxRows: 6
+  max-rows: 6
 
   # 按权限组提升仓库容量（按 rows 从大到小匹配第一条）
   # 玩家拥有多个权限时，取 rows 最大的那条
-  rowsByPermission:
-    - permission: "group.legend"
+  rows-by-permission:
+    - permission: group.legend
       rows: 6
-    - permission: "group.mvp"
+    - permission: group.mvp
       rows: 5
-    - permission: "group.svip"
+    - permission: group.svip
       rows: 4
-    - permission: "group.vip"
+    - permission: group.vip
       rows: 3
 
-# ============================================================
+# =============================================================================
 # 共享仓库配置
-# ============================================================
+# =============================================================================
 shared:
   # 初始行数（创建时的默认大小）
-  initialRows: 3
+  initial-rows: 3
 
   # 最大行数（最多6行=54格）
-  maxRows: 6
+  max-rows: 6
 
   # 格子解锁配置
   unlock:
     # 每解锁1格消耗金币
-    costPerSlot: 1000.0
+    cost-per-slot: 1000.0
     # 未解锁格子的显示材质
-    lockedMaterial: "BARRIER"
+    locked-material: BARRIER
 
   # 管理界面配置
   manage:
@@ -51,199 +51,199 @@ shared:
     title: "&8共享仓库管理 - {name}"
 
     # 成员列表预览数量（管理界面显示的成员数）
-    memberPreviewLimit: 5
+    member-preview-limit: 5
 
     # 管理界面提示说明
-    hintLore:
+    hint-lore:
       - "&7仅创建者可使用"
 
     # 管理界面物品配置
     items:
       # 成员列表按钮
       members:
-        material: "PLAYER_HEAD"
+        material: PLAYER_HEAD
         name: "&b成员列表"
         lore:
           - "&7当前成员："
           - "{members}"
           - "&e点击聊天输出完整列表"
         # 仓库公开时的替换文本
-        publicName: "&e公开仓库"
-        publicLore:
+        public-name: "&e公开仓库"
+        public-lore:
           - "&7此仓库为公开状态"
           - "&7所有玩家均可访问"
 
       # 添加成员按钮
       add:
-        material: "LIME_WOOL"
+        material: LIME_WOOL
         name: "&a添加使用者"
         lore:
           - "&7点击后在聊天输入玩家ID"
 
       # 移除成员按钮
       remove:
-        material: "RED_WOOL"
+        material: RED_WOOL
         name: "&c删除使用者"
         lore:
           - "&7点击后在聊天输入玩家ID"
 
       # 返回仓库按钮
       back:
-        material: "ARROW"
+        material: ARROW
         name: "&e返回仓库"
         lore:
           - "&7返回共享仓库界面"
 
       # 切换公开/私有按钮
-      toggleVisibility:
-        material: "LIME_CONCRETE"
-        toPublicName: "&a切换为公开"
-        toPublicLore:
+      toggle-visibility:
+        material: LIME_CONCRETE
+        to-public-name: "&a切换为公开"
+        to-public-lore:
           - "&7点击将此仓库设为公开"
           - "&7所有人均可访问"
-        toPrivateName: "&c切换为私有"
-        toPrivateLore:
+        to-private-name: "&c切换为私有"
+        to-private-lore:
           - "&7点击将此仓库设为私有"
           - "&7仅成员可访问"
 
       # 管理入口按钮
       entry:
-        material: "COMPARATOR"
+        material: COMPARATOR
         name: "&e仓库管理"
         lore:
           - "&7仅创建者可点击"
           - "&e点击打开管理界面"
 
-# ============================================================
+# =============================================================================
 # 界面标题配置
-# ============================================================
+# =============================================================================
 # 个人仓库标题，支持 {player} 变量
 title: "&8随身仓库 - {player}"
 
 # 共享仓库标题，支持 {name} 变量
-sharedTitle: "&8共享仓库 - {name}"
+shared-title: "&8共享仓库 - {name}"
 
-# ============================================================
+# =============================================================================
 # 数据库配置
-# ============================================================
+# =============================================================================
 database:
   # 个人仓库表名
-  table: "player_inv"
+  table: player_inv
   # 共享仓库表名
-  sharedTable: "shared_inv"
+  shared-table: shared_inv
   # 共享仓库成员表名
-  sharedMemberTable: "shared_inv_member"
+  shared-member-table: shared_inv_member
 
-# ============================================================
+# =============================================================================
 # 命令配置
-# ============================================================
+# =============================================================================
 commands:
   # 共享仓库命令别名（/pi 等效于 /playerinv）
-  sharedAlias: "pi"
+  shared-alias: pi
 
-# ============================================================
+# =============================================================================
 # 消息配置
-# ============================================================
+# =============================================================================
 messages:
   # 模块已禁用
   disabled: "&c仓库模块当前已禁用。"
 
   # 玩家未找到
-  playerNotFound: "&c未找到玩家: {player}"
+  player-not-found: "&c未找到玩家: {player}"
 
   # 打开个人仓库（空字符串表示不发送消息）
-  openSelf: ""
+  open-self: ""
 
   # 打开其他玩家仓库
-  openOther: "&a已打开玩家 &f{player} &a的仓库。"
+  open-other: "&a已打开玩家 &f{player} &a的仓库。"
 
   # 保存失败
-  saveFailed: "&c仓库保存失败，请稍后重试。"
+  save-failed: "&c仓库保存失败，请稍后重试。"
 
   # 配置重载完成
   reload: "&a仓库配置已重载。"
 
   # ---------- 共享仓库相关 ----------
   # 无创建次数
-  sharedCreateNoQuota: "&c你没有共享仓库创建次数。"
+  shared-create-no-quota: "&c你没有共享仓库创建次数。"
 
   # 创建成功
-  sharedCreated: "&a共享仓库 &f{name} &a创建成功。"
+  shared-created: "&a共享仓库 &f{name} &a创建成功。"
 
   # 仓库名称已存在
-  sharedExists: "&c共享仓库名称已存在: {name}"
+  shared-exists: "&c共享仓库名称已存在: {name}"
 
   # 仓库不存在
-  sharedNotFound: "&c共享仓库不存在: {name}"
+  shared-not-found: "&c共享仓库不存在: {name}"
 
   # 无访问权限
-  sharedNoAccess: "&c你没有权限访问共享仓库: {name}"
+  shared-no-access: "&c你没有权限访问共享仓库: {name}"
 
   # 添加成员成功
-  sharedMemberAdded: "&a已添加成员 &f{player} &a到共享仓库 &f{name}&a。"
+  shared-member-added: "&a已添加成员 &f{player} &a到共享仓库 &f{name}&a。"
 
   # 移除成员成功
-  sharedMemberRemoved: "&a已从共享仓库 &f{name} &a移除成员 &f{player}&a。"
+  shared-member-removed: "&a已从共享仓库 &f{name} &a移除成员 &f{player}&a。"
 
   # 升级成功
-  sharedUpgrade: "&a共享仓库 &f{name} &a已升级到 &f{size} &a格。"
+  shared-upgrade: "&a共享仓库 &f{name} &a已升级到 &f{size} &a格。"
 
   # 发放创建次数
-  sharedQuotaGranted: "&a已给予玩家 &f{player} &a共享仓库创建次数 &f{amount}&a。"
+  shared-quota-granted: "&a已给予玩家 &f{player} &a共享仓库创建次数 &f{amount}&a。"
 
   # 整理完成
-  sortDone: "&a仓库已整理。"
+  sort-done: "&a仓库已整理。"
 
   # 非创建者整理提示
-  sharedSortNotOwner: "&c只有共享仓库创建者可以整理。"
+  shared-sort-not-owner: "&c只有共享仓库创建者可以整理。"
 
   # ---------- 格子解锁相关 ----------
   # 余额不足
-  sharedUnlockNeedMoney: "&c解锁失败，余额不足。需要: &f{cost}"
+  shared-unlock-need-money: "&c解锁失败，余额不足。需要: &f{cost}"
 
   # 解锁成功
-  sharedUnlockSuccess: "&a已解锁共享仓库格子，消耗 &f{cost}"
+  shared-unlock-success: "&a已解锁共享仓库格子，消耗 &f{cost}"
 
   # 未解锁格子名称
-  sharedLockedName: "&c未解锁格子"
+  shared-locked-name: "&c未解锁格子"
 
   # 未解锁格子说明
-  sharedLockedLore:
+  shared-locked-lore:
     - "&7解锁费用: &f{cost}"
     - "&e左键点击解锁"
 
   # ---------- 管理界面相关 ----------
   # 无管理权限
-  sharedManageNoPermission: "&c只有共享仓库创建者可以管理。"
+  shared-manage-no-permission: "&c只有共享仓库创建者可以管理。"
 
   # 设为公开
-  sharedSetPublic: "&a共享仓库 &f{name} &a已设置为公开。"
+  shared-set-public: "&a共享仓库 &f{name} &a已设置为公开。"
 
   # 设为私有
-  sharedSetPrivate: "&a共享仓库 &f{name} &a已设置为私有。"
+  shared-set-private: "&a共享仓库 &f{name} &a已设置为私有。"
 
   # 成员列表聊天输出头部
-  sharedMembersChatHeader: "&6=== 共享仓库成员: {name} ==="
+  shared-members-chat-header: "&6=== 共享仓库成员: {name} ==="
 
   # 成员列表聊天输出项
-  sharedMembersChatItem: "&b- {player}"
+  shared-members-chat-item: "&b- {player}"
 
   # ---------- 聊天输入相关 ----------
   # 添加成员提示
-  chatInputAddPrompt: "&e请输入要添加的玩家ID，输入 &fcancel &e取消。"
+  chat-input-add-prompt: "&e请输入要添加的玩家ID，输入 &fcancel &e取消。"
 
   # 移除成员提示
-  chatInputRemovePrompt: "&e请输入要移除的玩家ID，输入 &fcancel &e取消。"
+  chat-input-remove-prompt: "&e请输入要移除的玩家ID，输入 &fcancel &e取消。"
 
   # 取消输入
-  chatInputCancelled: "&e已取消输入。"
+  chat-input-cancelled: "&e已取消输入。"
 
   # 操作完成
-  chatInputDone: "&a操作完成。"
+  chat-input-done: "&a操作完成。"
 
   # 玩家未找到（聊天输入）
-  chatInputPlayerNotFound: "&c未找到玩家: {player}"
+  chat-input-player-not-found: "&c未找到玩家: {player}"
 
   # ---------- 容量调整相关 ----------
   # 个人仓库容量调整时，超额物品返还方式
-  personalOverflowFallback: "&e邮件系统不可用，超额物品已返还至你的背包/脚下。"
+  personal-overflow-fallback: "&e邮件系统不可用，超额物品已返还至你的背包/脚下。"

@@ -8,7 +8,7 @@ version: 1
 #   - 支持管理员查看其他玩家背包和末影箱
 #   - 支持自定义界面标题
 
-# 总开关（true=启用，false=禁用）
+# 功能开关（true = 启用，false = 禁用）
 enabled: true
 
 # 界面标题配置

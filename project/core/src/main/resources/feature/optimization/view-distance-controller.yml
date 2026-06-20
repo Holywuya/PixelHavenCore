@@ -9,54 +9,58 @@ version: 2
 #   - 支持 AFK 状态自动降低视野距离以节省性能
 #   - 允许玩家自定义视野距离范围
 
-# 总开关（true=启用，false=禁用）
+# 功能开关（true = 启用，false = 禁用）
 enabled: true
 
 # 是否同步设置模拟距离（true=同步，false=不同步）
 # 模拟距离控制实体和区块的更新范围
-syncSimulationDistance: true
+sync-simulation-distance: true
 
 # 新玩家的默认视野距离设置
-defaultDistance: 10
+default-distance: 10
 
 # 允许的最小视野距离（方块数）
-minDistance: 2
+min-distance: 2
 
 # 允许的最大视野距离（方块数）
-maxDistance: 32
+max-distance: 32
 
 # 加入服务器时的显示设置
-displayOnJoin: true
+display-on-join: true
 # 加入时显示的消息（占位符: {distance} - 当前视野距离）
-displayJoinMessage: "&7视野距离设置为 &f{distance}&7。"
+display-join-message: "&7视野距离设置为 &f{distance}&7。"
 
 # AFK（挂机）自动降低视野距离设置
 afk:
-  # 是否启用 AFK 自动降低视野距离（true=启用，false=禁用）
+  # 功能开关（true = 启用，false = 禁用）
   enabled: true
   # 加入服务器时是否立即标记为 AFK 状态
-  afkOnJoin: false
+  afk-on-join: false
   # 无操作多少秒后判定为 AFK 状态
   seconds: 60
   # AFK 状态下的视野距离
   distance: 2
   # 旁观者模式是否可以触发 AFK（true=可以，false=不可以）
-  spectatorsCanAfk: true
+  spectators-can-afk: true
   # 绕过 AFK 视野限制的权限
-  bypassPermission: "phcore.viewdistance.afk.bypass"
+  bypass-permission: "phcore.viewdistance.afk.bypass"
+  # 进入 AFK 状态时发送的聊天消息
+  enter-message: "&7你已进入 AFK 状态。"
+  # 退出 AFK 状态时发送的聊天消息
+  exit-message: "&a你已退出 AFK 状态。"
 
 # 根据服务器 MSPT（每毫秒 tick 耗时）动态调整视野距离
 dynamic:
-  # 是否启用动态视野调整（true=启用，false=禁用）
+  # 功能开关（true = 启用，false = 禁用）
   enabled: false
   # 检查间隔（单位：tick，20tick = 1秒）
-  intervalTicks: 1200
+  interval-ticks: 1200
   # 动态调整的最小视野距离
   min: 2
   # 动态调整的最大视野距离
   max: 32
   # 绕过动态视野限制的权限
-  bypassPermission: "phcore.viewdistance.dynamic.bypass"
+  bypass-permission: "phcore.viewdistance.dynamic.bypass"
   # MSPT 阈值与视野距离映射关系
   # 格式: "MSPT阈值": 视野距离
   # 当 MSPT 超过阈值时，视野距离会相应降低
@@ -67,10 +71,10 @@ dynamic:
 
 # 根据玩家延迟（ping）动态调整视野距离
 ping:
-  # 是否启用延迟视野调整（true=启用，false=禁用）
+  # 功能开关（true = 启用，false = 禁用）
   enabled: false
   # 检查间隔（单位：tick，20tick = 1秒）
-  intervalTicks: 600
+  interval-ticks: 600
   # 延迟调整的最小视野距离
   min: 2
   # 延迟调整的最大视野距离
