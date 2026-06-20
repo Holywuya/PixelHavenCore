@@ -29,13 +29,13 @@ object MMHealthBarSettings {
     fun reload() {
         config.reload()
         enabled = config.getBoolean("enabled", true)
-        barColor = runCatching { BossBar.Color.valueOf((config.getString("bar_color", "PURPLE") ?: "PURPLE").uppercase()) }
+        barColor = runCatching { BossBar.Color.valueOf((config.getString("bar-color", "PURPLE") ?: "PURPLE").uppercase()) }
             .getOrDefault(BossBar.Color.PURPLE)
-        barOverlay = runCatching { BossBar.Overlay.valueOf((config.getString("bar_style", "PROGRESS") ?: "PROGRESS").uppercase()) }
+        barOverlay = runCatching { BossBar.Overlay.valueOf((config.getString("bar-style", "PROGRESS") ?: "PROGRESS").uppercase()) }
             .getOrDefault(BossBar.Overlay.PROGRESS)
-        titleFormat = config.getString("title_format", titleFormat) ?: titleFormat
-        damageFormat = config.getString("damage_format", damageFormat) ?: damageFormat
-        removeDelayTicks = config.getLong("remove_delay_ticks", 60L).coerceAtLeast(1L)
-        updateIntervalTicks = config.getLong("update_interval_ticks", 5L).coerceAtLeast(1L)
+        titleFormat = config.getString("title-format", titleFormat) ?: titleFormat
+        damageFormat = config.getString("damage-format", damageFormat) ?: damageFormat
+        removeDelayTicks = config.getLong("remove-delay-ticks", 60L).coerceAtLeast(1L)
+        updateIntervalTicks = config.getLong("update-interval-ticks", 5L).coerceAtLeast(1L)
     }
 }
