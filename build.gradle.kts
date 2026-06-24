@@ -30,7 +30,7 @@ subprojects {
             )
         }
         version {
-            taboolib = "6.3.0-88720d8"
+            taboolib = "6.3.0-8da9a20"
         }
     }
 
