@@ -50,6 +50,6 @@ object DeathDropListener {
     }
 
     private fun totalProtection(player: Player): Int {
-        return (DeathDropSettings.dailyKeepCount + DeathDropUsageStorage.getBonusToday(player.uniqueId)).coerceAtLeast(0)
+        return (DeathDropSettings.getBaseCount(player) + DeathDropUsageStorage.getBonusToday(player.uniqueId)).coerceAtLeast(0)
     }
 }

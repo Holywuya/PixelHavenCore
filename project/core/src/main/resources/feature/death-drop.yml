@@ -15,8 +15,16 @@ worlds:
   - world_the_end
   - world_nether
 
-# 每日死亡不掉落次数
+# 每日死亡不掉落次数（默认次数，无权限组匹配时使用）
 daily-keep-count: 3
+
+# 权限组次数配置（从上到下匹配第一个拥有的权限；都不匹配则使用 daily-keep-count）
+# 注意：拥有多个权限时以列表靠前的为准
+permission-groups:
+  - permission: "phcore.deathdrop.vip"
+    count: 5
+  - permission: "phcore.deathdrop.mvp"
+    count: 10
 
 # 拥有此权限的玩家不受限制
 exempt-permission: "phcore.deathdrop.exempt"

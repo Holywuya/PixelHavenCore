@@ -5,6 +5,7 @@ import com.pixlehavencore.util.msg
 import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.resolveOfflinePlayer
 import org.bukkit.OfflinePlayer
+import org.bukkit.entity.Player
 import taboolib.common.platform.ProxyCommandSender
 import taboolib.common.platform.command.CommandBody
 import taboolib.common.platform.command.CommandHeader
@@ -52,8 +53,9 @@ object DeathDropCommand {
                         sender.msg("<red>次数必须为整数。")
                         return@execute
                     }
+                    val baseCount = (target as? Player)?.let { DeathDropSettings.getBaseCount(it) } ?: DeathDropSettings.dailyKeepCount
                     val bonus = DeathDropUsageStorage.addBonusToday(target.uniqueId, count)
-                    val remaining = (DeathDropSettings.dailyKeepCount + bonus - DeathDropUsageStorage.getUsedToday(target.uniqueId)).coerceAtLeast(0)
+                    val remaining = (baseCount + bonus - DeathDropUsageStorage.getUsedToday(target.uniqueId)).coerceAtLeast(0)
                     sender.msg("<green>已为玩家 <white>${target.name ?: target.uniqueId} <green>增加今日免掉落次数 <white$count<green>，当前剩余 <white$remaining<green> 次。")
                 }
             }
@@ -76,10 +78,11 @@ object DeathDropCommand {
                         sender.msg("<red>次数必须为整数。")
                         return@execute
                     }
+                    val baseCount = (target as? Player)?.let { DeathDropSettings.getBaseCount(it) } ?: DeathDropSettings.dailyKeepCount
                     val used = DeathDropUsageStorage.getUsedToday(target.uniqueId)
-                    val bonus = (remainingTarget + used - DeathDropSettings.dailyKeepCount).coerceAtLeast(0)
+                    val bonus = (remainingTarget + used - baseCount).coerceAtLeast(0)
                     DeathDropUsageStorage.setBonusToday(target.uniqueId, bonus)
-                    val remaining = (DeathDropSettings.dailyKeepCount + bonus - used).coerceAtLeast(0)
+                    val remaining = (baseCount + bonus - used).coerceAtLeast(0)
                     sender.msg("<green>已设置玩家 <white>${target.name ?: target.uniqueId} <green>今日剩余免掉落次数为 <white$remaining<green> 次。")
                 }
             }
