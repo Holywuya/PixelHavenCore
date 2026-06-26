@@ -7,6 +7,7 @@ import com.pixlehavencore.util.EconomyUtils
 import com.pixlehavencore.util.OfflineInventoryUtils
 import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import com.pixlehavencore.util.TextUtils
+import com.pixlehavencore.util.cancelTaskSafely
 import com.pixlehavencore.feature.playerinv.PlayerInvService
 import com.pixlehavencore.feature.playerinv.PlayerInvSettings
 import org.bukkit.Bukkit
@@ -34,7 +35,8 @@ import java.util.concurrent.ConcurrentHashMap
 
 object PlayerInfoService {
 
-    private val sessions = ConcurrentHashMap<Int, Session>()
+    private val sessions = ConcurrentHashMap<UUID, Session>()
+    private val sessionInventories = ConcurrentHashMap<UUID, Inventory>()
     private val actionKey = NamespacedKey("phcore", "playerinfo_action")
 
     private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault())
@@ -53,6 +55,7 @@ object PlayerInfoService {
     fun init() {
         PlayerInfoSettings.init()
         sessions.clear()
+        sessionInventories.clear()
     }
 
     fun reload() {
@@ -60,7 +63,9 @@ object PlayerInfoService {
     }
 
     fun stop() {
+        sessions.values.forEach { it.refreshTask.cancelTaskSafely() }
         sessions.clear()
+        sessionInventories.clear()
     }
 
     // ══════════════════════════════════════
@@ -73,31 +78,39 @@ object PlayerInfoService {
         val title = TextUtils.parse(PlayerInfoSettings.dashboardTitle.resolvePlaceholders("{player}" to targetName))
 
         submit(async = true) {
-            val playtimeData = PlaytimeService.queryPlaytime(target.uniqueId)
-            val balance = EconomyUtils.getBalance(target)
+            try {
+                val playtimeData = PlaytimeService.queryPlaytime(target.uniqueId)
+                val balance = EconomyUtils.getBalance(target)
 
-            viewer.submitOnEntity {
-                if (!viewer.isOnline) return@submitOnEntity
+                viewer.submitOnEntity {
+                    if (!viewer.isOnline) return@submitOnEntity
 
-                val inventory = Bukkit.createInventory(null, DASHBOARD_ROWS * 9, title)
-                val filler = buildDecorativeItem()
-                decorativeSlots3Row.forEach { inventory.setItem(it, filler) }
+                    val session = Session(
+                        viewer = viewer.uniqueId,
+                        target = target.uniqueId,
+                        type = SessionType.DASHBOARD
+                    )
+                    val inventory = Bukkit.createInventory(null, DASHBOARD_ROWS * 9, title)
+                    val filler = buildDecorativeItem()
+                    decorativeSlots3Row.forEach { inventory.setItem(it, filler) }
 
-                inventory.setItem(10, buildHeadItem(target, targetName))
-                inventory.setItem(11, buildInfoItem(Material.CLOCK, "&e首次加入", formatTimestamp(target.firstPlayed)))
-                inventory.setItem(12, buildInfoItem(Material.COMPASS, "&e上次在线", if (target.isOnline) "&a在线中" else formatTimestamp(target.lastSeen)))
-                inventory.setItem(13, buildInfoItem(Material.BOOK, "&e总在线时长", PlaytimeSettings.formatSeconds(playtimeData?.totalSeconds ?: 0L)))
-                inventory.setItem(14, buildInfoItem(Material.GOLD_INGOT, "&e金币余额", "&6${balance.toPlainString()} 金币"))
-                inventory.setItem(15, buildActionItem(Material.CHEST, "&e查看背包", listOf("&7点击打开背包"), "inv"))
-                inventory.setItem(16, buildActionItem(Material.ENDER_CHEST, "&e查看末影箱", listOf("&7点击打开末影箱"), "ec"))
-                inventory.setItem(17, buildActionItem(Material.CHEST_MINECART, "&e个人仓库", listOf("&7点击打开目标玩家仓库"), "ware"))
+                    inventory.setItem(10, buildHeadItem(target, targetName))
+                    inventory.setItem(11, buildInfoItem(Material.CLOCK, "&e首次加入", formatTimestamp(target.firstPlayed)))
+                    inventory.setItem(12, buildInfoItem(Material.COMPASS, "&e上次在线", if (target.isOnline) "&a在线中" else formatTimestamp(target.lastSeen)))
+                    inventory.setItem(13, buildInfoItem(Material.BOOK, "&e总在线时长", PlaytimeSettings.formatSeconds(playtimeData?.totalSeconds ?: 0L)))
+                    inventory.setItem(14, buildInfoItem(Material.GOLD_INGOT, "&e金币余额", "&6${balance.toPlainString()} 金币"))
+                    inventory.setItem(15, buildActionItem(Material.CHEST, "&e查看背包", listOf("&7点击打开背包"), "inv"))
+                    inventory.setItem(16, buildActionItem(Material.ENDER_CHEST, "&e查看末影箱", listOf("&7点击打开末影箱"), "ec"))
+                    inventory.setItem(17, buildActionItem(Material.CHEST_MINECART, "&e个人仓库", listOf("&7点击打开目标玩家仓库"), "ware"))
 
-                sessions[System.identityHashCode(inventory)] = Session(
-                    viewer = viewer.uniqueId,
-                    target = target.uniqueId,
-                    type = SessionType.DASHBOARD
-                )
-                viewer.openInventory(inventory)
+                    sessions[session.id] = session
+                    sessionInventories[session.id] = inventory
+                    viewer.openInventory(inventory)
+                }
+            } catch (_: Exception) {
+                viewer.submitOnEntity {
+                    viewer.sendMessage(TextUtils.parse("&c加载玩家数据失败，请稍后重试"))
+                }
             }
         }
     }
@@ -130,24 +143,46 @@ object PlayerInfoService {
         val online = target.player
         if (online != null) {
             online.submitOnEntity {
-                val contents = online.inventory.contents.copyOf()
-                viewer.submitOnEntity {
-                    if (!viewer.isOnline) return@submitOnEntity
-                    openInvWindow(viewer, title, contents, target)
+                try {
+                    val contents = online.inventory.contents.copyOf()
+                    viewer.submitOnEntity {
+                        if (!viewer.isOnline) return@submitOnEntity
+                        openInvWindow(viewer, title, contents, target)
+                    }
+                } catch (_: Exception) {
+                    viewer.submitOnEntity {
+                        viewer.sendMessage(TextUtils.parse("&c加载玩家背包数据失败"))
+                    }
                 }
             }
         } else {
             submit(async = true) {
-                val snapshot = OfflineInventoryUtils.load(target)
-                viewer.submitOnEntity {
-                    if (!viewer.isOnline) return@submitOnEntity
-                    openInvWindow(viewer, title, snapshot?.inventory ?: arrayOfNulls(41), target)
+                try {
+                    val snapshot = OfflineInventoryUtils.load(target)
+                    viewer.submitOnEntity {
+                        if (!viewer.isOnline) return@submitOnEntity
+                        if (snapshot == null) {
+                            viewer.sendMessage(TextUtils.parse("&c未找到该玩家的离线数据"))
+                            return@submitOnEntity
+                        }
+                        openInvWindow(viewer, title, snapshot.inventory, target)
+                    }
+                } catch (_: Exception) {
+                    viewer.submitOnEntity {
+                        viewer.sendMessage(TextUtils.parse("&c加载玩家背包数据失败"))
+                    }
                 }
             }
         }
     }
 
     private fun openInvWindow(viewer: Player, title: net.kyori.adventure.text.Component, contents: Array<ItemStack?>, target: OfflinePlayer) {
+        val session = Session(
+            viewer = viewer.uniqueId,
+            target = target.uniqueId,
+            type = SessionType.INVENTORY,
+            originalContents = contents.copyOf()
+        )
         val inventory = Bukkit.createInventory(null, INV_ROWS * 9, title)
         val targetName = target.name ?: target.uniqueId.toString()
 
@@ -159,12 +194,8 @@ object PlayerInfoService {
         }
         inventory.setItem(49, buildActionItem(Material.BARRIER, "&c返回", listOf("&7返回玩家信息界面"), "back"))
 
-        val session = Session(
-            viewer = viewer.uniqueId,
-            target = target.uniqueId,
-            type = SessionType.INVENTORY
-        )
-        sessions[System.identityHashCode(inventory)] = session
+        sessions[session.id] = session
+        sessionInventories[session.id] = inventory
         viewer.openInventory(inventory)
 
         if (target.isOnline) {
@@ -184,24 +215,46 @@ object PlayerInfoService {
         val online = target.player
         if (online != null) {
             online.submitOnEntity {
-                val contents = online.enderChest.contents.copyOf()
-                viewer.submitOnEntity {
-                    if (!viewer.isOnline) return@submitOnEntity
-                    openECWindow(viewer, title, contents, target)
+                try {
+                    val contents = online.enderChest.contents.copyOf()
+                    viewer.submitOnEntity {
+                        if (!viewer.isOnline) return@submitOnEntity
+                        openECWindow(viewer, title, contents, target)
+                    }
+                } catch (_: Exception) {
+                    viewer.submitOnEntity {
+                        viewer.sendMessage(TextUtils.parse("&c加载玩家末影箱数据失败"))
+                    }
                 }
             }
         } else {
             submit(async = true) {
-                val snapshot = OfflineInventoryUtils.load(target)
-                viewer.submitOnEntity {
-                    if (!viewer.isOnline) return@submitOnEntity
-                    openECWindow(viewer, title, snapshot?.enderChest ?: arrayOfNulls(27), target)
+                try {
+                    val snapshot = OfflineInventoryUtils.load(target)
+                    viewer.submitOnEntity {
+                        if (!viewer.isOnline) return@submitOnEntity
+                        if (snapshot == null) {
+                            viewer.sendMessage(TextUtils.parse("&c未找到该玩家的离线数据"))
+                            return@submitOnEntity
+                        }
+                        openECWindow(viewer, title, snapshot.enderChest, target)
+                    }
+                } catch (_: Exception) {
+                    viewer.submitOnEntity {
+                        viewer.sendMessage(TextUtils.parse("&c加载玩家末影箱数据失败"))
+                    }
                 }
             }
         }
     }
 
     private fun openECWindow(viewer: Player, title: net.kyori.adventure.text.Component, contents: Array<ItemStack?>, target: OfflinePlayer) {
+        val session = Session(
+            viewer = viewer.uniqueId,
+            target = target.uniqueId,
+            type = SessionType.ENDER_CHEST,
+            originalContents = contents.copyOf()
+        )
         val inventory = Bukkit.createInventory(null, EC_ROWS * 9, title)
         val targetName = target.name ?: target.uniqueId.toString()
 
@@ -213,12 +266,8 @@ object PlayerInfoService {
         }
         inventory.setItem(22, buildActionItem(Material.BARRIER, "&c返回", listOf("&7返回玩家信息界面"), "back"))
 
-        val session = Session(
-            viewer = viewer.uniqueId,
-            target = target.uniqueId,
-            type = SessionType.ENDER_CHEST
-        )
-        sessions[System.identityHashCode(inventory)] = session
+        sessions[session.id] = session
+        sessionInventories[session.id] = inventory
         viewer.openInventory(inventory)
 
         if (target.isOnline) {
@@ -233,7 +282,7 @@ object PlayerInfoService {
     @SubscribeEvent
     fun onClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
-        val session = sessions[System.identityHashCode(event.view.topInventory)] ?: return
+        val session = findSession(event.view.topInventory) ?: return
         if (session.viewer != player.uniqueId) return
 
         if (session.type == SessionType.DASHBOARD) {
@@ -266,7 +315,7 @@ object PlayerInfoService {
         session.lastInteractTime = System.currentTimeMillis()
 
         val clickedItem = event.currentItem
-        if (isProtectedSlot(clickedItem)) {
+        if (isProtectedSlot(clickedItem, event.rawSlot, session.type)) {
             if (getAction(clickedItem) == "back") {
                 event.isCancelled = true
                 player.closeInventory()
@@ -280,7 +329,7 @@ object PlayerInfoService {
     @SubscribeEvent
     fun onDrag(event: InventoryDragEvent) {
         val player = event.whoClicked as? Player ?: return
-        val session = sessions[System.identityHashCode(event.view.topInventory)] ?: return
+        val session = findSession(event.view.topInventory) ?: return
         if (session.viewer != player.uniqueId) return
 
         if (session.type == SessionType.DASHBOARD) {
@@ -292,7 +341,7 @@ object PlayerInfoService {
 
         val topSize = event.view.topInventory.size
         val anyProtectedSlot = event.rawSlots.any { slot ->
-            slot < topSize && isProtectedSlot(event.view.topInventory.getItem(slot))
+            slot < topSize && isProtectedSlot(event.view.topInventory.getItem(slot), slot, session.type)
         }
         if (anyProtectedSlot) {
             event.isCancelled = true
@@ -302,9 +351,11 @@ object PlayerInfoService {
     @SubscribeEvent
     fun onClose(event: InventoryCloseEvent) {
         val inventory = event.inventory
-        val session = sessions.remove(System.identityHashCode(inventory)) ?: return
+        val sessionId = findSessionId(inventory) ?: return
+        val session = sessions.remove(sessionId) ?: return
+        sessionInventories.remove(sessionId)
 
-        session.refreshActive = false
+        session.refreshTask.cancelTaskSafely()
 
         when (session.type) {
             SessionType.INVENTORY -> saveInventoryChanges(inventory, session)
@@ -315,37 +366,96 @@ object PlayerInfoService {
 
     private fun saveInventoryChanges(inventory: Inventory, session: Session) {
         val target = Bukkit.getOfflinePlayer(session.target)
-        val items = Array<ItemStack?>(INV_CONTENT_SIZE) { index ->
-            if (index < inventory.size) inventory.getItem(index) else null
-        }
+        val items = filterPlayerItems(inventory, session)
 
         val online = target.player
         if (online != null) {
             online.submitOnEntity {
-                online.inventory.contents = items
+                val currentOnline = target.player
+                if (currentOnline != null) {
+                    currentOnline.inventory.contents = items
+                } else {
+                    submit(async = true) {
+                        OfflineInventoryUtils.save(target, inventory = items, enderChest = null)
+                    }
+                }
             }
         } else {
             submit(async = true) {
-                OfflineInventoryUtils.save(target, inventory = items, enderChest = null)
+                if (target.isOnline) {
+                    val currentOnline = target.player
+                    if (currentOnline != null) {
+                        currentOnline.submitOnEntity {
+                            currentOnline.inventory.contents = items
+                        }
+                    }
+                } else {
+                    OfflineInventoryUtils.save(target, inventory = items, enderChest = null)
+                }
             }
         }
     }
 
     private fun saveEnderChestChanges(inventory: Inventory, session: Session) {
         val target = Bukkit.getOfflinePlayer(session.target)
-        val items = Array<ItemStack?>(EC_CONTENT_SIZE) { index ->
-            if (index < inventory.size) inventory.getItem(index) else null
-        }
+        val items = filterPlayerItems(inventory, session)
 
         val online = target.player
         if (online != null) {
             online.submitOnEntity {
-                online.enderChest.contents = items
+                val currentOnline = target.player
+                if (currentOnline != null) {
+                    currentOnline.enderChest.contents = items
+                } else {
+                    submit(async = true) {
+                        OfflineInventoryUtils.save(target, inventory = null, enderChest = items)
+                    }
+                }
             }
         } else {
             submit(async = true) {
-                OfflineInventoryUtils.save(target, inventory = null, enderChest = items)
+                if (target.isOnline) {
+                    val currentOnline = target.player
+                    if (currentOnline != null) {
+                        currentOnline.submitOnEntity {
+                            currentOnline.enderChest.contents = items
+                        }
+                    }
+                } else {
+                    OfflineInventoryUtils.save(target, inventory = null, enderChest = items)
+                }
             }
+        }
+    }
+
+    private fun filterPlayerItems(inventory: Inventory, session: Session): Array<ItemStack?> {
+        val original = session.originalContents ?: arrayOfNulls<ItemStack?>(
+            when (session.type) {
+                SessionType.INVENTORY -> INV_CONTENT_SIZE
+                SessionType.ENDER_CHEST -> EC_CONTENT_SIZE
+                else -> 0
+            }
+        )
+        return when (session.type) {
+            SessionType.INVENTORY -> {
+                Array(INV_CONTENT_SIZE) { i ->
+                    if (isProtectedSlot(inventory.getItem(i), i, session.type)) {
+                        if (i < original.size) original[i] else null
+                    } else {
+                        inventory.getItem(i)
+                    }
+                }
+            }
+            SessionType.ENDER_CHEST -> {
+                Array(EC_CONTENT_SIZE) { i ->
+                    if (isProtectedSlot(inventory.getItem(i), i, session.type)) {
+                        if (i < original.size) original[i] else null
+                    } else {
+                        inventory.getItem(i)
+                    }
+                }
+            }
+            else -> original
         }
     }
 
@@ -354,9 +464,8 @@ object PlayerInfoService {
     // ══════════════════════════════════════
 
     private fun startRefresh(inventory: Inventory, session: Session, viewer: Player, targetSize: Int) {
-        session.refreshActive = true
-        viewer.submitOnEntity(delay = 20, period = 20, async = false) {
-            if (!session.refreshActive || !viewer.isOnline) {
+        session.refreshTask = viewer.submitOnEntity(delay = 20, period = 20, async = false) {
+            if (!viewer.isOnline) {
                 cancel()
                 return@submitOnEntity
             }
@@ -371,15 +480,21 @@ object PlayerInfoService {
                 return@submitOnEntity
             }
 
-            val contents = when (session.type) {
-                SessionType.INVENTORY -> online.inventory.contents.copyOf()
-                SessionType.ENDER_CHEST -> online.enderChest.contents.copyOf()
-                else -> return@submitOnEntity
-            }
+            online.submitOnEntity {
+                if (!online.isOnline) return@submitOnEntity
+                val contents = when (session.type) {
+                    SessionType.INVENTORY -> online.inventory.contents.copyOf()
+                    SessionType.ENDER_CHEST -> online.enderChest.contents.copyOf()
+                    else -> return@submitOnEntity
+                }
 
-            for (i in 0 until minOf(contents.size, targetSize)) {
-                if (!isProtectedSlot(inventory.getItem(i))) {
-                    inventory.setItem(i, contents[i])
+                viewer.submitOnEntity {
+                    if (!viewer.isOnline) return@submitOnEntity
+                    for (i in 0 until minOf(contents.size, targetSize)) {
+                        if (!isProtectedSlot(inventory.getItem(i), i, session.type)) {
+                            inventory.setItem(i, contents[i])
+                        }
+                    }
                 }
             }
         }
@@ -434,11 +549,15 @@ object PlayerInfoService {
         return meta.persistentDataContainer.get(actionKey, PersistentDataType.STRING)
     }
 
-    private fun isProtectedSlot(item: ItemStack?): Boolean {
+    private fun isProtectedSlot(item: ItemStack?, slot: Int, sessionType: SessionType): Boolean {
         if (item == null) return false
         if (getAction(item) != null) return true
-        if (item.type == Material.GRAY_STAINED_GLASS_PANE) return true
-        return false
+        val decorativeSlots = when (sessionType) {
+            SessionType.DASHBOARD -> decorativeSlots3Row
+            SessionType.INVENTORY -> decorativeSlotsInv
+            SessionType.ENDER_CHEST -> decorativeSlotsEC
+        }
+        return slot in decorativeSlots
     }
 
     // ══════════════════════════════════════
@@ -450,16 +569,30 @@ object PlayerInfoService {
         return "&f${dateFormat.format(Instant.ofEpochMilli(millis))}"
     }
 
+    private fun findSession(inventory: Inventory): Session? {
+        val sessionId = findSessionId(inventory) ?: return null
+        return sessions[sessionId]
+    }
+
+    private fun findSessionId(inventory: Inventory): UUID? {
+        for (entry in sessionInventories.entries) {
+            if (entry.value === inventory) return entry.key
+        }
+        return null
+    }
+
     // ══════════════════════════════════════
     // Data
     // ══════════════════════════════════════
 
     private data class Session(
+        val id: UUID = UUID.randomUUID(),
         val viewer: UUID,
         val target: UUID,
         val type: SessionType,
         var lastInteractTime: Long = System.currentTimeMillis(),
-        var refreshActive: Boolean = false
+        var refreshTask: Any? = null,
+        val originalContents: Array<ItemStack?>? = null
     )
 
     private enum class SessionType {
