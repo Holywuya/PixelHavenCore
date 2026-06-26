@@ -79,7 +79,7 @@ object OfflineInventoryUtils {
         craftItemStackClass[Unit].getMethod("asNMSCopy", org.bukkit.inventory.ItemStack::class.java)
     }
 
-    private val tagToString = supplierLazy<Unit, Method> { _ ->
+    private val listTagAddMethod = supplierLazy<Unit, Method> { _ ->
         listTagClass[Unit].getMethod("add", Any::class.java)
     }
 
@@ -89,6 +89,10 @@ object OfflineInventoryUtils {
 
     private val compoundPutByteMethod = supplierLazy<Unit, Method> { _ ->
         compoundTagClass[Unit].getMethod("putByte", String::class.java, Byte::class.javaPrimitiveType)
+    }
+
+    private val orElseMethod = supplierLazy<Unit, Method> { _ ->
+        Class.forName("java.util.Optional").getMethod("orElse", Any::class.java)
     }
 
     /**
@@ -160,7 +164,19 @@ object OfflineInventoryUtils {
         }
     }
 
+    /**
+     * Folia 线程安全警告：此方法通过 NMS 反射写入离线玩家的 NBT 数据文件，
+     * 在 Folia 多线程环境下不完全安全。调用方必须确保在全局区域调度器（submit {}）内调用，
+     * 或接受潜在的线程安全风险。
+     *
+     * 注意：此方法仅用于离线玩家。如果目标玩家在线，将记录警告并返回 false，
+     * 以避免与服务器内存数据冲突。
+     */
     fun save(player: OfflinePlayer, inventory: Array<ItemStack?>?, enderChest: Array<ItemStack?>?): Boolean {
+        if (player.isOnline) {
+            warning("[OfflineInventory] 目标玩家在线，不应同时写入NBT文件，请通过 Bukkit API 修改在线玩家数据")
+            return false
+        }
         val playerDataFile = resolvePlayerDataFile(player) ?: return false
         val registryAccess = captureRegistryAccess() ?: return false
         return saveToFile(playerDataFile, registryAccess, player.uniqueId, inventory, enderChest)
@@ -190,10 +206,19 @@ object OfflineInventoryUtils {
                 compoundPutMethod[Unit].invoke(rootTag, "EnderItems", ecList)
             }
 
-            FileOutputStream(playerDataFile).use { stream ->
-                writeMethod[Unit].invoke(null, rootTag, stream)
+            val tempFile = File(playerDataFile.parentFile, "${playerDataFile.name}.tmp")
+            try {
+                FileOutputStream(tempFile).use { stream ->
+                    writeMethod[Unit].invoke(null, rootTag, stream)
+                }
+                if (!tempFile.renameTo(playerDataFile)) {
+                    throw IllegalStateException("无法将临时文件重命名为 ${playerDataFile.name}")
+                }
+                true
+            } catch (e: Exception) {
+                tempFile.delete()
+                throw e
             }
-            true
         }.onFailure { ex ->
             warning("[OfflineInventory] 保存离线玩家数据失败($playerId): ${ex.message}")
         }.getOrDefault(false)
@@ -204,14 +229,13 @@ object OfflineInventoryUtils {
         for (index in items.indices) {
             val item = items[index] ?: continue
             val nmsItem = asNMSCopyMethod[Unit].invoke(null, item) ?: continue
-            val optionalTag = saveOptionalMethod[Unit].invoke(nmsItem, registryAccess)
-            val compoundMethod = optionalTag?.javaClass?.getMethod("orElse", Any::class.java) ?: continue
-            val tag = compoundMethod.invoke(optionalTag, null) ?: continue
+            val optionalTag = saveOptionalMethod[Unit].invoke(nmsItem, registryAccess) ?: continue
+            val tag = orElseMethod[Unit].invoke(optionalTag, null) ?: continue
             if (!compoundTagClass[Unit].isInstance(tag)) continue
             val slot = denormalizeSlot(index, isEnderChest)
             if (slot == -1) continue
             compoundPutByteMethod[Unit].invoke(tag, "Slot", slot.toByte())
-            tagToString[Unit].invoke(listTag, tag)
+            listTagAddMethod[Unit].invoke(listTag, tag)
         }
         return listTag
     }
