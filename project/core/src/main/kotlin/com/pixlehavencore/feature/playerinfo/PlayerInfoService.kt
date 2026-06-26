@@ -159,12 +159,17 @@ object PlayerInfoService {
         }
         inventory.setItem(49, buildActionItem(Material.BARRIER, "&c返回", listOf("&7返回玩家信息界面"), "back"))
 
-        sessions[System.identityHashCode(inventory)] = Session(
+        val session = Session(
             viewer = viewer.uniqueId,
             target = target.uniqueId,
             type = SessionType.INVENTORY
         )
+        sessions[System.identityHashCode(inventory)] = session
         viewer.openInventory(inventory)
+
+        if (target.isOnline) {
+            startRefresh(inventory, session, viewer, targetSize = 41)
+        }
     }
 
     // ══════════════════════════════════════
@@ -208,12 +213,17 @@ object PlayerInfoService {
         }
         inventory.setItem(22, buildActionItem(Material.BARRIER, "&c返回", listOf("&7返回玩家信息界面"), "back"))
 
-        sessions[System.identityHashCode(inventory)] = Session(
+        val session = Session(
             viewer = viewer.uniqueId,
             target = target.uniqueId,
             type = SessionType.ENDER_CHEST
         )
+        sessions[System.identityHashCode(inventory)] = session
         viewer.openInventory(inventory)
+
+        if (target.isOnline) {
+            startRefresh(inventory, session, viewer, targetSize = 27)
+        }
     }
 
     // ══════════════════════════════════════
@@ -253,6 +263,8 @@ object PlayerInfoService {
 
         if (event.clickedInventory != event.view.topInventory) return
 
+        session.lastInteractTime = System.currentTimeMillis()
+
         val clickedItem = event.currentItem
         if (isProtectedSlot(clickedItem)) {
             if (getAction(clickedItem) == "back") {
@@ -276,6 +288,8 @@ object PlayerInfoService {
             return
         }
 
+        session.lastInteractTime = System.currentTimeMillis()
+
         val topSize = event.view.topInventory.size
         val anyProtectedSlot = event.rawSlots.any { slot ->
             slot < topSize && isProtectedSlot(event.view.topInventory.getItem(slot))
@@ -289,6 +303,8 @@ object PlayerInfoService {
     fun onClose(event: InventoryCloseEvent) {
         val inventory = event.inventory
         val session = sessions.remove(System.identityHashCode(inventory)) ?: return
+
+        session.refreshActive = false
 
         when (session.type) {
             SessionType.INVENTORY -> saveInventoryChanges(inventory, session)
@@ -329,6 +345,42 @@ object PlayerInfoService {
         } else {
             submit(async = true) {
                 OfflineInventoryUtils.save(target, inventory = null, enderChest = items)
+            }
+        }
+    }
+
+    // ══════════════════════════════════════
+    // Auto Refresh
+    // ══════════════════════════════════════
+
+    private fun startRefresh(inventory: Inventory, session: Session, viewer: Player, targetSize: Int) {
+        session.refreshActive = true
+        viewer.submitOnEntity(delay = 20, period = 20, async = false) {
+            if (!session.refreshActive || !viewer.isOnline) {
+                cancel()
+                return@submitOnEntity
+            }
+
+            val target = Bukkit.getOfflinePlayer(session.target)
+            val online = target.player
+            if (online == null || !online.isOnline) {
+                return@submitOnEntity
+            }
+
+            if (System.currentTimeMillis() - session.lastInteractTime < 2000) {
+                return@submitOnEntity
+            }
+
+            val contents = when (session.type) {
+                SessionType.INVENTORY -> online.inventory.contents.copyOf()
+                SessionType.ENDER_CHEST -> online.enderChest.contents.copyOf()
+                else -> return@submitOnEntity
+            }
+
+            for (i in 0 until minOf(contents.size, targetSize)) {
+                if (!isProtectedSlot(inventory.getItem(i))) {
+                    inventory.setItem(i, contents[i])
+                }
             }
         }
     }
@@ -405,7 +457,9 @@ object PlayerInfoService {
     private data class Session(
         val viewer: UUID,
         val target: UUID,
-        val type: SessionType
+        val type: SessionType,
+        var lastInteractTime: Long = System.currentTimeMillis(),
+        var refreshActive: Boolean = false
     )
 
     private enum class SessionType {
