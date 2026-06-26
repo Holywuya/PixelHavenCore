@@ -223,27 +223,41 @@ object PlayerInfoService {
         val session = sessions[System.identityHashCode(event.view.topInventory)] ?: return
         if (session.viewer != player.uniqueId) return
 
-        event.isCancelled = true
+        if (session.type == SessionType.DASHBOARD) {
+            event.isCancelled = true
+            if (event.clickedInventory != event.view.topInventory) return
+            val action = getAction(event.currentItem) ?: return
+            when (action) {
+                "inv" -> {
+                    player.closeInventory()
+                    openInventoryView(player, Bukkit.getOfflinePlayer(session.target))
+                }
+                "ec" -> {
+                    player.closeInventory()
+                    openEnderChestView(player, Bukkit.getOfflinePlayer(session.target))
+                }
+                "back" -> {
+                    player.closeInventory()
+                    openDashboard(player, Bukkit.getOfflinePlayer(session.target))
+                }
+                "ware" -> {
+                    player.closeInventory()
+                    openWarehouse(player, Bukkit.getOfflinePlayer(session.target))
+                }
+            }
+            return
+        }
 
         if (event.clickedInventory != event.view.topInventory) return
 
-        val action = getAction(event.currentItem) ?: return
-        when (action) {
-            "inv" -> {
-                player.closeInventory()
-                openInventoryView(player, Bukkit.getOfflinePlayer(session.target))
-            }
-            "ec" -> {
-                player.closeInventory()
-                openEnderChestView(player, Bukkit.getOfflinePlayer(session.target))
-            }
-            "back" -> {
+        val clickedItem = event.currentItem
+        if (isProtectedSlot(clickedItem)) {
+            if (getAction(clickedItem) == "back") {
+                event.isCancelled = true
                 player.closeInventory()
                 openDashboard(player, Bukkit.getOfflinePlayer(session.target))
-            }
-            "ware" -> {
-                player.closeInventory()
-                openWarehouse(player, Bukkit.getOfflinePlayer(session.target))
+            } else {
+                event.isCancelled = true
             }
         }
     }
@@ -251,8 +265,19 @@ object PlayerInfoService {
     @SubscribeEvent
     fun onDrag(event: InventoryDragEvent) {
         val player = event.whoClicked as? Player ?: return
-        val owner = sessions[System.identityHashCode(event.view.topInventory)] ?: return
-        if (owner.viewer == player.uniqueId && event.rawSlots.any { it < event.view.topInventory.size }) {
+        val session = sessions[System.identityHashCode(event.view.topInventory)] ?: return
+        if (session.viewer != player.uniqueId) return
+
+        if (session.type == SessionType.DASHBOARD) {
+            event.isCancelled = true
+            return
+        }
+
+        val topSize = event.view.topInventory.size
+        val anyProtectedSlot = event.rawSlots.any { slot ->
+            slot < topSize && isProtectedSlot(event.view.topInventory.getItem(slot))
+        }
+        if (anyProtectedSlot) {
             event.isCancelled = true
         }
     }
@@ -309,6 +334,13 @@ object PlayerInfoService {
     private fun getAction(item: ItemStack?): String? {
         val meta = item?.itemMeta ?: return null
         return meta.persistentDataContainer.get(actionKey, PersistentDataType.STRING)
+    }
+
+    private fun isProtectedSlot(item: ItemStack?): Boolean {
+        if (item == null) return false
+        if (getAction(item) != null) return true
+        if (item.type == Material.GRAY_STAINED_GLASS_PANE) return true
+        return false
     }
 
     // ══════════════════════════════════════
