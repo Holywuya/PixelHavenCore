@@ -8,6 +8,7 @@ import taboolib.common.platform.function.warning
 import taboolib.common.util.supplierLazy
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.lang.reflect.Method
 import java.util.UUID
 
@@ -52,6 +53,42 @@ object OfflineInventoryUtils {
 
     private val asBukkitCopy = supplierLazy<Unit, Method> { _ ->
         craftItemStackClass[Unit].getMethod("asBukkitCopy", itemStackClass[Unit])
+    }
+
+    private val writeMethod = supplierLazy<Unit, Method> { _ ->
+        nbtIoClass[Unit].methods.firstOrNull {
+            it.name == "writeCompressed" && it.parameterTypes.size == 2 && it.parameterTypes[1] == java.io.OutputStream::class.java
+        } ?: error("找不到 NbtIo.writeCompressed")
+    }
+
+    private val listTagClass = supplierLazy<Unit, Class<*>> {
+        Class.forName("net.minecraft.nbt.ListTag")
+    }
+
+    private val compoundTagClass = supplierLazy<Unit, Class<*>> {
+        Class.forName("net.minecraft.nbt.CompoundTag")
+    }
+
+    private val saveOptionalMethod = supplierLazy<Unit, Method> { _ ->
+        itemStackClass[Unit].methods.firstOrNull {
+            it.name == "saveOptional" && it.parameterTypes.size == 1
+        } ?: error("找不到 ItemStack.saveOptional")
+    }
+
+    private val asNMSCopyMethod = supplierLazy<Unit, Method> { _ ->
+        craftItemStackClass[Unit].getMethod("asNMSCopy", org.bukkit.inventory.ItemStack::class.java)
+    }
+
+    private val tagToString = supplierLazy<Unit, Method> { _ ->
+        listTagClass[Unit].getMethod("add", Any::class.java)
+    }
+
+    private val compoundPutMethod = supplierLazy<Unit, Method> { _ ->
+        compoundTagClass[Unit].getMethod("put", String::class.java, Any::class.java)
+    }
+
+    private val compoundPutByteMethod = supplierLazy<Unit, Method> { _ ->
+        compoundTagClass[Unit].getMethod("putByte", String::class.java, Byte::class.javaPrimitiveType)
     }
 
     /**
@@ -120,6 +157,75 @@ object OfflineInventoryUtils {
             103 -> 39
             -106, 150 -> 40
             else -> -1  // 返回 -1 表示无效的 slot
+        }
+    }
+
+    fun save(player: OfflinePlayer, inventory: Array<ItemStack?>?, enderChest: Array<ItemStack?>?): Boolean {
+        val playerDataFile = resolvePlayerDataFile(player) ?: return false
+        val registryAccess = captureRegistryAccess() ?: return false
+        return saveToFile(playerDataFile, registryAccess, player.uniqueId, inventory, enderChest)
+    }
+
+    private fun saveToFile(
+        playerDataFile: File,
+        registryAccess: Any,
+        playerId: UUID,
+        inventory: Array<ItemStack?>?,
+        enderChest: Array<ItemStack?>?
+    ): Boolean {
+        if (!playerDataFile.exists()) return false
+
+        return runCatching {
+            val rootTag = FileInputStream(playerDataFile).use { stream ->
+                readMethod[Unit].invoke(null, stream, unlimitedAccounter[Unit])
+            }
+
+            if (inventory != null) {
+                val invList = buildItemListTag(inventory, registryAccess, isEnderChest = false)
+                compoundPutMethod[Unit].invoke(rootTag, "Inventory", invList)
+            }
+
+            if (enderChest != null) {
+                val ecList = buildItemListTag(enderChest, registryAccess, isEnderChest = true)
+                compoundPutMethod[Unit].invoke(rootTag, "EnderItems", ecList)
+            }
+
+            FileOutputStream(playerDataFile).use { stream ->
+                writeMethod[Unit].invoke(null, rootTag, stream)
+            }
+            true
+        }.onFailure { ex ->
+            warning("[OfflineInventory] 保存离线玩家数据失败($playerId): ${ex.message}")
+        }.getOrDefault(false)
+    }
+
+    private fun buildItemListTag(items: Array<ItemStack?>, registryAccess: Any, isEnderChest: Boolean): Any {
+        val listTag = listTagClass[Unit].getDeclaredConstructor().newInstance()
+        for (index in items.indices) {
+            val item = items[index] ?: continue
+            val nmsItem = asNMSCopyMethod[Unit].invoke(null, item) ?: continue
+            val optionalTag = saveOptionalMethod[Unit].invoke(nmsItem, registryAccess)
+            val compoundMethod = optionalTag?.javaClass?.getMethod("orElse", Any::class.java) ?: continue
+            val tag = compoundMethod.invoke(optionalTag, null) ?: continue
+            if (!compoundTagClass[Unit].isInstance(tag)) continue
+            val slot = denormalizeSlot(index, isEnderChest)
+            if (slot == -1) continue
+            compoundPutByteMethod[Unit].invoke(tag, "Slot", slot.toByte())
+            tagToString[Unit].invoke(listTag, tag)
+        }
+        return listTag
+    }
+
+    private fun denormalizeSlot(index: Int, isEnderChest: Boolean): Int {
+        if (isEnderChest) return if (index in 0..26) index else -1
+        return when (index) {
+            in 0..35 -> index
+            36 -> 100
+            37 -> 101
+            38 -> 102
+            39 -> 103
+            40 -> -106
+            else -> -1
         }
     }
 
