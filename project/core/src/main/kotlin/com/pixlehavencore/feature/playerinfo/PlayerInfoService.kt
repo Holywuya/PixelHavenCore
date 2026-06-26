@@ -7,6 +7,8 @@ import com.pixlehavencore.util.EconomyUtils
 import com.pixlehavencore.util.OfflineInventoryUtils
 import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import com.pixlehavencore.util.TextUtils
+import com.pixlehavencore.feature.playerinv.PlayerInvService
+import com.pixlehavencore.feature.playerinv.PlayerInvSettings
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
@@ -85,6 +87,7 @@ object PlayerInfoService {
                 inventory.setItem(14, buildInfoItem(Material.GOLD_INGOT, "&e金币余额", "&6${balance.toPlainString()} 金币"))
                 inventory.setItem(15, buildActionItem(Material.CHEST, "&e查看背包", listOf("&7点击打开背包"), "inv"))
                 inventory.setItem(16, buildActionItem(Material.ENDER_CHEST, "&e查看末影箱", listOf("&7点击打开末影箱"), "ec"))
+                inventory.setItem(17, buildActionItem(Material.CHEST_MINECART, "&e个人仓库", listOf("&7点击打开目标玩家仓库"), "ware"))
 
                 sessions[System.identityHashCode(inventory)] = Session(
                     viewer = viewer.uniqueId,
@@ -92,6 +95,22 @@ object PlayerInfoService {
                     type = SessionType.DASHBOARD
                 )
                 viewer.openInventory(inventory)
+            }
+        }
+    }
+
+    // ══════════════════════════════════════
+    // Warehouse
+    // ══════════════════════════════════════
+
+    private fun openWarehouse(viewer: Player, target: OfflinePlayer) {
+        if (!PlayerInvSettings.enabled) {
+            viewer.sendMessage(TextUtils.parse("&c仓库模块未启用"))
+            return
+        }
+        PlayerInvService.openOtherAsync(viewer, target) { opened ->
+            if (!opened) {
+                viewer.sendMessage(TextUtils.parse("&c打开目标玩家仓库失败"))
             }
         }
     }
@@ -221,6 +240,10 @@ object PlayerInfoService {
             "back" -> {
                 player.closeInventory()
                 openDashboard(player, Bukkit.getOfflinePlayer(session.target))
+            }
+            "ware" -> {
+                player.closeInventory()
+                openWarehouse(player, Bukkit.getOfflinePlayer(session.target))
             }
         }
     }
