@@ -47,6 +47,9 @@ object PlayerInfoService {
     private val decorativeSlotsInv = (0..8) + (45..53)
     private val decorativeSlotsEC = (0..8) + (18..26)
 
+    private const val INV_CONTENT_SIZE = 41
+    private const val EC_CONTENT_SIZE = 27
+
     fun init() {
         PlayerInfoSettings.init()
         sessions.clear()
@@ -284,7 +287,50 @@ object PlayerInfoService {
 
     @SubscribeEvent
     fun onClose(event: InventoryCloseEvent) {
-        sessions.remove(System.identityHashCode(event.inventory))
+        val inventory = event.inventory
+        val session = sessions.remove(System.identityHashCode(inventory)) ?: return
+
+        when (session.type) {
+            SessionType.INVENTORY -> saveInventoryChanges(inventory, session)
+            SessionType.ENDER_CHEST -> saveEnderChestChanges(inventory, session)
+            else -> Unit
+        }
+    }
+
+    private fun saveInventoryChanges(inventory: Inventory, session: Session) {
+        val target = Bukkit.getOfflinePlayer(session.target)
+        val items = Array<ItemStack?>(INV_CONTENT_SIZE) { index ->
+            if (index < inventory.size) inventory.getItem(index) else null
+        }
+
+        val online = target.player
+        if (online != null) {
+            online.submitOnEntity {
+                online.inventory.contents = items
+            }
+        } else {
+            submit(async = true) {
+                OfflineInventoryUtils.save(target, inventory = items, enderChest = null)
+            }
+        }
+    }
+
+    private fun saveEnderChestChanges(inventory: Inventory, session: Session) {
+        val target = Bukkit.getOfflinePlayer(session.target)
+        val items = Array<ItemStack?>(EC_CONTENT_SIZE) { index ->
+            if (index < inventory.size) inventory.getItem(index) else null
+        }
+
+        val online = target.player
+        if (online != null) {
+            online.submitOnEntity {
+                online.enderChest.contents = items
+            }
+        } else {
+            submit(async = true) {
+                OfflineInventoryUtils.save(target, inventory = null, enderChest = items)
+            }
+        }
     }
 
     // ══════════════════════════════════════
