@@ -96,12 +96,16 @@ object PowerService {
 
     fun getOrCreatePool(dominionId: String): EnergyPool {
         return pools.getOrPut(dominionId) {
-            EnergyPool(dominionId = dominionId, capacity = PowerSettings.maxEnergyPerDominion)
+            val area = DominionBridge.getDominionArea(dominionId)
+            val baseCapacity = area * PowerSettings.energyPerBlock
+            EnergyPool(dominionId = dominionId, capacity = baseCapacity.toDouble())
         }
     }
 
     private fun recalculateCapacity(pool: EnergyPool) {
-        pool.capacity = PowerSettings.maxEnergyPerDominion + pool.generators.sumOf { it.type.capacityContribution }
+        val area = DominionBridge.getDominionArea(pool.dominionId)
+        val baseCapacity = area * PowerSettings.energyPerBlock
+        pool.capacity = baseCapacity + pool.generators.sumOf { it.type.capacityContribution }
         if (pool.energy > pool.capacity) pool.energy = pool.capacity
     }
 

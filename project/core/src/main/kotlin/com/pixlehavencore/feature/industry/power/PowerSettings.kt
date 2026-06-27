@@ -11,7 +11,7 @@ object PowerSettings {
     var enabled: Boolean = true
         private set
 
-    var maxEnergyPerDominion: Double = 100000.0
+    var energyPerBlock: Double = 10.0
         private set
 
     data class GeneratorConfig(
@@ -31,7 +31,7 @@ object PowerSettings {
     fun reload() {
         config.reload()
         enabled = config.getBoolean("enabled", true)
-        maxEnergyPerDominion = config.getDouble("maxEnergyPerDominion") ?: 100000.0
+        energyPerBlock = config.getDouble("energyPerBlock") ?: 10.0
 
         generators = config.getConfigurationSection("generators")?.getKeys(false)?.mapNotNull { key ->
             val section = config.getConfigurationSection("generators.$key") ?: return@mapNotNull null

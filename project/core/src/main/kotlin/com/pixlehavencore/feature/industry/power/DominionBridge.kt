@@ -25,4 +25,17 @@ object DominionBridge {
             null
         }
     }
+
+    fun getDominionArea(dominionId: String): Int {
+        if (!available) return 0
+        return try {
+            val plugin = Bukkit.getPluginManager().getPlugin("Dominion") ?: return 0
+            val result = plugin.javaClass.getMethod(
+                "getDominionAreaById", String::class.java
+            ).invoke(plugin, dominionId)
+            (result as? Int) ?: 0
+        } catch (e: Exception) {
+            0
+        }
+    }
 }
