@@ -1,0 +1,5 @@
+# feature/industry/power.yml
+version: 1
+enabled: true
+maxEnergyPerDominion: 100000.0
+generators: {}
