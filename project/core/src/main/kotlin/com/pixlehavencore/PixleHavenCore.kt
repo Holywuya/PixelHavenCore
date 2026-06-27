@@ -34,6 +34,8 @@ import com.pixlehavencore.feature.veinminer.VeinminerSettings
 import com.pixlehavencore.feature.optimization.entityclearer.EntityClearerService
 import com.pixlehavencore.feature.optimization.viewdistance.ViewDistanceService
 import com.pixlehavencore.feature.optimization.viewdistance.ViewDistanceSettings
+import com.pixlehavencore.feature.industry.power.PowerService
+import com.pixlehavencore.feature.industry.power.PowerSettings
 import com.pixlehavencore.feature.playtime.PlaytimeSettings
 import com.pixlehavencore.feature.playtime.PlaytimeStorage
 import com.pixlehavencore.feature.playtime.PlaytimeService
@@ -77,6 +79,7 @@ object PixleHavenCore : Plugin() {
         ProtectionSettings.init()
         PlayerStateService.init()
         PlayerInfoService.init()
+        PowerService.init()
         MMHealthBarService.init()
         PlaytimeSettings.init()
         PlaytimeStorage.init()
@@ -110,6 +113,7 @@ object PixleHavenCore : Plugin() {
             "Playtime" to PlaytimeSettings.enabled,
             "Crafting Bench" to CraftingBenchService.isEnabled(),
             "PlayerInfo" to PlayerInfoSettings.enabled,
+            "Industry-Power" to PowerSettings.enabled,
             "MM HealthBar" to MMHealthBarService.isEnabled(),
             "Title" to TitleSettings.enabled,
             "Flight" to FlightSettings.enabled,
@@ -142,6 +146,7 @@ object PixleHavenCore : Plugin() {
         DeathDropUsageStorage.close()
         PlayerInvService.close()
         PlayerInfoService.stop()
+        PowerService.stop()
         MMHealthBarService.stop()
         CraftingBenchService.stop()
         EconomyProvider.stop()

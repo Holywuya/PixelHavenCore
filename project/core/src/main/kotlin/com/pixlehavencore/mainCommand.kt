@@ -11,6 +11,7 @@ import com.pixlehavencore.feature.economy.EconomyProvider
 import com.pixlehavencore.feature.grindstone.GrindstoneRepairSettings
 import com.pixlehavencore.feature.keycommand.KeyCommandService
 import com.pixlehavencore.feature.notification.NotificationService
+import com.pixlehavencore.feature.industry.power.PowerService
 import com.pixlehavencore.feature.optimization.entityclearer.EntityClearerService
 import com.pixlehavencore.feature.optimization.viewdistance.ViewDistanceService
 import com.pixlehavencore.feature.playerinv.PlayerInvService
@@ -147,7 +148,8 @@ object MainCommand {
             ReloadStep("playtime-settings", false) { PlaytimeSettings.reload() },
             ReloadStep("playtime-storage", false) { PlaytimeStorage.reload() },
             ReloadStep("playtime-service", false) { PlaytimeService.reload() },
-            ReloadStep("flight", false) { FlightService.reload() }
+            ReloadStep("flight", false) { FlightService.reload() },
+            ReloadStep("industry-power", false) { PowerService.reload() }
         )
 
         steps.forEach { step ->
