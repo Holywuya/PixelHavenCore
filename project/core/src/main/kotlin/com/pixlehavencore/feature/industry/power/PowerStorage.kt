@@ -29,7 +29,7 @@ object PowerStorage {
         """)
         execute("""
             CREATE TABLE IF NOT EXISTS industry_power_generator (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY,
                 dominion_id TEXT NOT NULL,
                 generator_type TEXT NOT NULL,
                 world TEXT NOT NULL,
@@ -80,20 +80,25 @@ object PowerStorage {
 
     fun saveAllPools(pools: Collection<EnergyPool>) {
         val ds = dataSource ?: return
-        ds.connection.use { conn ->
-            conn.autoCommit = false
-            val stmt = conn.prepareStatement(
-                "INSERT OR REPLACE INTO industry_power_pool (dominion_id, energy, capacity, updated_at) VALUES (?, ?, ?, ?)"
-            )
-            pools.forEach { pool ->
-                stmt.setString(1, pool.dominionId)
-                stmt.setDouble(2, pool.energy)
-                stmt.setDouble(3, pool.capacity)
-                stmt.setLong(4, System.currentTimeMillis())
-                stmt.addBatch()
+        try {
+            ds.connection.use { conn ->
+                conn.autoCommit = false
+                conn.prepareStatement(
+                    "INSERT OR REPLACE INTO industry_power_pool (dominion_id, energy, capacity, updated_at) VALUES (?, ?, ?, ?)"
+                ).use { stmt ->
+                    pools.forEach { pool ->
+                        stmt.setString(1, pool.dominionId)
+                        stmt.setDouble(2, pool.energy)
+                        stmt.setDouble(3, pool.capacity)
+                        stmt.setLong(4, System.currentTimeMillis())
+                        stmt.addBatch()
+                    }
+                    stmt.executeBatch()
+                }
+                conn.commit()
             }
-            stmt.executeBatch()
-            conn.commit()
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
