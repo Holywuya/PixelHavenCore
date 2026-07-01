@@ -7,7 +7,7 @@ import com.pixlehavencore.feature.base.back.BackStorage
 import com.pixlehavencore.feature.base.back.BackSettings
 import com.pixlehavencore.feature.base.protection.ProtectionSettings
 import com.pixlehavencore.playerstate.PlayerStateService
-import com.pixlehavencore.feature.craftingbench.CraftingBenchService
+
 import com.pixlehavencore.feature.flight.FlightService
 import com.pixlehavencore.feature.flight.FlightSettings
 import com.pixlehavencore.feature.deathdrop.DeathDropSettings
@@ -60,7 +60,6 @@ object PixleHavenCore : Plugin() {
         VeinminerSettings.init()
         VeinminerLimitService.init()
         GrindstoneRepairSettings.init()
-        CraftingBenchService.init()
         NotificationService.init()
         ViewDistanceService.init()
         EntityClearerService.init()
@@ -111,7 +110,6 @@ object PixleHavenCore : Plugin() {
         logEnabledGroup("独立模块", listOf(
             "Economy System" to EconomySettings.enabled,
             "Playtime" to PlaytimeSettings.enabled,
-            "Crafting Bench" to CraftingBenchService.isEnabled(),
             "PlayerInfo" to PlayerInfoSettings.enabled,
             "Industry-Power" to PowerSettings.enabled,
             "MM HealthBar" to MMHealthBarService.isEnabled(),
@@ -148,7 +146,6 @@ object PixleHavenCore : Plugin() {
         PlayerInfoService.stop()
         PowerService.stop()
         MMHealthBarService.stop()
-        CraftingBenchService.stop()
         EconomyProvider.stop()
         PlaytimeService.stop()
         PlaytimeStorage.stop()

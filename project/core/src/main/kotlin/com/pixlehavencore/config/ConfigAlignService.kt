@@ -40,8 +40,6 @@ object ConfigAlignService {
      * 目录型条目以 "/" 结尾，避免误匹配同级其他文件。
      */
     private val ALIGN_BLACKLIST: List<String> = listOf(
-        // 工作台配方由 CraftingBenchRecipeLoader 自行管理格式迁移
-        "feature/crafting-bench/recipes/"
     )
 
     /**
@@ -62,8 +60,6 @@ object ConfigAlignService {
         "feature/grindstone-repair.yml" to listOf("grindstoneRepair.rules"),
         // economy 货币定义：用户可自由增删货币类型
         "feature/economy/economy.yml" to listOf("currencies"),
-        // crafting bench 的工作台映射、等级和专精均允许自由扩展
-        "feature/crafting-bench/config.yml" to listOf("craftengine_blocks", "bench_tiers", "specializations", "queue.permission_limits"),
         // title 稀有度颜色：用户可自定义稀有度名称和颜色
         "feature/title/config.yml" to listOf("gui.rarity_colors")
     )

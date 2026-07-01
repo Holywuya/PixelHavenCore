@@ -63,10 +63,8 @@ object TitleMenu {
                     openViews.remove(playerId)
                     return@submitOnEntity
                 }
-                if (holder != null) {
-                    renderInventory(holder.backingInventory, player, holder)
-                    player.updateInventory()
-                }
+                renderInventory(holder.backingInventory, player, holder)
+                player.updateInventory()
             }
         }
     }

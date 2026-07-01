@@ -3,7 +3,7 @@ package com.pixlehavencore
 import com.pixlehavencore.feature.base.killme.KillmeSettings
 import com.pixlehavencore.feature.base.back.BackService
 import com.pixlehavencore.feature.base.protection.ProtectionSettings
-import com.pixlehavencore.feature.craftingbench.CraftingBenchService
+
 import com.pixlehavencore.feature.deathdrop.DeathDropSettings
 import com.pixlehavencore.feature.deathdrop.DeathDropUsageStorage
 import com.pixlehavencore.feature.flight.FlightService
@@ -129,7 +129,6 @@ object MainCommand {
             ReloadStep("settings", false) { PixleHavenSettings.reload() },
             ReloadStep("veinminer", false) { VeinminerSettings.init() },
             ReloadStep("grindstone", false) { GrindstoneRepairSettings.init() },
-            ReloadStep("crafting-bench", false) { CraftingBenchService.reload() },
             ReloadStep("notification", true) { NotificationService.reload() },
             ReloadStep("view-distance", true) { ViewDistanceService.reload() },
             ReloadStep("entity-clearer", false) { EntityClearerService.reload() },
