@@ -2,7 +2,6 @@ package com.pixlehavencore.feature.playtime
 
 import com.pixlehavencore.util.cancelTaskSafely
 import org.bukkit.entity.Player
-import taboolib.common.platform.function.info
 import taboolib.common.platform.function.submit
 import taboolib.common.platform.function.submitAsync
 import java.time.DayOfWeek
@@ -10,13 +9,16 @@ import java.time.Duration
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicBoolean
 
 object PlaytimeService {
 
     private var dailyResetTask: Any? = null
     private var weeklyResetTask: Any? = null
     private var monthlyResetTask: Any? = null
-    private val monthlyResetScheduled = java.util.concurrent.atomic.AtomicBoolean(false)
+    private val dailyScheduled = AtomicBoolean(false)
+    private val weeklyScheduled = AtomicBoolean(false)
+    private val monthlyScheduled = AtomicBoolean(false)
 
     fun init() {
         scheduleResetTasks()
@@ -91,20 +93,25 @@ object PlaytimeService {
         dailyResetTask = null
         weeklyResetTask = null
         monthlyResetTask = null
-        monthlyResetScheduled.set(false)
+        dailyScheduled.set(false)
+        weeklyScheduled.set(false)
+        monthlyScheduled.set(false)
     }
 
     private fun scheduleDailyReset() {
+        if (!dailyScheduled.compareAndSet(false, true)) return
         val time = parseResetTime(PlaytimeSettings.dailyResetTime)
         val delay = calculateDelayToNext(time)
-        val period = 24 * 60 * 60 * 1000L
-        dailyResetTask = submitAsync(delay = delay / 50, period = period / 50) {
-            info("[在线时长] 执行每日统计重置...")
+        val safeDelay = maxOf(delay, 1000L)
+        dailyResetTask = submitAsync(delay = safeDelay / 50) {
             PlaytimeStorage.resetDailyStats()
+            dailyScheduled.set(false)
+            scheduleDailyReset()
         }
     }
 
     private fun scheduleWeeklyReset() {
+        if (!weeklyScheduled.compareAndSet(false, true)) return
         val targetDay = when (PlaytimeSettings.weeklyResetDay) {
             1 -> DayOfWeek.MONDAY
             2 -> DayOfWeek.TUESDAY
@@ -121,29 +128,27 @@ object PlaytimeService {
             next = next.plusWeeks(1)
         }
         val delay = Duration.between(now, next).toMillis()
-        val period = 7 * 24 * 60 * 60 * 1000L
-        weeklyResetTask = submitAsync(delay = delay / 50, period = period / 50) {
-            info("[在线时长] 执行每周统计重置...")
+        val safeDelay = maxOf(delay, 1000L)
+        weeklyResetTask = submitAsync(delay = safeDelay / 50) {
             PlaytimeStorage.resetWeeklyStats()
+            weeklyScheduled.set(false)
+            scheduleWeeklyReset()
         }
     }
 
     private fun scheduleMonthlyReset() {
-        // 使用 AtomicBoolean 防止重复调度
-        if (!monthlyResetScheduled.compareAndSet(false, true)) {
-            return
-        }
+        if (!monthlyScheduled.compareAndSet(false, true)) return
         val targetDay = PlaytimeSettings.monthlyResetDay.coerceIn(1, 28)
         val now = LocalDateTime.now()
         var next = now.withDayOfMonth(targetDay).with(LocalTime.MIDNIGHT)
         if (!next.isAfter(now)) {
-            next = next.plusMonths(1).withDayOfMonth(targetDay).with(LocalTime.MIDNIGHT)
+            next = next.plusMonths(1)
         }
         val delay = Duration.between(now, next).toMillis()
-        monthlyResetTask = submitAsync(delay = delay / 50) {
-            info("[在线时长] 执行每月统计重置...")
+        val safeDelay = maxOf(delay, 1000L)
+        monthlyResetTask = submitAsync(delay = safeDelay / 50) {
             PlaytimeStorage.resetMonthlyStats()
-            monthlyResetScheduled.set(false)
+            monthlyScheduled.set(false)
             scheduleMonthlyReset()
         }
     }

@@ -143,7 +143,6 @@ object PlaytimeStorage {
                     dirtyPlayers += uuid
                 }
             }
-            info("[在线时长] 已重置所有玩家的今日统计。")
         }
     }
 
@@ -157,7 +156,6 @@ object PlaytimeStorage {
                     dirtyPlayers += uuid
                 }
             }
-            info("[在线时长] 已重置所有玩家的本周统计。")
         }
     }
 
@@ -171,7 +169,6 @@ object PlaytimeStorage {
                     dirtyPlayers += uuid
                 }
             }
-            info("[在线时长] 已重置所有玩家的本月统计。")
         }
     }
 
