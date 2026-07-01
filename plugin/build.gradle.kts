@@ -15,7 +15,7 @@ taboolib {
         }
     }
 
-    relocate("com.zaxxer.hikari.", "com.zaxxer.hikari_4_0_3.")
+    relocate("com.zaxxer.hikari.", "com.zaxxer.hikari_7_1_0.")
     relocate("org.slf4j.", "org.slf4j_2_0_8.")
     relocate("org.slf4j.impl.", "org.slf4j_2_0_8.impl.")
     relocate("org.apache.commons.pool2.", "org.apache.commons.pool2_2_11_1.")
@@ -27,7 +27,7 @@ repositories {
 }
 
 dependencies {
-    taboo("com.zaxxer:HikariCP:4.0.3")
+    taboo("com.zaxxer:HikariCP:7.1.0")
     taboo("org.slf4j:slf4j-api:2.0.8")
     taboo("org.slf4j:slf4j-jdk14:2.0.8")
     taboo("top.maplex.arim:Arim:1.3.12")
