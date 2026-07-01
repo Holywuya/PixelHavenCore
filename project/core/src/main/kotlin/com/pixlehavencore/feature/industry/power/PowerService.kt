@@ -94,6 +94,34 @@ object PowerService {
 
     fun getAllPools(): Map<String, EnergyPool> = pools.toMap()
 
+    fun getDominionId(location: Location): String? = DominionBridge.getDominionId(location)
+
+    fun getPoolAt(location: Location): EnergyPool? {
+        val dominionId = DominionBridge.getDominionId(location) ?: return null
+        return pools[dominionId]
+    }
+
+    fun getEnergy(dominionId: String): Double = pools[dominionId]?.energy ?: 0.0
+
+    fun getCapacity(dominionId: String): Double = pools[dominionId]?.capacity ?: 0.0
+
+    fun hasEnergy(dominionId: String, amount: Double): Boolean {
+        val pool = pools[dominionId] ?: return false
+        return pool.energy >= amount
+    }
+
+    fun consumeEnergy(dominionId: String, amount: Double): Boolean {
+        val pool = pools[dominionId] ?: return false
+        if (pool.energy < amount) return false
+        pool.energy -= amount
+        return true
+    }
+
+    fun addEnergy(dominionId: String, amount: Double) {
+        val pool = pools[dominionId] ?: return
+        pool.energy = (pool.energy + amount).coerceAtMost(pool.capacity)
+    }
+
     fun getOrCreatePool(dominionId: String): EnergyPool {
         return pools.getOrPut(dominionId) {
             val area = DominionBridge.getDominionArea(dominionId)
