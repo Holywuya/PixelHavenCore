@@ -43,10 +43,51 @@ object TitleMenu {
             map(*lines.toTypedArray())
             set('#', ItemStack(TitleSettings.borderAccent))
             set('|', ItemStack(TitleSettings.borderItem))
+
+            onClick(false) { e ->
+                val h = openViews[e.clicker.uniqueId] ?: return@onClick
+                e.isCancelled = true
+
+                val slot = e.rawSlot
+                val categories = TitleService.getCategories()
+                val catIndex = TitleSettings.categorySlots.indexOf(slot)
+                if (catIndex >= 0) {
+                    val selected = if (catIndex == 0) null else categories.getOrNull(catIndex - 1)
+                    open(e.clicker, selected, 0)
+                    return@onClick
+                }
+                if (slot == TitleSettings.prevPageSlot && h.page > 0) {
+                    open(e.clicker, h.category, h.page - 1)
+                    return@onClick
+                }
+                if (slot == TitleSettings.nextPageSlot) {
+                    open(e.clicker, h.category, h.page + 1)
+                    return@onClick
+                }
+                val titlePreviews = TitleService.getTitlePreviews(e.clicker, h.category)
+                val start = h.page * TitleSettings.pageSize
+                val gridIndex = slotToTitleIndex(slot)
+                val titleIndex = gridIndex + start
+                if (gridIndex >= 0 && titleIndex in titlePreviews.indices) {
+                    val preview = titlePreviews[titleIndex]
+                    if (preview.entry == null || preview.isExpired) return@onClick
+                    if (preview.isActive) {
+                        TitleService.deactivateTitle(e.clicker)
+                    } else {
+                        TitleService.activateTitle(e.clicker, preview.definition.id)
+                    }
+                    open(e.clicker, h.category, h.page)
+                }
+            }
+
             onBuild { p, inv ->
                 holder.backingInventory = inv
                 openViews[p.uniqueId] = holder
                 renderInventory(inv, p, holder)
+            }
+
+            onClose {
+                openViews.remove(it.player.uniqueId)
             }
         }
     }
@@ -69,58 +110,8 @@ object TitleMenu {
         }
     }
 
-    fun unregister(playerId: UUID) {
-        openViews.remove(playerId)
-    }
-
     fun getOpenHolder(playerId: UUID): TitleMenuHolder? {
         return openViews[playerId]
-    }
-
-    fun getOpenHolder(inventory: Inventory): TitleMenuHolder? {
-        openViews.entries().forEach { (_, holder) ->
-            if (holder?.backingInventory === inventory) return holder
-        }
-        return null
-    }
-
-    fun handleClick(player: Player, slot: Int): Boolean {
-        val holder = openViews[player.uniqueId] ?: return false
-
-        val categories = TitleService.getCategories()
-        val catIndex = TitleSettings.categorySlots.indexOf(slot)
-        if (catIndex >= 0) {
-            val selectedCat = if (catIndex == 0) null else categories.getOrNull(catIndex - 1)
-            open(player, selectedCat, 0)
-            return true
-        }
-
-        if (slot == TitleSettings.prevPageSlot && holder.page > 0) {
-            open(player, holder.category, holder.page - 1)
-            return true
-        }
-        if (slot == TitleSettings.nextPageSlot) {
-            open(player, holder.category, holder.page + 1)
-            return true
-        }
-
-        val titlePreviews = TitleService.getTitlePreviews(player, holder.category)
-        val start = holder.page * TitleSettings.pageSize
-        val gridIndex = slotToTitleIndex(slot)
-        val titleIndex = gridIndex + start
-        if (gridIndex >= 0 && titleIndex in titlePreviews.indices) {
-            val preview = titlePreviews[titleIndex]
-            if (preview.entry == null || preview.isExpired) return true
-            if (preview.isActive) {
-                TitleService.deactivateTitle(player)
-            } else {
-                TitleService.activateTitle(player, preview.definition.id)
-            }
-            open(player, holder.category, holder.page)
-            return true
-        }
-
-        return true
     }
 
     private fun titleIndexToSlot(index: Int): Int {
