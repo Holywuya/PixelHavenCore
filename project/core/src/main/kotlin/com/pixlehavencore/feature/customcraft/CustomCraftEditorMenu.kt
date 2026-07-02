@@ -19,20 +19,15 @@ object CustomCraftEditorMenu {
     private val actionKey = NamespacedKey("phcore", "customcraft_action")
 
     private val matSlots = intArrayOf(10, 11, 12, 19, 20, 21, 28, 29, 30)
+    private val arrowSlot = 24
     private val resultSlot = 25
     private val saveSlot = 40
-    private val clearSlot = 41
-    private val decorativeSlots = listOf(
-        0, 1, 2, 7, 8,
-        9, 15, 16, 17,
-        18, 22, 26,
-        27, 33, 34, 35,
-        36, 37, 38, 39, 42, 43, 44
-    )
+    private val toggleTypeSlot = 41
 
     private data class EditorSession(
         val player: Player,
-        val recipeId: String
+        val recipeId: String,
+        var recipeType: RecipeType = RecipeType.SHAPED
     )
 
     fun open(player: Player, recipeId: String) {
@@ -40,12 +35,19 @@ object CustomCraftEditorMenu {
         val inv = Bukkit.createInventory(null, ROWS * 9, title)
         val filler = decorativeItem()
 
-        decorativeSlots.forEach { inv.setItem(it, filler) }
+        for (slot in 0 until ROWS * 9) {
+            if (slot !in matSlots && slot != arrowSlot && slot != resultSlot && slot != saveSlot && slot != toggleTypeSlot) {
+                inv.setItem(slot, filler)
+            }
+        }
 
+        inv.setItem(arrowSlot, arrowItem())
+
+        val session = EditorSession(player, recipeId)
         inv.setItem(saveSlot, actionItem(Material.LIME_CONCRETE, "&a保存配方", "save"))
-        inv.setItem(clearSlot, actionItem(Material.RED_CONCRETE, "&c清空所有格子", "clear"))
+        inv.setItem(toggleTypeSlot, toggleTypeItem(session.recipeType))
 
-        editSessions[System.identityHashCode(inv)] = EditorSession(player, recipeId)
+        editSessions[System.identityHashCode(inv)] = session
         player.openInventory(inv)
     }
 
@@ -59,10 +61,6 @@ object CustomCraftEditorMenu {
         if (clicked != event.view.topInventory) return
 
         val slot = event.slot
-        if (slot in decorativeSlots) {
-            event.isCancelled = true
-            return
-        }
 
         if (slot == saveSlot) {
             event.isCancelled = true
@@ -70,10 +68,18 @@ object CustomCraftEditorMenu {
             return
         }
 
-        if (slot == clearSlot) {
+        if (slot == toggleTypeSlot) {
             event.isCancelled = true
-            clearEditor(event.view.topInventory)
+            session.recipeType = when (session.recipeType) {
+                RecipeType.SHAPED -> RecipeType.SHAPELESS
+                RecipeType.SHAPELESS -> RecipeType.SHAPED
+            }
+            event.view.topInventory.setItem(toggleTypeSlot, toggleTypeItem(session.recipeType))
             return
+        }
+
+        if (slot !in matSlots && slot != resultSlot) {
+            event.isCancelled = true
         }
     }
 
@@ -100,28 +106,29 @@ object CustomCraftEditorMenu {
         }
         val result = CustomCraftRecipeLoader.itemToIngredient(resultItem)
 
-        val type = if (materials.size <= 4) RecipeType.SHAPELESS else RecipeType.SHAPED
-
         val recipe = CraftingRecipe(
             id = session.recipeId,
-            type = type,
+            type = session.recipeType,
             materials = materials,
             result = result
         )
 
         CustomCraftService.saveAndRegister(recipe)
+        val key = NamespacedKey("phcore", session.recipeId.lowercase())
+        runCatching { player.discoverRecipe(key) }
         player.closeInventory()
         player.sendMessage(TextUtils.parse("&a配方 &e${session.recipeId} &a已保存并注册"))
-    }
-
-    private fun clearEditor(inv: org.bukkit.inventory.Inventory) {
-        matSlots.forEach { inv.setItem(it, null) }
-        inv.setItem(resultSlot, null)
     }
 
     private fun decorativeItem(): ItemStack {
         val item = ItemStack(Material.GRAY_STAINED_GLASS_PANE)
         TextBridge.setDisplayName(item, TextUtils.parseItem("&7"))
+        return item
+    }
+
+    private fun arrowItem(): ItemStack {
+        val item = ItemStack(Material.ARROW)
+        TextBridge.setDisplayName(item, TextUtils.parseItem("&7→"))
         return item
     }
 
@@ -131,6 +138,22 @@ object CustomCraftEditorMenu {
         item.editMeta { meta ->
             meta.persistentDataContainer.set(actionKey, PersistentDataType.STRING, action)
         }
+        return item
+    }
+
+    private fun toggleTypeItem(type: RecipeType): ItemStack {
+        val name = when (type) {
+            RecipeType.SHAPED -> "&a有序合成"
+            RecipeType.SHAPELESS -> "&e无序合成"
+        }
+        val lore = when (type) {
+            RecipeType.SHAPED -> listOf("&7物品必须按指定位置放置", "&7点击切换为无序合成")
+            RecipeType.SHAPELESS -> listOf("&7物品可放在任意位置", "&7点击切换为有序合成")
+        }
+        val item = ItemStack(Material.CRAFTING_TABLE)
+        TextBridge.setDisplayName(item, TextUtils.parseItem(name))
+        @Suppress("UNCHECKED_CAST")
+        TextBridge.setLore(item, TextUtils.parseItemLore(lore) as List<net.kyori.adventure.text.Component>)
         return item
     }
 }
