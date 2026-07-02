@@ -599,7 +599,7 @@ object PlayerInvService {
         }
 
         if (session.type == SessionType.SHARED_MANAGE) {
-            return handleManageClick(player, session, slot, click)
+            return true
         }
 
         if (session.type == SessionType.SHARED) {
@@ -815,6 +815,13 @@ object PlayerInvService {
                         "#########"
                     )
                     set('#', ItemStack(Material.GRAY_STAINED_GLASS_PANE))
+
+                    onClick(false) { e ->
+                        val s = openSessions[System.identityHashCode(e.inventory)] ?: return@onClick
+                        if (e.clicker.uniqueId != s.viewer) return@onClick
+                        e.isCancelled = true
+                        handleManageClick(e.clicker, s, e.rawSlot, e.clickEventOrNull()?.click ?: return@onClick)
+                    }
                 }
 
                 // slot 10: 成员按钮，公开时显示公开提示，私有时显示成员预览
