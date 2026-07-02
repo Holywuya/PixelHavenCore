@@ -51,9 +51,9 @@ object CustomCraftRecipeLoader {
     }
 
     fun saveToFile(recipe: CraftingRecipe) {
-        val file = File(recipesDir, "${recipe.id}.yml")
         recipesDir.mkdirs()
-        val config = Configuration.empty()
+        val file = File(recipesDir, "${recipe.id}.yml")
+        val config = Configuration.loadFromString("id: ${recipe.id}")
         config["id"] = recipe.id
         config["type"] = recipe.type.name.lowercase()
 
