@@ -30,6 +30,8 @@ import com.pixlehavencore.feature.trade.TradeService
 import com.pixlehavencore.feature.vanish.VanishService
 import com.pixlehavencore.feature.vanish.VanishSettings
 import com.pixlehavencore.feature.veinminer.VeinminerLimitService
+import com.pixlehavencore.feature.customcraft.CustomCraftService
+import com.pixlehavencore.feature.customcraft.CustomCraftSettings
 import com.pixlehavencore.feature.veinminer.VeinminerSettings
 import com.pixlehavencore.feature.optimization.entityclearer.EntityClearerService
 import com.pixlehavencore.feature.optimization.viewdistance.ViewDistanceService
@@ -89,6 +91,7 @@ object PixleHavenCore : Plugin() {
         TitleService.init()
         TitlePlaceholders
         FlightService.init()
+        CustomCraftService.init()
         logModulesStatus()
         info("Successfully running PixleHavenCore!")
     }
@@ -115,6 +118,7 @@ object PixleHavenCore : Plugin() {
             "MM HealthBar" to MMHealthBarService.isEnabled(),
             "Title" to TitleSettings.enabled,
             "Flight" to FlightSettings.enabled,
+            "CustomCraft" to CustomCraftSettings.enabled,
         ))
         logEnabledGroup("优化模块", listOf(
             "View Distance Controller" to ViewDistanceSettings.enabled,
@@ -157,6 +161,7 @@ object PixleHavenCore : Plugin() {
         VanishService.stop()
         BackService.stop()
         PlayerStateService.stop()
+        CustomCraftService.stop()
         BackStorage.close()
         ItemUtils.clearHeadCache()
     }

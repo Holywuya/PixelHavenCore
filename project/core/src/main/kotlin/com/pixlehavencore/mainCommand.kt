@@ -4,6 +4,7 @@ import com.pixlehavencore.feature.base.killme.KillmeSettings
 import com.pixlehavencore.feature.base.back.BackService
 import com.pixlehavencore.feature.base.protection.ProtectionSettings
 
+import com.pixlehavencore.feature.customcraft.CustomCraftService
 import com.pixlehavencore.feature.deathdrop.DeathDropSettings
 import com.pixlehavencore.feature.deathdrop.DeathDropUsageStorage
 import com.pixlehavencore.feature.flight.FlightService
@@ -148,6 +149,7 @@ object MainCommand {
             ReloadStep("playtime-storage", false) { PlaytimeStorage.reload() },
             ReloadStep("playtime-service", false) { PlaytimeService.reload() },
             ReloadStep("flight", false) { FlightService.reload() },
+            ReloadStep("customcraft", false) { CustomCraftService.reload() },
             ReloadStep("industry-power", false) { PowerService.reload() }
         )
 
