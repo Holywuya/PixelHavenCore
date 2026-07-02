@@ -62,6 +62,7 @@ object CustomCraftEditorMenu {
             }
 
             onClick(lock = false) { e ->
+                if (e.rawSlot >= e.view.topInventory.size) return@onClick
                 val session = sessions[System.identityHashCode(e.inventory)] ?: return@onClick
                 if (e.slot !in editableChars) {
                     e.isCancelled = true
