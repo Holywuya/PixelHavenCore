@@ -31,6 +31,7 @@ object CustomCraftEditorMenu {
         val title = TextBridge.toLegacy(TextBridge.fromMiniMessage("<dark_gray>编辑配方 - $recipeId"))
         player.openMenu<Chest>(title) {
             rows(5)
+            handLocked(false)
             map(
                 "#########",
                 "#012#####",
