@@ -2,27 +2,32 @@ package com.pixlehavencore.feature.customcraft
 
 import com.pixlehavencore.bridge.TextBridge
 import com.pixlehavencore.util.TextUtils
-import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
 import org.bukkit.inventory.ItemStack
-import org.bukkit.persistence.PersistentDataType
 import taboolib.common.platform.event.SubscribeEvent
+import taboolib.module.ui.openMenu
+import taboolib.module.ui.type.Chest
 
 object CustomCraftEditorMenu {
 
-    private const val ROWS = 5
-    private val editSessions = mutableMapOf<Int, EditorSession>()
-    private val actionKey = NamespacedKey("phcore", "customcraft_action")
+    private val sessions = mutableMapOf<Int, EditorSession>()
 
     private val matSlots = intArrayOf(10, 11, 12, 19, 20, 21, 28, 29, 30)
-    private val arrowSlot = 24
     private val resultSlot = 25
     private val saveSlot = 40
-    private val toggleTypeSlot = 41
+    private val toggleSlot = 41
+
+    private val mapLayout = listOf(
+        "#########",
+        "#MMM#####",
+        "#MMM##AR#",
+        "#MMM#####",
+        "####ST###"
+    )
 
     private data class EditorSession(
         val player: Player,
@@ -31,62 +36,55 @@ object CustomCraftEditorMenu {
     )
 
     fun open(player: Player, recipeId: String) {
-        val title = TextUtils.parse("&8编辑配方 - $recipeId")
-        val inv = Bukkit.createInventory(null, ROWS * 9, title)
-        val filler = decorativeItem()
+        val title = TextBridge.toLegacy(TextBridge.fromMiniMessage("<dark_gray>编辑配方 - $recipeId"))
+        player.openMenu<Chest>(title) {
+            rows(5)
+            map(*mapLayout.toTypedArray())
 
-        for (slot in 0 until ROWS * 9) {
-            if (slot !in matSlots && slot != arrowSlot && slot != resultSlot && slot != saveSlot && slot != toggleTypeSlot) {
-                inv.setItem(slot, filler)
+            set('#', decorativeItem())
+            set('A', arrowItem())
+            set('S', saveButton())
+            set('T', toggleButton(RecipeType.SHAPED))
+
+            onBuild { _, inv ->
+                sessions[System.identityHashCode(inv)] = EditorSession(player, recipeId)
             }
         }
-
-        inv.setItem(arrowSlot, arrowItem())
-
-        val session = EditorSession(player, recipeId)
-        inv.setItem(saveSlot, actionItem(Material.LIME_CONCRETE, "&a保存配方", "save"))
-        inv.setItem(toggleTypeSlot, toggleTypeItem(session.recipeType))
-
-        editSessions[System.identityHashCode(inv)] = session
-        player.openInventory(inv)
     }
 
     @SubscribeEvent
     fun onClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
-        val session = editSessions[System.identityHashCode(event.view.topInventory)] ?: return
+        val session = sessions[System.identityHashCode(event.view.topInventory)] ?: return
         if (session.player.uniqueId != player.uniqueId) return
+        if (event.clickedInventory != event.view.topInventory) return
 
-        val clicked = event.clickedInventory
-        if (clicked != event.view.topInventory) return
-
-        val slot = event.slot
-
-        if (slot == saveSlot) {
-            event.isCancelled = true
-            saveRecipe(player, event.view.topInventory, session)
-            return
-        }
-
-        if (slot == toggleTypeSlot) {
-            event.isCancelled = true
-            session.recipeType = when (session.recipeType) {
-                RecipeType.SHAPED -> RecipeType.SHAPELESS
-                RecipeType.SHAPELESS -> RecipeType.SHAPED
+        val slot = event.rawSlot
+        when (slot) {
+            saveSlot -> {
+                event.isCancelled = true
+                saveRecipe(player, event.view.topInventory, session)
             }
-            event.view.topInventory.setItem(toggleTypeSlot, toggleTypeItem(session.recipeType))
-            return
-        }
-
-        if (slot !in matSlots && slot != resultSlot) {
-            event.isCancelled = true
+            toggleSlot -> {
+                event.isCancelled = true
+                session.recipeType = when (session.recipeType) {
+                    RecipeType.SHAPED -> RecipeType.SHAPELESS
+                    RecipeType.SHAPELESS -> RecipeType.SHAPED
+                }
+                event.view.topInventory.setItem(toggleSlot, toggleButton(session.recipeType))
+            }
+            !in editableSlots() -> {
+                event.isCancelled = true
+            }
         }
     }
 
     @SubscribeEvent
     fun onClose(event: InventoryCloseEvent) {
-        editSessions.remove(System.identityHashCode(event.inventory))
+        sessions.remove(System.identityHashCode(event.inventory))
     }
+
+    private fun editableSlots(): Set<Int> = matSlots.toSet() + resultSlot + saveSlot + toggleSlot
 
     private fun saveRecipe(player: Player, inv: org.bukkit.inventory.Inventory, session: EditorSession) {
         val materials = mutableListOf<RecipeIngredient>()
@@ -116,8 +114,8 @@ object CustomCraftEditorMenu {
         CustomCraftService.saveAndRegister(recipe)
         val key = NamespacedKey("phcore", session.recipeId.lowercase())
         runCatching { player.discoverRecipe(key) }
-        player.closeInventory()
         player.sendMessage(TextUtils.parse("&a配方 &e${session.recipeId} &a已保存并注册"))
+        player.closeInventory()
     }
 
     private fun decorativeItem(): ItemStack {
@@ -132,16 +130,13 @@ object CustomCraftEditorMenu {
         return item
     }
 
-    private fun actionItem(material: Material, name: String, action: String): ItemStack {
-        val item = ItemStack(material)
-        TextBridge.setDisplayName(item, TextUtils.parseItem(name))
-        item.editMeta { meta ->
-            meta.persistentDataContainer.set(actionKey, PersistentDataType.STRING, action)
-        }
+    private fun saveButton(): ItemStack {
+        val item = ItemStack(Material.LIME_CONCRETE)
+        TextBridge.setDisplayName(item, TextUtils.parseItem("&a保存配方"))
         return item
     }
 
-    private fun toggleTypeItem(type: RecipeType): ItemStack {
+    private fun toggleButton(type: RecipeType): ItemStack {
         val name = when (type) {
             RecipeType.SHAPED -> "&a有序合成"
             RecipeType.SHAPELESS -> "&e无序合成"
