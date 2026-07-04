@@ -73,6 +73,13 @@ object CustomCraftService {
         registerBukkitRecipe(recipe)
     }
 
+    fun deleteRecipe(id: String): Boolean {
+        val existing = recipes.remove(id) ?: return false
+        unregisterRecipe(id)
+        CustomCraftRecipeLoader.deleteFile(id)
+        return true
+    }
+
     fun recipeKey(id: String): NamespacedKey {
         val filtered = id.lowercase().filter { it in 'a'..'z' || it in '0'..'9' || it in "_-./" }
         val key = filtered.ifEmpty {

@@ -20,6 +20,7 @@ object CustomCraftCommand {
             if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             sender.msg("<gold>=== CustomCraft 帮助 ===")
             sender.msg("<aqua>/customcraft create <id> <gray>- 创建配方（打开编辑 GUI）")
+            sender.msg("<aqua>/customcraft delete <id> <gray>- 删除指定配方")
             sender.msg("<aqua>/customcraft reload <gray>- 重载全部配方")
             sender.msg("<aqua>/customcraft list <gray>- 列出所有配方")
         }
@@ -37,6 +38,25 @@ object CustomCraftCommand {
                     return@execute
                 }
                 CustomCraftEditorMenu.open(player.cast(), id)
+            }
+        }
+    }
+
+    @CommandBody
+    val delete = subCommand {
+        dynamic(comment = "recipeId") {
+            execute<ProxyCommandSender> { sender, _, argument ->
+                if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
+                val id = argument.toString().trim()
+                if (id.isBlank()) {
+                    sender.msg("<red>配方 ID 不能为空")
+                    return@execute
+                }
+                if (CustomCraftService.deleteRecipe(id)) {
+                    sender.msg("<green>配方 &e$id &a已删除")
+                } else {
+                    sender.msg("<red>未找到配方: $id")
+                }
             }
         }
     }

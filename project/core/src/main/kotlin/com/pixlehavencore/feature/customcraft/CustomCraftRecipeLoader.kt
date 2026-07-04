@@ -65,6 +65,11 @@ object CustomCraftRecipeLoader {
         config.saveToFile(file)
     }
 
+    fun deleteFile(id: String): Boolean {
+        val file = File(recipesDir, "$id.yml")
+        return file.delete()
+    }
+
     private fun parseIngredient(map: Map<String, Any>): RecipeIngredient? {
         val spec = map["spec"] as? String
         val json = map["json"] as? String
