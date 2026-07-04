@@ -26,8 +26,9 @@ object CustomCraftEditorMenu {
         var recipeType: RecipeType = RecipeType.SHAPED
     )
 
-    fun open(player: Player, recipeId: String) {
-        val title = TextBridge.toLegacy(TextBridge.fromMiniMessage("<dark_gray>编辑配方 - $recipeId"))
+    fun open(player: Player, recipeId: String, existingRecipe: CraftingRecipe? = null) {
+        val typeLabel = if (existingRecipe != null) "编辑" else "创建"
+        val title = TextBridge.toLegacy(TextBridge.fromMiniMessage("<dark_gray>${typeLabel}配方 - $recipeId"))
         player.openMenu<Chest>(title) {
             rows(5)
             handLocked(false)
@@ -39,10 +40,12 @@ object CustomCraftEditorMenu {
                 "####ST###"
             )
 
+            val initialType = existingRecipe?.type ?: RecipeType.SHAPED
+
             set('#', decorativeItem())
             set('A', arrowItem())
             set('S', saveButton())
-            set('T', toggleButton(RecipeType.SHAPED))
+            set('T', toggleButton(initialType))
 
             onClick('S') { e ->
                 val session = sessions[System.identityHashCode(e.inventory)] ?: return@onClick
@@ -69,7 +72,23 @@ object CustomCraftEditorMenu {
             }
 
             onBuild { _, inv ->
-                sessions[System.identityHashCode(inv)] = EditorSession(player, recipeId)
+                sessions[System.identityHashCode(inv)] = EditorSession(player, recipeId, recipeType = initialType)
+
+                existingRecipe?.materials?.forEach { ing ->
+                    val slotIdx = ing.slot ?: return@forEach
+                    if (slotIdx in matSlots.indices) {
+                        val item = CustomCraftRecipeLoader.ingredientToItem(ing)
+                        if (item != null) {
+                            inv.setItem(matSlots[slotIdx], item)
+                        }
+                    }
+                }
+                existingRecipe?.let {
+                    val resultItem = CustomCraftRecipeLoader.ingredientToItem(it.result)
+                    if (resultItem != null) {
+                        inv.setItem(resultSlotIndex, resultItem)
+                    }
+                }
             }
 
             onClose { event ->
