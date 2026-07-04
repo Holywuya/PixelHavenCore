@@ -73,8 +73,9 @@ object CustomCraftEditorMenu {
                 sessions[System.identityHashCode(inv)] = EditorSession(player, recipeId)
             }
 
-            onClose {
-                sessions.remove(System.identityHashCode(it.inventory))
+            onClose { event ->
+                sessions.remove(System.identityHashCode(event.inventory))
+                returnItems(event.player as Player, event.inventory)
             }
         }
     }
@@ -143,5 +144,18 @@ object CustomCraftEditorMenu {
         @Suppress("UNCHECKED_CAST")
         TextBridge.setLore(item, TextUtils.parseItemLore(lore) as List<net.kyori.adventure.text.Component>)
         return item
+    }
+
+    private fun returnItems(player: Player, inv: org.bukkit.inventory.Inventory) {
+        val allSlots = matSlots.toList() + resultSlotIndex
+        val items = allSlots.mapNotNull { slot ->
+            val item = inv.getItem(slot)
+            if (item != null && item.type != Material.AIR) item.clone() else null
+        }
+        if (items.isEmpty()) return
+        val overflow = player.inventory.addItem(*items.toTypedArray())
+        for (item in overflow.values) {
+            player.world.dropItem(player.location, item)
+        }
     }
 }
