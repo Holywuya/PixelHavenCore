@@ -46,6 +46,7 @@ object CustomCraftCommand {
     @CommandBody
     val edit = subCommand {
         dynamic(comment = "recipeId") {
+            suggestion<ProxyCommandSender>(uncheck = true) { _, _ -> CustomCraftService.getAllRecipes().map { it.id } }
             execute<ProxyCommandSender> { sender, _, argument ->
                 if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                 val player = sender.requirePlayer() ?: return@execute
@@ -67,6 +68,7 @@ object CustomCraftCommand {
     @CommandBody
     val delete = subCommand {
         dynamic(comment = "recipeId") {
+            suggestion<ProxyCommandSender>(uncheck = true) { _, _ -> CustomCraftService.getAllRecipes().map { it.id } }
             execute<ProxyCommandSender> { sender, _, argument ->
                 if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
                 val id = argument.toString().trim()
