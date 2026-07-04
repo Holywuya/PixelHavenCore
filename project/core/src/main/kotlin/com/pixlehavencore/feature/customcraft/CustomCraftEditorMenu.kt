@@ -3,7 +3,6 @@ package com.pixlehavencore.feature.customcraft
 import com.pixlehavencore.bridge.TextBridge
 import com.pixlehavencore.util.TextUtils
 import org.bukkit.Material
-import org.bukkit.NamespacedKey
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import taboolib.module.ui.openMenu
@@ -106,7 +105,7 @@ object CustomCraftEditorMenu {
         )
 
         CustomCraftService.saveAndRegister(recipe)
-        val key = NamespacedKey("phcore", session.recipeId.lowercase())
+        val key = CustomCraftService.recipeKey(session.recipeId)
         runCatching { player.discoverRecipe(key) }
         player.sendMessage(TextUtils.parse("&a配方 &e${session.recipeId} &a已保存并注册"))
         player.closeInventory()

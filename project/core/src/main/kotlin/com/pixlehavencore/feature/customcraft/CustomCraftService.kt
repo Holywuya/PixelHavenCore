@@ -73,8 +73,16 @@ object CustomCraftService {
         registerBukkitRecipe(recipe)
     }
 
+    fun recipeKey(id: String): NamespacedKey {
+        val filtered = id.lowercase().filter { it in 'a'..'z' || it in '0'..'9' || it in "_-./" }
+        val key = filtered.ifEmpty {
+            id.toByteArray(Charsets.UTF_8).joinToString("") { "%02x".format(it) }
+        }
+        return NamespacedKey("phcore", key)
+    }
+
     private fun unregisterRecipe(id: String) {
-        val key = NamespacedKey("phcore", id.lowercase())
+        val key = recipeKey(id)
         Bukkit.removeRecipe(key)
         registeredKeys.remove(key)
     }
@@ -86,7 +94,7 @@ object CustomCraftService {
     }
 
     private fun registerBukkitRecipe(recipe: CraftingRecipe) {
-        val key = NamespacedKey("phcore", recipe.id.lowercase())
+        val key = recipeKey(recipe.id)
         val resultItem = CustomCraftRecipeLoader.ingredientToItem(recipe.result) ?: return
 
         runCatching {
