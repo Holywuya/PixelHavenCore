@@ -23,7 +23,8 @@ object CustomCraftEditorMenu {
     private data class EditorSession(
         val player: Player,
         val recipeId: String,
-        var recipeType: RecipeType = RecipeType.SHAPED
+        var recipeType: RecipeType = RecipeType.SHAPED,
+        val isEdit: Boolean = false
     )
 
     fun open(player: Player, recipeId: String, existingRecipe: CraftingRecipe? = null) {
@@ -72,7 +73,7 @@ object CustomCraftEditorMenu {
             }
 
             onBuild { _, inv ->
-                sessions[System.identityHashCode(inv)] = EditorSession(player, recipeId, recipeType = initialType)
+                sessions[System.identityHashCode(inv)] = EditorSession(player, recipeId, recipeType = initialType, isEdit = existingRecipe != null)
 
                 existingRecipe?.materials?.forEach { ing ->
                     val slotIdx = ing.slot ?: return@forEach
@@ -92,8 +93,10 @@ object CustomCraftEditorMenu {
             }
 
             onClose { event ->
-                sessions.remove(System.identityHashCode(event.inventory))
-                returnItems(event.player as Player, event.inventory)
+                val session = sessions.remove(System.identityHashCode(event.inventory))
+                if (session?.isEdit != true) {
+                    returnItems(event.player as Player, event.inventory)
+                }
             }
         }
     }
