@@ -1,13 +1,13 @@
 package com.pixlehavencore.feature.economy
 
-import com.pixlehavencore.bridge.TextBridge
 import com.pixlehavencore.util.EconomyUtils
 import com.pixlehavencore.util.ADMIN_PERMISSION
-import com.pixlehavencore.util.TextUtils
 import com.pixlehavencore.util.msg
+import com.pixlehavencore.util.msgRaw
 import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.requirePlayer
 import com.pixlehavencore.util.resolveOfflinePlayer
+import com.pixlehavencore.util.sendMsg
 import org.bukkit.OfflinePlayer
 import taboolib.common.platform.ProxyCommandSender
 import taboolib.common.platform.command.CommandBody
@@ -38,20 +38,20 @@ object MoneyCommand {
     @CommandBody
     val help = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("<gold>=== 钱包命令帮助 ===")
-            sender.msg("<aqua>/economy <gray>- 查看自己的余额")
-            sender.msg("<aqua>/economy pay <玩家> <金额> [货币] <gray>- 转账给玩家，默认货币无需写币种")
-            sender.msg("<aqua>/economy balance <玩家> [货币] <gray>- 查看玩家余额")
-            sender.msg("<aqua>/economy add <玩家> <金额> [货币] <gray>- 增加玩家余额，默认货币无需写币种")
-            sender.msg("<aqua>/economy give <玩家> <金额> <gray>- 通过中心银行发放金额")
-            sender.msg("<aqua>/economy remove <玩家> <金额> [货币] <gray>- 扣除玩家余额，默认货币无需写币种")
-            sender.msg("<aqua>/economy set <玩家> <金额> [货币] <gray>- 设置玩家余额，默认货币无需写币种")
-            sender.msg("<aqua>/economy cbank view <gray>- 查看中心银行状态")
-            sender.msg("<aqua>/economy cbank inject <金额> <gray>- 向中心银行注资")
-            sender.msg("<aqua>/economy cbank drain <金额> <gray>- 从中心银行缩表")
-            sender.msg("<aqua>/economy tax status <gray>- 查看收益池与应缴税统计")
-            sender.msg("<aqua>/economy tax settle <gray>- 立即执行一次统一结税")
-            sender.msg("<aqua>/economy reload <gray>- 重载经济配置(管理员)")
+            sender.msgRaw("<gold>=== 钱包命令帮助 ===")
+            sender.msgRaw("<aqua>/economy <gray>- 查看自己的余额")
+            sender.msgRaw("<aqua>/economy pay <玩家> <金额> [货币] <gray>- 转账给玩家，默认货币无需写币种")
+            sender.msgRaw("<aqua>/economy balance <玩家> [货币] <gray>- 查看玩家余额")
+            sender.msgRaw("<aqua>/economy add <玩家> <金额> [货币] <gray>- 增加玩家余额，默认货币无需写币种")
+            sender.msgRaw("<aqua>/economy give <玩家> <金额> <gray>- 通过中心银行发放金额")
+            sender.msgRaw("<aqua>/economy remove <玩家> <金额> [货币] <gray>- 扣除玩家余额，默认货币无需写币种")
+            sender.msgRaw("<aqua>/economy set <玩家> <金额> [货币] <gray>- 设置玩家余额，默认货币无需写币种")
+            sender.msgRaw("<aqua>/economy cbank view <gray>- 查看中心银行状态")
+            sender.msgRaw("<aqua>/economy cbank inject <金额> <gray>- 向中心银行注资")
+            sender.msgRaw("<aqua>/economy cbank drain <金额> <gray>- 从中心银行缩表")
+            sender.msgRaw("<aqua>/economy tax status <gray>- 查看收益池与应缴税统计")
+            sender.msgRaw("<aqua>/economy tax settle <gray>- 立即执行一次统一结税")
+            sender.msgRaw("<aqua>/economy reload <gray>- 重载经济配置(管理员)")
         }
     }
 
@@ -145,10 +145,10 @@ object MoneyCommand {
     @CommandBody
     val cbank = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("<gold>=== 经济央行命令帮助 ===")
-            sender.msg("<aqua>/economy cbank view <gray>- 查看中心银行状态")
-            sender.msg("<aqua>/economy cbank inject <金额> <gray>- 向中心银行注资")
-            sender.msg("<aqua>/economy cbank drain <金额> <gray>- 从中心银行缩表")
+            sender.msgRaw("<gold>=== 经济央行命令帮助 ===")
+            sender.msgRaw("<aqua>/economy cbank view <gray>- 查看中心银行状态")
+            sender.msgRaw("<aqua>/economy cbank inject <金额> <gray>- 向中心银行注资")
+            sender.msgRaw("<aqua>/economy cbank drain <金额> <gray>- 从中心银行缩表")
         }
 
         literal("view") {
@@ -258,10 +258,10 @@ object MoneyCommand {
     @CommandBody
     val tax = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("<gold>=== 经济税务命令帮助 ===")
-            sender.msg("<aqua>/economy tax status <gray>- 查看收益池与应缴税统计")
-            sender.msg("<aqua>/economy tax settle <gray>- 立即执行一次统一结税")
-            sender.msg("<aqua>/economy tax reload <gray>- 重载税务配置")
+            sender.msgRaw("<gold>=== 经济税务命令帮助 ===")
+            sender.msgRaw("<aqua>/economy tax status <gray>- 查看收益池与应缴税统计")
+            sender.msgRaw("<aqua>/economy tax settle <gray>- 立即执行一次统一结税")
+            sender.msgRaw("<aqua>/economy tax reload <gray>- 重载税务配置")
         }
 
         literal("status") {
@@ -366,7 +366,7 @@ object MoneyCommand {
             return
         }
         sender.msg("<green>已向 <white>${target.name ?: target.uniqueId} <green>转账 <white>${formatMoney(amount)} <gray>(${EconomySettings.getDefinition(currency).plural})")
-        target.player?.sendMessage(TextBridge.toLegacy(TextUtils.parseMiniMessage("<green>你收到来自 <white>${from.name} <green>的转账 <white>${formatMoney(amount)} <gray>(${EconomySettings.getDefinition(currency).plural})")))
+        target.player?.sendMsg("<green>你收到来自 <white>${from.name} <green>的转账 <white>${formatMoney(amount)} <gray>(${EconomySettings.getDefinition(currency).plural})")
     }
 
     internal fun parseAmount(raw: String, allowZero: Boolean = false): BigDecimal? {

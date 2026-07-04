@@ -6,6 +6,7 @@ import org.bukkit.GameMode
 import org.bukkit.entity.Player
 import com.pixlehavencore.util.TextUtils
 import com.pixlehavencore.util.cancelTaskSafely
+import com.pixlehavencore.util.sendMsg
 import taboolib.common.platform.ProxyPlayer
 import taboolib.common.platform.function.info
 import taboolib.common.platform.function.onlinePlayers
@@ -78,7 +79,7 @@ object ViewDistanceService {
         val target = if (ViewDistanceSettings.afkOnJoin && !player.hasPermission(ViewDistanceSettings.bypassAfkPermission)) {
             afkPlayers[player.uniqueId] = true
             if (ViewDistanceSettings.afkEnterMessage.isNotBlank()) {
-                player.sendMessage(TextUtils.parse(ViewDistanceSettings.afkEnterMessage))
+                player.sendMsg(ViewDistanceSettings.afkEnterMessage)
             }
             ViewDistanceSettings.afkDistance
         } else {
@@ -88,10 +89,9 @@ object ViewDistanceService {
         applyDistance(player, target)
         lastMoved[player.uniqueId] = System.currentTimeMillis()
         if (ViewDistanceSettings.displayOnJoin && !ViewDistanceSettings.afkOnJoin) {
-            player.sendMessage(
-                TextUtils.parse(ViewDistanceSettings.displayJoinMessage
+            player.sendMsg(
+                ViewDistanceSettings.displayJoinMessage
                     .resolvePlaceholders("{distance}" to target.toString()))
-            )
         }
     }
 
@@ -108,7 +108,7 @@ object ViewDistanceService {
             val target = resolveTargetDistance(player, proxy)
             applyDistance(player, target)
             if (ViewDistanceSettings.afkExitMessage.isNotBlank()) {
-                player.sendMessage(TextUtils.parse(ViewDistanceSettings.afkExitMessage))
+                player.sendMsg(ViewDistanceSettings.afkExitMessage)
             }
         }
     }
@@ -171,7 +171,7 @@ object ViewDistanceService {
                     val last = lastMoved[player.uniqueId] ?: now
                     if (now - last >= ViewDistanceSettings.afkSeconds * 1000L) {
                     if (afkPlayers[player.uniqueId] != true && ViewDistanceSettings.afkEnterMessage.isNotBlank()) {
-                        player.sendMessage(TextUtils.parse(ViewDistanceSettings.afkEnterMessage))
+                        player.sendMsg(ViewDistanceSettings.afkEnterMessage)
                     }
                     afkPlayers[player.uniqueId] = true
                     applyDistance(player, ViewDistanceSettings.afkDistance)
@@ -180,7 +180,7 @@ object ViewDistanceService {
                         val target = resolveTargetDistance(player, proxy)
                         applyDistance(player, target)
                         if (ViewDistanceSettings.afkExitMessage.isNotBlank()) {
-                            player.sendMessage(TextUtils.parse(ViewDistanceSettings.afkExitMessage))
+                            player.sendMsg(ViewDistanceSettings.afkExitMessage)
                         }
                     }
                 }

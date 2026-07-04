@@ -6,6 +6,7 @@ import com.pixlehavencore.util.DominionBridge
 import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import com.pixlehavencore.util.TextUtils
 import com.pixlehavencore.util.cancelTaskSafely
+import com.pixlehavencore.util.sendMsg
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
@@ -143,11 +144,11 @@ object FlightService {
         val data = playerData[uuid] ?: return false
         if (!isWorldEnabled(player.world.name)) return false
         if (data.effectiveSeconds <= 0) {
-            player.sendMessage(TextUtils.parse(FlightSettings.msgNoTime))
+            player.sendMsg(FlightSettings.msgNoTime)
             return false
         }
         if (DominionBridge.isAvailable() && !DominionBridge.canFlyAt(player, player.location)) {
-            player.sendMessage(TextUtils.parse(FlightSettings.msgDominionBlocked))
+            player.sendMsg(FlightSettings.msgDominionBlocked)
             return false
         }
         playerData[uuid] = data.copy(manualDisable = false)
@@ -382,7 +383,7 @@ object FlightService {
                 player.submitOnEntity { player.allowFlight = true }
                 if (FlightSettings.msgDailyReset.isNotBlank()) {
                     player.submitOnEntity {
-                        player.sendMessage(TextUtils.parse(FlightSettings.msgDailyReset))
+                        player.sendMsg(FlightSettings.msgDailyReset)
                     }
                 }
             } else {

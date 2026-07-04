@@ -1,6 +1,8 @@
 package com.pixlehavencore.util
 
 import com.pixlehavencore.bridge.TextBridge
+import net.kyori.adventure.text.Component
+import org.bukkit.entity.Player
 import taboolib.common.platform.ProxyCommandSender
 import taboolib.common.platform.ProxyPlayer
 import org.bukkit.Bukkit
@@ -11,6 +13,11 @@ import org.bukkit.command.CommandSender
  * 全局管理员权限节点
  */
 const val ADMIN_PERMISSION = "phcore.admin"
+
+/**
+ * 全局消息前缀，所有 `msg()` / `sendMsg()` 自动追加。
+ */
+const val MSG_PREFIX = "<#ff9944>[PixelHaven]<reset> "
 
 private val PERMISSION_ALIASES = mapOf(
     "phcore.viewdistance.admin" to listOf("phcore.vdc.admin"),
@@ -23,10 +30,37 @@ private val PERMISSION_ALIASES = mapOf(
 )
 
 /**
- * 发送带颜色代码的消息，支持 MiniMessage 标签和 & 颜色码。
+ * 发送带前缀的消息。
  */
 fun ProxyCommandSender.msg(text: String) =
+    sendMessage(TextBridge.toLegacy(TextUtils.parseMiniMessage(TextUtils.translateLegacy(MSG_PREFIX + text))))
+
+/**
+ * 发送不带前缀的消息（帮助文本、标题等）。
+ */
+fun ProxyCommandSender.msgRaw(text: String) =
     sendMessage(TextBridge.toLegacy(TextUtils.parseMiniMessage(TextUtils.translateLegacy(text))))
+
+/**
+ * Player 带前缀消息。
+ */
+fun Player.sendMsg(text: String) = sendMessage(TextUtils.parse(MSG_PREFIX + text))
+
+/**
+ * ProxyPlayer 带前缀消息。
+ */
+fun ProxyPlayer.sendMsg(text: String) =
+    sendMessage(TextBridge.toLegacy(TextUtils.parseMiniMessage(TextUtils.translateLegacy(MSG_PREFIX + text))))
+
+/**
+ * Player 不带前缀消息。
+ */
+fun Player.sendMsgRaw(text: String) = sendMessage(TextUtils.parse(text))
+
+/**
+ * Player Component 消息（用于 Component 类型，不自动加前缀）。
+ */
+fun Player.sendMsg(component: Component) = sendMessage(component)
 
 /**
  * 全局超级权限：`[ADMIN_PERMISSION]`。

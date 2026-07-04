@@ -2,6 +2,7 @@ package com.pixlehavencore.feature.optimization.viewdistance
 
 import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.msg
+import com.pixlehavencore.util.msgRaw
 import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.requirePlayer
 import taboolib.common.platform.ProxyCommandSender
@@ -17,11 +18,11 @@ object ViewDistanceCommand {
     @CommandBody
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("<gold>=== 视距控制命令帮助 ===")
-            sender.msg("<aqua>/vd get <gray>- 查看当前视距")
-            sender.msg("<aqua>/vd set <距离> <gray>- 设置视距")
-            sender.msg("<aqua>/vd reset <gray>- 重置为默认视距")
-            sender.msg("<aqua>/vd reload <gray>- 重载配置")
+            sender.msgRaw("<gold>=== 视距控制命令帮助 ===")
+            sender.msgRaw("<aqua>/vd get <gray>- 查看当前视距")
+            sender.msgRaw("<aqua>/vd set <距离> <gray>- 设置视距")
+            sender.msgRaw("<aqua>/vd reset <gray>- 重置为默认视距")
+            sender.msgRaw("<aqua>/vd reload <gray>- 重载配置")
         }
     }
 

@@ -2,6 +2,7 @@ package com.pixlehavencore.feature.customcraft
 
 import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.msg
+import com.pixlehavencore.util.msgRaw
 import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.requirePlayer
 import taboolib.common.platform.ProxyCommandSender
@@ -18,12 +19,12 @@ object CustomCraftCommand {
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
             if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
-            sender.msg("<gold>=== CustomCraft 帮助 ===")
-            sender.msg("<aqua>/customcraft create <id> <gray>- 创建配方（打开编辑 GUI）")
-            sender.msg("<aqua>/customcraft edit <id> <gray>- 编辑已有配方")
-            sender.msg("<aqua>/customcraft delete <id> <gray>- 删除指定配方")
-            sender.msg("<aqua>/customcraft reload <gray>- 重载全部配方")
-            sender.msg("<aqua>/customcraft list <gray>- 列出所有配方")
+            sender.msgRaw("<gold>=== CustomCraft 帮助 ===")
+            sender.msgRaw("<aqua>/customcraft create <id> <gray>- 创建配方（打开编辑 GUI）")
+            sender.msgRaw("<aqua>/customcraft edit <id> <gray>- 编辑已有配方")
+            sender.msgRaw("<aqua>/customcraft delete <id> <gray>- 删除指定配方")
+            sender.msgRaw("<aqua>/customcraft reload <gray>- 重载全部配方")
+            sender.msgRaw("<aqua>/customcraft list <gray>- 列出所有配方")
         }
     }
 
@@ -100,11 +101,11 @@ object CustomCraftCommand {
             if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
             val recipes = CustomCraftService.getAllRecipes()
             if (recipes.isEmpty()) {
-                sender.msg("<gray>暂无配方")
+                sender.msgRaw("<gray>暂无配方")
             } else {
-                sender.msg("<gold>=== 配方列表 (${recipes.size}) ===")
+                sender.msgRaw("<gold>=== 配方列表 (${recipes.size}) ===")
                 recipes.forEach { r ->
-                    sender.msg("<yellow>${r.id} <gray>- ${r.type.name} (${r.materials.size} 材料)")
+                    sender.msgRaw("<yellow>${r.id} <gray>- ${r.type.name} (${r.materials.size} 材料)")
                 }
             }
         }

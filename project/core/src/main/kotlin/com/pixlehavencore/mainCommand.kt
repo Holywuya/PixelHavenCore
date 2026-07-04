@@ -26,6 +26,7 @@ import com.pixlehavencore.feature.playtime.PlaytimeStorage
 import com.pixlehavencore.feature.playtime.PlaytimeService
 import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.msg
+import com.pixlehavencore.util.msgRaw
 import com.pixlehavencore.util.requirePermission
 import taboolib.common.platform.ProxyCommandSender
 import taboolib.common.platform.command.CommandBody
@@ -47,8 +48,8 @@ object MainCommand {
     @CommandBody
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("<gold>=== PixleHavenCore 命令帮助 ===")
-            sender.msg("<aqua>/phc reload <gray>- 重载所有模块配置")
+            sender.msgRaw("<gold>=== PixleHavenCore 命令帮助 ===")
+            sender.msgRaw("<aqua>/phc reload <gray>- 重载所有模块配置")
         }
     }
 
@@ -63,7 +64,7 @@ object MainCommand {
                 return@execute
             }
 
-            sender.msg("<gray>正在异步重载 PixleHavenCore 全部模块，请稍候...")
+            sender.msgRaw("<gray>正在异步重载 PixleHavenCore 全部模块，请稍候...")
             submit(async = true) {
                 val failed = runCatching { reloadAllModules() }.getOrElse { ex ->
                     warning("[MainCommand] /phc reload fatal: ${ex.stackTraceToString()}")

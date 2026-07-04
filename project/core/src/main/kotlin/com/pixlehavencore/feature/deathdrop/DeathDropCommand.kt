@@ -2,6 +2,7 @@ package com.pixlehavencore.feature.deathdrop
 
 import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.msg
+import com.pixlehavencore.util.msgRaw
 import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.resolveOfflinePlayer
 import org.bukkit.OfflinePlayer
@@ -20,10 +21,10 @@ object DeathDropCommand {
     @CommandBody
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("<gold>=== 死亡掉落命令帮助 ===")
-            sender.msg("<aqua>/deathdrop reload <gray>- 重载配置")
-            sender.msg("<aqua>/deathdrop add <玩家> <次数> <gray>- 增加今日免掉落次数")
-            sender.msg("<aqua>/deathdrop set <玩家> <次数> <gray>- 设置今日剩余免掉落次数")
+            sender.msgRaw("<gold>=== 死亡掉落命令帮助 ===")
+            sender.msgRaw("<aqua>/deathdrop reload <gray>- 重载配置")
+            sender.msgRaw("<aqua>/deathdrop add <玩家> <次数> <gray>- 增加今日免掉落次数")
+            sender.msgRaw("<aqua>/deathdrop set <玩家> <次数> <gray>- 设置今日剩余免掉落次数")
         }
     }
 

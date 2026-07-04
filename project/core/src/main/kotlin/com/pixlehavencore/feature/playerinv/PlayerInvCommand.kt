@@ -3,6 +3,7 @@ package com.pixlehavencore.feature.playerinv
 import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import com.pixlehavencore.util.msg
+import com.pixlehavencore.util.msgRaw
 import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.requirePlayer
 import com.pixlehavencore.util.resolveOfflinePlayer
@@ -42,20 +43,20 @@ object PlayerInvCommand {
     @CommandBody
     val help = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("<gold>=== 仓库命令帮助 ===")
-            sender.msg("<aqua>/playerinv <gray>- 打开自己的仓库")
-            sender.msg("<aqua>/playerinv open <玩家> <gray>- 管理员打开玩家仓库")
-            sender.msg("<aqua>/playerinv size <玩家> <大小> <gray>- 管理员设置玩家仓库大小")
-            sender.msg("<aqua>/playerinv shared create <名称> <gray>- 创建共享仓库")
-            sender.msg("<aqua>/playerinv shared open <名称> <gray>- 打开共享仓库")
-            sender.msg("<aqua>/playerinv shared add/remove <名称> <玩家> <gray>- 管理成员")
-            sender.msg("<aqua>/playerinv shared members <名称> <gray>- 查看共享成员")
-            sender.msg("<aqua>/playerinv shared upgrade <名称> <gray>- 升级共享仓库")
-            sender.msg("<aqua>/playerinv shared quota <玩家> <数量> <gray>- 管理员发放创建次数")
-            sender.msg("<aqua>/playerinv shared admin-open <名称> <gray>- 管理员强制打开共享仓库")
-            sender.msg("<aqua>/playerinv shared owner <玩家> <gray>- 管理员查看该玩家的共享仓库列表")
-            sender.msg("<aqua>/playerinv shared list <玩家> <gray>- 管理员列出共享仓库")
-            sender.msg("<aqua>/playerinv reload <gray>- 重载配置")
+            sender.msgRaw("<gold>=== 仓库命令帮助 ===")
+            sender.msgRaw("<aqua>/playerinv <gray>- 打开自己的仓库")
+            sender.msgRaw("<aqua>/playerinv open <玩家> <gray>- 管理员打开玩家仓库")
+            sender.msgRaw("<aqua>/playerinv size <玩家> <大小> <gray>- 管理员设置玩家仓库大小")
+            sender.msgRaw("<aqua>/playerinv shared create <名称> <gray>- 创建共享仓库")
+            sender.msgRaw("<aqua>/playerinv shared open <名称> <gray>- 打开共享仓库")
+            sender.msgRaw("<aqua>/playerinv shared add/remove <名称> <玩家> <gray>- 管理成员")
+            sender.msgRaw("<aqua>/playerinv shared members <名称> <gray>- 查看共享成员")
+            sender.msgRaw("<aqua>/playerinv shared upgrade <名称> <gray>- 升级共享仓库")
+            sender.msgRaw("<aqua>/playerinv shared quota <玩家> <数量> <gray>- 管理员发放创建次数")
+            sender.msgRaw("<aqua>/playerinv shared admin-open <名称> <gray>- 管理员强制打开共享仓库")
+            sender.msgRaw("<aqua>/playerinv shared owner <玩家> <gray>- 管理员查看该玩家的共享仓库列表")
+            sender.msgRaw("<aqua>/playerinv shared list <玩家> <gray>- 管理员列出共享仓库")
+            sender.msgRaw("<aqua>/playerinv reload <gray>- 重载配置")
         }
     }
 
@@ -264,12 +265,12 @@ object PlayerInvCommand {
                         submit {
                             when (result) {
                                 is PlayerInvService.SharedMemberListResult.OK -> {
-                                    sender.msg("&6=== 共享仓库成员: $sharedName ===")
+                                    sender.msgRaw("&6=== 共享仓库成员: $sharedName ===")
                                     if (result.members.isEmpty()) {
-                                        sender.msg("&7(无成员)")
+                                        sender.msgRaw("&7(无成员)")
                                     } else {
                                         result.members.forEach { member ->
-                                            sender.msg("&b${member.playerName} &7- ${if (member.owner) "拥有者" else "成员"}")
+                                            sender.msgRaw("&b${member.playerName} &7- ${if (member.owner) "拥有者" else "成员"}")
                                         }
                                     }
                                 }
@@ -387,8 +388,8 @@ object PlayerInvCommand {
                             if (names.isEmpty()) {
                                 sender.msg("&e该玩家没有共享仓库：${target.name ?: target.uniqueId}")
                             } else {
-                                sender.msg("&6=== ${target.name ?: target.uniqueId} 的共享仓库 ===")
-                                names.forEach { sender.msg("&b- $it") }
+                                sender.msgRaw("&6=== ${target.name ?: target.uniqueId} 的共享仓库 ===")
+                                names.forEach { sender.msgRaw("&b- $it") }
                             }
                         }
                     }

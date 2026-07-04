@@ -2,6 +2,7 @@ package com.pixlehavencore.feature.deathdrop
 
 import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import com.pixlehavencore.util.TextUtils
+import com.pixlehavencore.util.sendMsg
 import org.bukkit.entity.Player
 import org.bukkit.event.entity.PlayerDeathEvent
 import taboolib.common.platform.event.EventPriority
@@ -24,21 +25,21 @@ object DeathDropListener {
             event.keepInventory = true
             event.keepLevel = true
             event.drops.clear()
-            player.sendMessage(
-                TextUtils.parse(DeathDropSettings.keepMessage
+            player.sendMsg(
+                DeathDropSettings.keepMessage
                     .resolvePlaceholders(
                         "{consume}" to "1",
                         "{left}" to (total - used).coerceAtLeast(0).toString(),
                         "{used}" to used.toString(),
                         "{total}" to total.toString()
-                    ))
+                    )
             )
             return
         }
 
         // 保护耗尽，物品正常掉落
         if (DeathDropSettings.outOfProtectionMessage.isNotBlank()) {
-            player.sendMessage(TextUtils.parse(DeathDropSettings.outOfProtectionMessage))
+            player.sendMsg(DeathDropSettings.outOfProtectionMessage)
         }
     }
 

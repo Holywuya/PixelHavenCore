@@ -3,6 +3,7 @@ package com.pixlehavencore.feature.notification
 import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.msg
+import com.pixlehavencore.util.msgRaw
 import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.requirePlayer
 import taboolib.common.platform.ProxyCommandSender
@@ -18,15 +19,15 @@ object NotificationCommand {
     @CommandBody
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("<gold>=== 服务器通知命令帮助 ===")
-            sender.msg("<aqua>/notify send <消息> <gray>- 发送管理员通知")
-            sender.msg("<aqua>/notify auto on <gray>- 启用自动通知")
-            sender.msg("<aqua>/notify auto off <gray>- 禁用自动通知")
-            sender.msg("<aqua>/notify auto status <gray>- 查看自动通知状态")
-            sender.msg("<aqua>/notify auto interval <时间> <gray>- 设置自动通知间隔")
-            sender.msg("<aqua>/notify reload <gray>- 重载配置")
-            sender.msg("<aqua>/notify test <gray>- 发送测试通知")
-            sender.msg("<gray>时间格式: 30s(30秒), 5m(5分钟), 1h(1小时), 1d(1天)")
+            sender.msgRaw("<gold>=== 服务器通知命令帮助 ===")
+            sender.msgRaw("<aqua>/notify send <消息> <gray>- 发送管理员通知")
+            sender.msgRaw("<aqua>/notify auto on <gray>- 启用自动通知")
+            sender.msgRaw("<aqua>/notify auto off <gray>- 禁用自动通知")
+            sender.msgRaw("<aqua>/notify auto status <gray>- 查看自动通知状态")
+            sender.msgRaw("<aqua>/notify auto interval <时间> <gray>- 设置自动通知间隔")
+            sender.msgRaw("<aqua>/notify reload <gray>- 重载配置")
+            sender.msgRaw("<aqua>/notify test <gray>- 发送测试通知")
+            sender.msgRaw("<gray>时间格式: 30s(30秒), 5m(5分钟), 1h(1小时), 1d(1天)")
         }
     }
 

@@ -2,6 +2,7 @@ package com.pixlehavencore.feature.optimization.entityclearer
 
 import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.msg
+import com.pixlehavencore.util.msgRaw
 import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.requirePlayer
 import org.bukkit.entity.Player
@@ -18,8 +19,8 @@ object EntityClearerCommand {
     @CommandBody
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("<gold>=== 实体清理命令帮助 ===")
-            sender.msg("<aqua>/entityclearer reload <gray>- 重载实体清理配置")
+            sender.msgRaw("<gold>=== 实体清理命令帮助 ===")
+            sender.msgRaw("<aqua>/entityclearer reload <gray>- 重载实体清理配置")
         }
     }
 

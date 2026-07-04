@@ -5,6 +5,7 @@ import com.pixlehavencore.bridge.TextBridge
 import com.pixlehavencore.util.SafeLocationFinder
 import com.pixlehavencore.util.TextUtils
 import com.pixlehavencore.util.cancelTaskSafely
+import com.pixlehavencore.util.sendMsg
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
 import org.bukkit.Bukkit
@@ -77,25 +78,25 @@ object BackService {
 
     fun teleportBack(player: Player): Boolean {
         if (!BackSettings.enabled) {
-            player.sendMessage(TextUtils.parse(BackSettings.msgNoLocation))
+            player.sendMsg(BackSettings.msgNoLocation)
             return false
         }
 
         val uuid = player.uniqueId
 
         if (warmups.containsKey(uuid)) {
-            player.sendMessage(TextUtils.parse(BackSettings.msgAlreadyWarmingUp))
+            player.sendMsg(BackSettings.msgAlreadyWarmingUp)
             return false
         }
 
         val data = getBackData(uuid)
         if (data == null) {
-            player.sendMessage(TextUtils.parse(BackSettings.msgNoLocation))
+            player.sendMsg(BackSettings.msgNoLocation)
             return false
         }
 
         val targetWorldName = data.location.world?.name ?: run {
-            player.sendMessage(TextUtils.parse("&c目标世界不可用。"))
+            player.sendMsg("&c目标世界不可用。")
             return false
         }
 
@@ -103,7 +104,7 @@ object BackService {
             val targetWorld = Bukkit.getWorld(targetWorldName)
             if (targetWorld == null) {
                 BackStorage.remove(uuid)
-                player.sendMessage(TextUtils.parse("&c目标世界不可用。"))
+                player.sendMsg("&c目标世界不可用。")
                 return@submit
             }
             val targetLoc = Location(targetWorld, data.location.x, data.location.y, data.location.z, data.location.yaw, data.location.pitch)
@@ -135,8 +136,8 @@ object BackService {
 
     private fun startWarmup(player: Player, targetLoc: Location, uuid: UUID) {
         val startLoc = player.location.clone()
-        player.sendMessage(
-            TextUtils.parse(BackSettings.msgWarmupStarting.replace("{time}", BackSettings.warmupSeconds.toString()))
+        player.sendMsg(
+            BackSettings.msgWarmupStarting.replace("{time}", BackSettings.warmupSeconds.toString())
         )
 
         val warmupState = WarmupState(
@@ -156,7 +157,7 @@ object BackService {
             if (warmupState.cancelled) {
                 warmups.remove(uuid)
                 warmupState.taskRef.cancelTaskSafely()
-                player.sendMessage(TextUtils.parse(BackSettings.msgWarmupCancelled))
+                player.sendMsg(BackSettings.msgWarmupCancelled)
                 return@submitOnEntity
             }
 
@@ -168,7 +169,7 @@ object BackService {
                 ) {
                     warmups.remove(uuid)
                     warmupState.taskRef.cancelTaskSafely()
-                    player.sendMessage(TextUtils.parse(BackSettings.msgWarmupCancelled))
+                    player.sendMsg(BackSettings.msgWarmupCancelled)
                     return@submitOnEntity
                 }
             }
@@ -205,7 +206,7 @@ object BackService {
                     SafeLocationFinder.findSafeLocationNearAsync(targetLoc, BackSettings.chunkLoadTimeoutSeconds)
                         .thenCompose { safeLoc ->
                             if (safeLoc == null) {
-                                player.sendMessage(TextUtils.parse("&c未找到安全传送位置。"))
+                                player.sendMsg("&c未找到安全传送位置。")
                                 java.util.concurrent.CompletableFuture.completedFuture(false)
                             } else {
                                 player.teleportAsync(safeLoc)
@@ -216,13 +217,13 @@ object BackService {
             .thenAccept { success ->
                 if (success) {
                     BackStorage.remove(uuid)
-                    player.sendMessage(TextUtils.parse(BackSettings.msgTeleported))
+                    player.sendMsg(BackSettings.msgTeleported)
                     player.playSound(player.location, Sound.ENTITY_ENDERMAN_TELEPORT, SoundCategory.PLAYERS, 1.0f, 1.0f)
                 }
             }
             .exceptionally { ex ->
                 warning("[Back] 传送流程异常(${player.name}): ${ex.message}")
-                player.sendMessage(TextUtils.parse("&c传送失败。"))
+                player.sendMsg("&c传送失败。")
                 null
             }
     }

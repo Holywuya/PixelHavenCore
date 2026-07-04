@@ -8,6 +8,7 @@ import taboolib.common.platform.function.info
 import taboolib.common.platform.function.submitAsync
 import taboolib.common.platform.function.warning
 import com.pixlehavencore.util.TextUtils
+import com.pixlehavencore.util.sendMsg
 import java.util.UUID
 
 object TitleService {
@@ -58,14 +59,14 @@ object TitleService {
             if (entry.isExpired()) return TitleResult.Expired
         }
         TitleStorage.activateTitle(player.uniqueId, titleId)
-        player.sendMessage(TextUtils.parse(TitleSettings.msgActivated.resolvePlaceholders("{title}" to definition.displayName)))
+        player.sendMsg(TitleSettings.msgActivated.resolvePlaceholders("{title}" to definition.displayName))
         return TitleResult.Success
     }
 
     fun deactivateTitle(player: Player) {
         if (!TitleSettings.enabled) return
         TitleStorage.deactivateTitle(player.uniqueId)
-        player.sendMessage(TextUtils.parse(TitleSettings.msgDeactivated))
+        player.sendMsg(TitleSettings.msgDeactivated)
     }
 
     fun grantTitle(player: Player, titleId: String, expiresAt: Long): TitleResult {

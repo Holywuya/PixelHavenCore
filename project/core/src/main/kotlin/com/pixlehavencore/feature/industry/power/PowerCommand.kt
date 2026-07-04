@@ -2,6 +2,7 @@ package com.pixlehavencore.feature.industry.power
 
 import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.msg
+import com.pixlehavencore.util.msgRaw
 import com.pixlehavencore.util.requirePermission
 import taboolib.common.platform.ProxyCommandSender
 import taboolib.common.platform.command.CommandBody
@@ -17,9 +18,9 @@ object PowerCommand {
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
             if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
-            sender.msg("<gold>=== 工业模块帮助 ===")
-            sender.msg("<aqua>/industry power info <gray>- 查看所有领地能量信息")
-            sender.msg("<aqua>/industry power reload <gray>- 重载电力模块配置")
+            sender.msgRaw("<gold>=== 工业模块帮助 ===")
+            sender.msgRaw("<aqua>/industry power info <gray>- 查看所有领地能量信息")
+            sender.msgRaw("<aqua>/industry power reload <gray>- 重载电力模块配置")
         }
     }
 
@@ -28,19 +29,19 @@ object PowerCommand {
         literal("info") {
             execute<ProxyCommandSender> { sender, _, _ ->
                 if (!sender.requirePermission(ADMIN_PERMISSION)) return@execute
-                sender.msg("<gold>=== 领地能量信息 ===")
+                sender.msgRaw("<gold>=== 领地能量信息 ===")
                 if (!PowerSettings.enabled) {
                     sender.msg("<red>电力模块未启用")
                     return@execute
                 }
                 val allPools = PowerService.getAllPools()
                 if (allPools.isEmpty()) {
-                    sender.msg("<gray>暂无领地能量数据")
+                    sender.msgRaw("<gray>暂无领地能量数据")
                 } else {
                     allPools.forEach { (id, pool) ->
-                        sender.msg("<yellow>领地: <white>$id")
-                        sender.msg("  <gray>能量: <white>${String.format("%.1f", pool.energy)} / ${String.format("%.1f", pool.capacity)}")
-                        sender.msg("  <gray>发电机数量: <white>${pool.generators.size}")
+                        sender.msgRaw("<yellow>领地: <white>$id")
+                        sender.msgRaw("  <gray>能量: <white>${String.format("%.1f", pool.energy)} / ${String.format("%.1f", pool.capacity)}")
+                        sender.msgRaw("  <gray>发电机数量: <white>${pool.generators.size}")
                     }
                 }
             }

@@ -2,6 +2,7 @@ package com.pixlehavencore.feature.grindstone
 
 import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.msg
+import com.pixlehavencore.util.msgRaw
 import com.pixlehavencore.util.requirePermission
 import taboolib.common.platform.ProxyCommandSender
 import taboolib.common.platform.command.CommandBody
@@ -16,8 +17,8 @@ object GrindstoneRepairCommand {
     @CommandBody
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("<gold>=== 砂轮修复命令帮助 ===")
-            sender.msg("<aqua>/grindstone reload <gray>- 重载配置")
+            sender.msgRaw("<gold>=== 砂轮修复命令帮助 ===")
+            sender.msgRaw("<aqua>/grindstone reload <gray>- 重载配置")
         }
     }
 

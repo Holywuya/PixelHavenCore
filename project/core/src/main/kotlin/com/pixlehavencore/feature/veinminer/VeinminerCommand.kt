@@ -4,8 +4,10 @@ import com.pixlehavencore.bridge.TextBridge
 import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.TextUtils
 import com.pixlehavencore.util.msg
+import com.pixlehavencore.util.msgRaw
 import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.requirePlayer
+import com.pixlehavencore.util.sendMsg
 import org.bukkit.Bukkit
 import taboolib.common.platform.ProxyCommandSender
 import taboolib.common.platform.command.CommandBody
@@ -22,14 +24,14 @@ object VeinminerCommand {
     @CommandBody
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("<gold>=== 连锁挖矿帮助 ===")
-            sender.msg("<aqua>/veinminer toggle <gray>- 切换连锁挖矿开关")
-            sender.msg("<aqua>/veinminer reload <gray>- 重载连锁挖矿配置")
-            sender.msg("<aqua>/veinminer limit <gray>- 查看自己的次数信息")
-            sender.msg("<aqua>/veinminer add <玩家> <次数> <gray>- 增加剩余次数")
-            sender.msg("<aqua>/veinminer remove <玩家> <次数> <gray>- 减少剩余次数")
-            sender.msg("<aqua>/veinminer set <玩家> <次数> <gray>- 设置剩余次数")
-            sender.msg("<gray>当前状态：<white>${if (VeinminerSettings.enabled) "已启用" else "未启用"}")
+            sender.msgRaw("<gold>=== 连锁挖矿帮助 ===")
+            sender.msgRaw("<aqua>/veinminer toggle <gray>- 切换连锁挖矿开关")
+            sender.msgRaw("<aqua>/veinminer reload <gray>- 重载连锁挖矿配置")
+            sender.msgRaw("<aqua>/veinminer limit <gray>- 查看自己的次数信息")
+            sender.msgRaw("<aqua>/veinminer add <玩家> <次数> <gray>- 增加剩余次数")
+            sender.msgRaw("<aqua>/veinminer remove <玩家> <次数> <gray>- 减少剩余次数")
+            sender.msgRaw("<aqua>/veinminer set <玩家> <次数> <gray>- 设置剩余次数")
+            sender.msgRaw("<gray>当前状态：<white>${if (VeinminerSettings.enabled) "已启用" else "未启用"}")
         }
     }
 
@@ -69,7 +71,7 @@ object VeinminerCommand {
             val limit = VeinminerLimitService.getLimitValue(player)
             val used = VeinminerLimitService.getUsed(player)
             VeinminerMessages.send(player, VeinminerSettings.messageLimitCommand, mapOf("remaining" to remaining, "limit" to limit))
-            player.sendMessage(TextBridge.toLegacy(TextUtils.parseMiniMessage("<gray>已使用: <white>$used</white></gray>")))
+            player.sendMsg("<gray>已使用: <white>$used</white></gray>")
         }
     }
 
@@ -146,7 +148,7 @@ object VeinminerCommand {
             Mutation.SET -> "设置"
         }
         sender.msg("<green>已为 <white>${target.name}</white> <green>${actionText}次数，当前剩余 <white>$result</white> <gray>/ <white>$limit</white> <green>，已使用 <white>$used</white></green>。")
-        target.sendMessage(TextUtils.parseMiniMessage("<green>你的连锁挖矿剩余次数已被管理员调整为 <white>$result</white> <gray>/ <white>$limit</white></green>。"))
+        target.sendMsg("<green>你的连锁挖矿剩余次数已被管理员调整为 <white>$result</white> <gray>/ <white>$limit</white></green>。")
     }
 
     private enum class Mutation {

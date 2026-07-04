@@ -2,6 +2,7 @@ package com.pixlehavencore.feature.customcraft
 
 import com.pixlehavencore.bridge.TextBridge
 import com.pixlehavencore.util.TextUtils
+import com.pixlehavencore.util.sendMsg
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -114,7 +115,7 @@ object CustomCraftEditorMenu {
 
         val resultItem = inv.getItem(resultSlotIndex)
         if (resultItem == null || resultItem.type == Material.AIR) {
-            player.sendMessage(TextUtils.parse("&c请在 R 格放入合成结果物品"))
+            player.sendMsg("&c请在 R 格放入合成结果物品")
             return
         }
         val result = CustomCraftRecipeLoader.itemToIngredient(resultItem)
@@ -129,7 +130,7 @@ object CustomCraftEditorMenu {
         CustomCraftService.saveAndRegister(recipe)
         val key = CustomCraftService.recipeKey(session.recipeId)
         runCatching { player.discoverRecipe(key) }
-        player.sendMessage(TextUtils.parse("&a配方 &e${session.recipeId} &a已保存并注册"))
+        player.sendMsg("&a配方 &e${session.recipeId} &a已保存并注册")
         player.closeInventory()
     }
 

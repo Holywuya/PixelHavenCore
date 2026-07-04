@@ -3,6 +3,7 @@ package com.pixlehavencore.feature.title
 import com.pixlehavencore.util.ADMIN_PERMISSION
 import com.pixlehavencore.util.PlaceholderUtils.resolvePlaceholders
 import com.pixlehavencore.util.msg
+import com.pixlehavencore.util.msgRaw
 import com.pixlehavencore.util.requirePermission
 import com.pixlehavencore.util.requirePlayer
 import org.bukkit.Bukkit
@@ -21,21 +22,21 @@ object TitleCommand {
     @CommandBody
     val main = mainCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("<dark_gray>[<gold>称号系统<dark_gray>] <gray>使用 /title help 查看帮助")
+            sender.msgRaw("<dark_gray>[<gold>称号系统<dark_gray>] <gray>使用 /title help 查看帮助")
         }
     }
 
     @CommandBody
     val help = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.msg("<dark_gray>=== <gold>称号系统帮助 <dark_gray>===")
-            sender.msg("<yellow>/title open <gray>- 打开称号选择界面")
-            sender.msg("<yellow>/title equip <id> <gray>- 装备指定称号")
-            sender.msg("<yellow>/title unequip <gray>- 卸下当前称号")
-            sender.msg("<yellow>/title list <gray>- 查看拥有的称号")
-            sender.msg("<yellow>/title give <玩家> <id> [时长] <gray>- 发放称号 (管理员)")
-            sender.msg("<yellow>/title take <玩家> <id> <gray>- 移除称号 (管理员)")
-            sender.msg("<yellow>/title reload <gray>- 重载配置 (管理员)")
+            sender.msgRaw("<dark_gray>=== <gold>称号系统帮助 <dark_gray>===")
+            sender.msgRaw("<yellow>/title open <gray>- 打开称号选择界面")
+            sender.msgRaw("<yellow>/title equip <id> <gray>- 装备指定称号")
+            sender.msgRaw("<yellow>/title unequip <gray>- 卸下当前称号")
+            sender.msgRaw("<yellow>/title list <gray>- 查看拥有的称号")
+            sender.msgRaw("<yellow>/title give <玩家> <id> [时长] <gray>- 发放称号 (管理员)")
+            sender.msgRaw("<yellow>/title take <玩家> <id> <gray>- 移除称号 (管理员)")
+            sender.msgRaw("<yellow>/title reload <gray>- 重载配置 (管理员)")
         }
     }
 
@@ -97,13 +98,13 @@ object TitleCommand {
             val player = sender.requirePlayer() ?: return@execute
             val previews = TitleService.getTitlePreviews(player.cast<Player>())
             if (previews.isEmpty()) {
-                sender.msg("<gray>你还没有任何称号。")
+                sender.msgRaw("<gray>你还没有任何称号。")
                 return@execute
             }
-            sender.msg("<dark_gray>=== <gold>拥有的称号 <dark_gray>===")
+            sender.msgRaw("<dark_gray>=== <gold>拥有的称号 <dark_gray>===")
             previews.forEach { preview ->
                 val activeTag = if (preview.isActive) " <green>[已装备]" else ""
-                sender.msg("<gray>- ${preview.definition.displayName}$activeTag")
+                sender.msgRaw("<gray>- ${preview.definition.displayName}$activeTag")
             }
         }
     }
