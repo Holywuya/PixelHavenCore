@@ -359,7 +359,7 @@ object MoneyCommand {
         sender.msg("<green>已通过中心银行发放给 <white>${target.name ?: target.uniqueId} <green>金额 <white>${formatMoney(amount)}")
     }
 
-    private fun transfer(sender: ProxyCommandSender, from: org.bukkit.entity.Player, target: OfflinePlayer, amount: BigDecimal, currency: String) {
+    internal fun transfer(sender: ProxyCommandSender, from: org.bukkit.entity.Player, target: OfflinePlayer, amount: BigDecimal, currency: String) {
         val resp = EconomyUtils.transfer(from, target, amount, currency)
         if (resp.type != net.milkbowl.vault2.economy.EconomyResponse.ResponseType.SUCCESS) {
             sender.msg("<red>转账失败: ${resp.errorMessage}")
@@ -369,7 +369,7 @@ object MoneyCommand {
         target.player?.sendMessage(TextBridge.toLegacy(TextUtils.parseMiniMessage("<green>你收到来自 <white>${from.name} <green>的转账 <white>${formatMoney(amount)} <gray>(${EconomySettings.getDefinition(currency).plural})")))
     }
 
-    private fun parseAmount(raw: String, allowZero: Boolean = false): BigDecimal? {
+    internal fun parseAmount(raw: String, allowZero: Boolean = false): BigDecimal? {
         val value = raw.trim().toBigDecimalOrNull() ?: return null
         if (allowZero) return if (value < BigDecimal.ZERO) null else value
         return if (value <= BigDecimal.ZERO) null else value
