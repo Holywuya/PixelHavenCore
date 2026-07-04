@@ -36,7 +36,7 @@ object DeathDropListener {
             return
         }
 
-        // 否则正常掉落（没有墓碑）
+        // 保护耗尽，物品正常掉落
         if (DeathDropSettings.outOfProtectionMessage.isNotBlank()) {
             player.sendMessage(TextUtils.parse(DeathDropSettings.outOfProtectionMessage))
         }
