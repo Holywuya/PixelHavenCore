@@ -9,6 +9,8 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.RecipeChoice
 import org.bukkit.inventory.ShapedRecipe
 import org.bukkit.inventory.ShapelessRecipe
+import taboolib.common.LifeCycle
+import taboolib.common.platform.Awake
 import taboolib.common.platform.event.SubscribeEvent
 import taboolib.common.platform.function.info
 import taboolib.common.platform.function.warning
@@ -18,6 +20,7 @@ object CustomCraftService {
     private val recipes = mutableMapOf<String, CraftingRecipe>()
     private val registeredKeys = mutableListOf<NamespacedKey>()
 
+    @Awake(LifeCycle.ACTIVE)
     fun init() {
         CustomCraftSettings.init()
         if (!CustomCraftSettings.enabled) return

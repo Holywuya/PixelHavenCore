@@ -52,7 +52,6 @@ import com.pixlehavencore.util.DatabaseUtils
 import com.pixlehavencore.util.ItemUtils
 import taboolib.common.platform.Plugin
 import taboolib.common.platform.function.info
-import taboolib.common.platform.function.submit
 
 object PixleHavenCore : Plugin() {
 
@@ -92,7 +91,6 @@ object PixleHavenCore : Plugin() {
         TitleService.init()
         TitlePlaceholders
         FlightService.init()
-        submit(delay = 60) { CustomCraftService.init() }
         logModulesStatus()
         info("Successfully running PixleHavenCore!")
     }
