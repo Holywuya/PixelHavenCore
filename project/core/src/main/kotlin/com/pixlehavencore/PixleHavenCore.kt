@@ -26,7 +26,7 @@ import com.pixlehavencore.feature.playerinv.PlayerInvSettings
 import com.pixlehavencore.feature.mmhealthbar.MMHealthBarService
 import com.pixlehavencore.feature.playerinfo.PlayerInfoService
 import com.pixlehavencore.feature.playerinfo.PlayerInfoSettings
-import com.pixlehavencore.feature.trade.TradeService
+
 import com.pixlehavencore.feature.vanish.VanishService
 import com.pixlehavencore.feature.vanish.VanishSettings
 import com.pixlehavencore.feature.veinminer.VeinminerLimitService
@@ -67,7 +67,7 @@ object PixleHavenCore : Plugin() {
         EntityClearerService.init()
         KeyCommandService.init()
         PlayerInvService.init()
-        TradeService.init()
+
         VanishSettings.init()
         VanishService.init()
         DeathDropSettings.init()
@@ -157,7 +157,7 @@ object PixleHavenCore : Plugin() {
         TitleStorage.stop()
         FlightService.stop()
         VeinminerLimitService.stop()
-        TradeService.stop()
+
         VanishService.stop()
         BackService.stop()
         PlayerStateService.stop()

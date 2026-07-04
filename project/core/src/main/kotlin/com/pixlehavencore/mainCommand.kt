@@ -18,7 +18,7 @@ import com.pixlehavencore.feature.optimization.viewdistance.ViewDistanceService
 import com.pixlehavencore.feature.playerinv.PlayerInvService
 import com.pixlehavencore.feature.mmhealthbar.MMHealthBarService
 import com.pixlehavencore.feature.playerinfo.PlayerInfoService
-import com.pixlehavencore.feature.trade.TradeService
+
 import com.pixlehavencore.feature.vanish.VanishSettings
 import com.pixlehavencore.feature.veinminer.VeinminerSettings
 import com.pixlehavencore.feature.playtime.PlaytimeSettings
@@ -135,7 +135,7 @@ object MainCommand {
             ReloadStep("entity-clearer", false) { EntityClearerService.reload() },
             ReloadStep("key-command", false) { KeyCommandService.reload() },
             ReloadStep("player-inv", false) { PlayerInvService.reload() },
-            ReloadStep("trade", false) { TradeService.reload() },
+
             ReloadStep("vanish", false) { VanishSettings.init() },
             ReloadStep("death-drop", false) { DeathDropSettings.init() },
             ReloadStep("death-drop-usage", false) { DeathDropUsageStorage.init() },
