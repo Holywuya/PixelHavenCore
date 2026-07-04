@@ -13,6 +13,7 @@ import taboolib.common.LifeCycle
 import taboolib.common.platform.Awake
 import taboolib.common.platform.event.SubscribeEvent
 import taboolib.common.platform.function.info
+import taboolib.common.platform.function.submit
 import taboolib.common.platform.function.warning
 
 object CustomCraftService {
@@ -24,7 +25,7 @@ object CustomCraftService {
     fun init() {
         CustomCraftSettings.init()
         if (!CustomCraftSettings.enabled) return
-        loadAllRecipes()
+        loadAllRecipesWithRetry()
     }
 
     fun reload() {
@@ -48,6 +49,33 @@ object CustomCraftService {
         if (!CustomCraftSettings.enableAutoDiscover) return
         registeredKeys.forEach { key ->
             runCatching { event.player.discoverRecipe(key) }
+        }
+    }
+
+    private fun loadAllRecipesWithRetry(attempt: Int = 0) {
+        val maxAttempts = 5
+        val retryDelays = longArrayOf(100, 200, 400, 800)
+
+        val loaded = CustomCraftRecipeLoader.loadAll()
+        if (loaded.isEmpty()) {
+            info("[CustomCraft] 没有找到配方文件")
+            return
+        }
+
+        loaded.forEach { recipe ->
+            if (recipe.id !in recipes) {
+                recipes[recipe.id] = recipe
+            }
+            registerBukkitRecipe(recipe)
+        }
+
+        info("[CustomCraft] 已加载 ${loaded.size} 个配方，成功注册 ${registeredKeys.size} 个")
+        discoverForOnlinePlayers()
+
+        if (registeredKeys.size < loaded.size && attempt < maxAttempts) {
+            val delay = retryDelays[attempt.coerceAtMost(retryDelays.lastIndex)]
+            info("[CustomCraft] ${loaded.size - registeredKeys.size} 个配方未注册，${delay / 20}s 后重试(${attempt + 1}/${maxAttempts})...")
+            submit(delay = delay) { loadAllRecipesWithRetry(attempt + 1) }
         }
     }
 
