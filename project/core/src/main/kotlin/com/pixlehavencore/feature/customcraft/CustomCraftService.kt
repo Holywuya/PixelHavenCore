@@ -55,7 +55,17 @@ object CustomCraftService {
             recipes[recipe.id] = recipe
             registerBukkitRecipe(recipe)
         }
-        info("[CustomCraft] 已加载 ${recipes.size} 个配方")
+        info("[CustomCraft] 已加载 ${recipes.size} 个配方，成功注册 ${registeredKeys.size} 个")
+        discoverForOnlinePlayers()
+    }
+
+    private fun discoverForOnlinePlayers() {
+        if (!CustomCraftSettings.enableAutoDiscover) return
+        Bukkit.getOnlinePlayers().forEach { player ->
+            registeredKeys.forEach { key ->
+                runCatching { player.discoverRecipe(key) }
+            }
+        }
     }
 
     fun loadAndRegister(id: String): Boolean {
@@ -102,7 +112,11 @@ object CustomCraftService {
 
     private fun registerBukkitRecipe(recipe: CraftingRecipe) {
         val key = recipeKey(recipe.id)
-        val resultItem = CustomCraftRecipeLoader.ingredientToItem(recipe.result) ?: return
+        val resultItem = CustomCraftRecipeLoader.ingredientToItem(recipe.result)
+        if (resultItem == null) {
+            warning("[CustomCraft] 无法解析配方结果物品 ${recipe.id}，配方未注册")
+            return
+        }
 
         runCatching {
             when (recipe.type) {
